@@ -1,16 +1,66 @@
 //
 // Created by LENOVO on 03-10-2025.
 //
+#include "SDL3/SDL.h"
+#include "enet/enet.h"
+#include "input.h"
+#include "SDL3_image/SDL_image.h"
+
+#define LOG_TAG "GAME"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
 class Game{
 private:
-    int a =0;
-    int b =0;
+    SDL_IOStream* rw = SDL_IOFromFile("sheets/DinoSprites - doux.png", "rb");
+    SDL_Texture* texture = nullptr;
+    int windowH =0,windowW=0;
+    bool running =true;
+    SDL_Event event;
+    SDL_Window* window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
+    float x = 100.00f , y =100.00f ;
 public:
-    Game(int a,int b){
-        this->a =a;
-        this->b =b;
+    void run(){
+        int i =1;
+        if(!rw)LOGE("cannot load");
+        else
+            LOGE("loaded");
+        Input input(event);
+
+        SDL_Surface* surface = IMG_Load_IO(rw,1);
+        if(!surface)return;
+        texture = SDL_CreateTextureFromSurface(renderer,surface);
+        if(!texture)return;
+        SDL_DestroySurface(surface);
+        SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
+
+        while(running){
+            if(!window)return;
+            if(!renderer)return;
+            SDL_GetWindowSize(window,&windowW,&windowH);
+            input.eventhandler(running,windowW,windowH,x,y);
+            i =(i+1) % 24;
+            SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
+            SDL_RenderClear(renderer);
+
+            SDL_FRect dst = {x, y, 24*10, 24*10};
+            SDL_FRect src ={(float)(0+(24*i)),0,24,24};
+            SDL_RenderTexture(renderer, texture, &src, &dst);
+
+            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+            SDL_FRect Joystick=input.getJoystick();
+            SDL_RenderFillRect(renderer, &Joystick);
+
+            SDL_RenderPresent(renderer);
+            SDL_Delay(16);
+            i++;
+        }
     }
-    int add(){
-        return a +b;
+    ~Game(){
+
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+
     }
 };

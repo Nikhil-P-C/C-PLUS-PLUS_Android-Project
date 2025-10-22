@@ -1,38 +1,76 @@
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html.
-# For more examples on how to use CMake, see https://github.com/android/ndk-samples.
-
-# Sets the minimum CMake version required for this project.
 cmake_minimum_required(VERSION 3.22.1)
+project(MyApp LANGUAGES C CXX)
 
-# Declares the project name. The project name can be accessed via ${ PROJECT_NAME},
-# Since this is the top level CMakeLists.txt, the project name is also accessible
-# with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
-# build script scope).
-project("myapp")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
-#
-# In this top level CMakeLists.txt, ${CMAKE_PROJECT_NAME} is used to define
-# the target library name; in the sub-module's CMakeLists.txt, ${PROJECT_NAME}
-# is preferred for the same purpose.
-#
-# In order to load a library into your app from Java/Kotlin, you must call
-# System.loadLibrary() and pass the name of the library defined here;
-# for GameActivity/NativeActivity derived applications, the same library name must be
-# used in the AndroidManifest.xml file.
-add_library(${CMAKE_PROJECT_NAME} SHARED
-        # List C/C++ source files with relative paths to this CMakeLists.txt.
+
+# --- Android build hints ---
+set(ANDROID TRUE CACHE BOOL "Building for Android" FORCE)
+set(SDL_USE_ANDROID_TOOLCHAIN TRUE CACHE BOOL "" FORCE)
+# --- Enable Android platform in SDL ---
+set(SDL_SYSTEM_ANDROID ON CACHE BOOL "" FORCE)
+set(SDL_PLATFORM "android" CACHE STRING "SDL platform" FORCE)
+
+# --- Disable host-only SDL3 features ---
+set(SDL_HIDAPI OFF CACHE BOOL "Disable HIDAPI" FORCE)
+set(SDL_ALSA OFF CACHE BOOL "Disable ALSA" FORCE)
+set(SDL_ASAN OFF CACHE BOOL "Disable ASAN" FORCE)
+set(SDL_AVX OFF CACHE BOOL "Disable AVX" FORCE)
+set(SDL_AVX2 OFF CACHE BOOL "Disable AVX2" FORCE)
+set(SDL_AVX512F OFF CACHE BOOL "Disable AVX512F" FORCE)
+set(SDL_TEST OFF CACHE BOOL "Disable SDL test" FORCE)
+
+# --- SDL build type ---
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libs" FORCE)
+set(SDL_STATIC OFF CACHE BOOL "Disable static SDL" FORCE)
+set(SDL_SHARED ON CACHE BOOL "Enable shared SDL" FORCE)
+
+# --- Add SDL3 ---
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3 EXCLUDE_FROM_ALL)
+message(WARNING "SDL3 shared: ${SDL_SHARED}, static: ${SDL_STATIC}, build shared: ${BUILD_SHARED_LIBS}")
+# ---- SDL_image ----
+# Enable only what we need (optional)
+set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE)
+set(SDLIMAGE_BMP  ON  CACHE BOOL "" FORCE)
+set(SDLIMAGE_GIF  OFF CACHE BOOL "" FORCE)
+set(SDLIMAGE_JPG  ON  CACHE BOOL "" FORCE)
+set(SDLIMAGE_PNG  ON  CACHE BOOL "" FORCE)
+set(SDLIMAGE_TIF  OFF CACHE BOOL "" FORCE)
+set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image EXCLUDE_FROM_ALL)
+# --- Your main native library ---
+add_library(main SHARED
         main.cpp
-        game.cpp)
+        game.cpp
+        input.h
+        input.cpp
+)
+target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)
 
-# Specifies libraries CMake should link to your target library. You
-# can link libraries from various origins, such as libraries defined in this
-# build script, prebuilt third-party libraries, or Android system libraries.
-target_link_libraries(${CMAKE_PROJECT_NAME}
-        # List libraries link to the target library
+# --- ENet ---
+file(GLOB ENET_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/enet-1.3.18/*.c
+)
+add_library(enet STATIC ${ENET_SRC})
+target_include_directories(enet PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/enet-1.3.18/include
+)
+
+# --- Include directories ---
+target_include_directories(main PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/enet-1.3.18/include
+)
+
+# --- Link libraries ---
+target_link_libraries(main
+        SDL3_image::SDL3_image
+        SDL3::SDL3
+        enet
         android
-        log)
+        log
+)

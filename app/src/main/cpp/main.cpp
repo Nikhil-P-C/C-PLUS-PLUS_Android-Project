@@ -1,13 +1,17 @@
-#include <jni.h>
-#include <string>
+#include <SDL3/SDL.h>
+#include <android/log.h>
+#include <enet/enet.h>
+#include <cmath>
 #include "game.cpp"
+#define LOG_TAG "MYSDLAPP"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-Game game(1,2);
+extern "C" int SDL_main(int argc, char* argv[]) {
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_myapp_MainActivity_stringFromJNI(
-        JNIEnv* env,
-        jobject /* this */) {
-    std::string hello = "the sum of to number"+std::to_string(game.add());
-    return env->NewStringUTF(hello.c_str());
+    Game game;
+    game.run();
+    return 0;
 }
