@@ -14,6 +14,9 @@ class Game{
 private:
     SDL_IOStream* rw = SDL_IOFromFile("sheets/DinoSprites - doux.png", "rb");
     SDL_Texture* texture = nullptr;
+    static const int SPRITE_HEIGHT =24;
+    static const int SPRITE_WIDTH =24;
+    const float W_scale =10.0f;
     int windowH =0,windowW=0;
     bool running =true;
     SDL_Event event;
@@ -44,8 +47,8 @@ public:
             SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
             SDL_RenderClear(renderer);
 
-            SDL_FRect dst = {x, y, 24*10, 24*10};
-            SDL_FRect src ={(float)(0+(24*i)),0,24,24};
+            SDL_FRect dst = {x, y, SPRITE_WIDTH*W_scale, SPRITE_HEIGHT*W_scale};
+            SDL_FRect src ={(float)(0+(SPRITE_WIDTH*i)),0,SPRITE_WIDTH,SPRITE_HEIGHT};
             SDL_RenderTexture(renderer, texture, &src, &dst);
 
             SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
