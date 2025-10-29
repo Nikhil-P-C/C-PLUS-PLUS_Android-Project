@@ -11,11 +11,11 @@ struct Animation{
 class Game{
 private:
     Animation Animation;
-    SDL_IOStream* rw = SDL_IOFromFile("sheets/DinoSprites - doux.png", "rb");
+    SDL_IOStream* rw = SDL_IOFromFile("sheets/DinoSprites - mort.png", "rb");
     SDL_Texture* texture = nullptr;
     static const int SPRITE_HEIGHT =24;
     static const int SPRITE_WIDTH =24;
-    const float W_scale =10.0f;
+    const float W_scale =5.0f;
     int windowH =0,windowW=0;
     bool running =true;
     SDL_Event event;

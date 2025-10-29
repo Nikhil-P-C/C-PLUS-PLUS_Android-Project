@@ -46,8 +46,8 @@ void Game::run(){
 
         SDL_FRect dst = {x, y, SPRITE_WIDTH * W_scale, SPRITE_HEIGHT * W_scale};
         SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * current_Frame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
-        SDL_RenderTexture(renderer, texture, &src, &dst);
-
+        if(input.getPlayerFacingdir())SDL_RenderTexture(renderer, texture, &src, &dst);
+        else SDL_RenderTextureRotated(renderer, texture, &src, &dst,0.0,NULL,SDL_FLIP_HORIZONTAL);
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
         SDL_FRect Joystick=input.getJoystick();
         SDL_RenderFillRect(renderer, &Joystick);
