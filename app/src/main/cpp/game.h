@@ -21,7 +21,7 @@ private:
     SDL_Event event;
     SDL_Window* window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-    float x = 100.00f , y =100.00f ;
+    float x = 100.00f , y =720.00f - SPRITE_HEIGHT * W_scale ;
 public:
     void run();
     ~Game(){
