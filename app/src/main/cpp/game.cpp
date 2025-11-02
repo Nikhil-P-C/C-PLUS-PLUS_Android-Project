@@ -35,6 +35,7 @@ void Game::run(){
         input.getAnimationindexes(this->Animation);
         Uint32 now =SDL_GetTicks();
         if(now-Last_Frame_Time>frame_delay){
+            if(current_Frame<Animation.startIndex)current_Frame=Animation.startIndex;
             if(current_Frame<Animation.lastIndex)current_Frame++;
             else current_Frame=Animation.startIndex;
             Last_Frame_Time=now;
