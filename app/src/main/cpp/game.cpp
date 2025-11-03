@@ -4,7 +4,7 @@
 #include "SDL3/SDL.h"
 #include "enet/enet.h"
 #include "input.h"
-#include "SDL3_image/SDL_image.h"
+
 #include "game.h"
 #define LOG_TAG "GAME"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -12,20 +12,20 @@
 
 void Game::run(){
 
-    if(!rw)LOGE("cannot load");
+    if(!playerSprite)LOGE("cannot load");
+
     else
         LOGE("loaded");
-    Input input(event);
 
-    SDL_Surface* surface = IMG_Load_IO(rw,1);
-    if(!surface)return;
-    texture = SDL_CreateTextureFromSurface(renderer,surface);
-    if(!texture)return;
-    SDL_DestroySurface(surface);
-    SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     int current_Frame =0;
     int frame_delay =50;//delayed by 50ms
     Uint32 Last_Frame_Time =SDL_GetTicks();
+    Uint32 last =SDL_GetTicks();
+    Uint32 lasttime =SDL_GetTicks();
+    const int FPS =60;
+    const int frameDelay = 1000/FPS;
+    int fps =0;
+    Input input(event);
     while(running){
         if(!window)return;
         if(!renderer)return;
@@ -39,22 +39,41 @@ void Game::run(){
             if(current_Frame<Animation.lastIndex)current_Frame++;
             else current_Frame=Animation.startIndex;
             Last_Frame_Time=now;
+        }
+        Uint32 current =SDL_GetTicks();
+        if(current - last >= 1000){
+            last = current;
+            fps++;
 
         }
+
+        //delta time
+        Uint32 framestart = SDL_GetTicks();
+        float deltaTime = (framestart - lasttime) / 1000.0f;
+        lasttime = framestart;
+        //game starts
         //sets color
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
-
+        //tile rendering
+        SDL_FRect tileDst = {0, 0, 352, 176};
+        SDL_FRect tileSrc = {0, 0, 352, 176};
+        //SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
+        //player rendering
         SDL_FRect dst = {x, y, SPRITE_WIDTH * W_scale, SPRITE_HEIGHT * W_scale};
         SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * current_Frame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
         if(input.getPlayerFacingdir())SDL_RenderTexture(renderer, texture, &src, &dst);
         else SDL_RenderTextureRotated(renderer, texture, &src, &dst,0.0,NULL,SDL_FLIP_HORIZONTAL);
+
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
         SDL_FRect Joystick=input.getJoystick();
         SDL_RenderFillRect(renderer, &Joystick);
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(16);
+        Uint32 frametime = SDL_GetTicks() - framestart;
+        if (frametime < frameDelay) {
+            SDL_Delay(frameDelay - frametime);
+        }
 
     }
 }
