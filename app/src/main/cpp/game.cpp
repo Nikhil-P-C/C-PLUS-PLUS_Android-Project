@@ -23,6 +23,7 @@ void Game::run(){
     Uint32 last =SDL_GetTicks();
     Uint32 lasttime =SDL_GetTicks();
     const int FPS =60;
+
     const int frameDelay = 1000/FPS;
     int fps =0;
     Input input(event);
