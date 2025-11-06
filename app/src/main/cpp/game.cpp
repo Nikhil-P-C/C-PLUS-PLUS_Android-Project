@@ -14,11 +14,8 @@ void Game::run(){
 
     if(!playerSprite)LOGE("cannot load");
 
-    else
-        LOGE("loaded");
-
     int current_Frame =0;
-    int frame_delay =50;//delayed by 50ms
+    int Aniframe_delay =50;//delayed by 50ms
     Uint32 Last_Frame_Time =SDL_GetTicks();
     Uint32 last =SDL_GetTicks();
     Uint32 lasttime =SDL_GetTicks();
@@ -26,6 +23,7 @@ void Game::run(){
 
     const int frameDelay = 1000/FPS;
     int fps =0;
+    int frames =0;
     Input input(event);
     while(running){
         if(!window)return;
@@ -35,31 +33,34 @@ void Game::run(){
         //gets player animation indices for sprite rendering
         input.getAnimationindexes(this->Animation);
         Uint32 now =SDL_GetTicks();
-        if(now-Last_Frame_Time>frame_delay){
+        if(now-Last_Frame_Time>Aniframe_delay){
             if(current_Frame<Animation.startIndex)current_Frame=Animation.startIndex;
             if(current_Frame<Animation.lastIndex)current_Frame++;
             else current_Frame=Animation.startIndex;
             Last_Frame_Time=now;
         }
+        fps++;
         Uint32 current =SDL_GetTicks();
         if(current - last >= 1000){
-            last = current;
-            fps++;
 
+            frames =fps;
+            fps =0;
+            last = current;
+            LOGI("FPS: %d",frames);
         }
 
         //delta time
         Uint32 framestart = SDL_GetTicks();
-        float deltaTime = (framestart - lasttime) / 1000.0f;
+        float deltaTime = (float)(framestart - lasttime) / 1000.0f;
         lasttime = framestart;
         //game starts
         //sets color
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
         //tile rendering
-        SDL_FRect tileDst = {0, 0, 352, 176};
-        SDL_FRect tileSrc = {0, 0, 352, 176};
-        //SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
+        SDL_FRect tileDst = {0, 0, 48*6, 48*6};
+        SDL_FRect tileSrc = {0+96, 0, 48, 48};
+        SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
         //player rendering
         SDL_FRect dst = {x, y, SPRITE_WIDTH * W_scale, SPRITE_HEIGHT * W_scale};
         SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * current_Frame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
