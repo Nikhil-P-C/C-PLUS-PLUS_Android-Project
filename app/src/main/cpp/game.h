@@ -9,9 +9,9 @@ struct Animation{
     int startIndex=0;
     int lastIndex=0;
 };
+
 class Game{
 private:
-
     Animation Animation;
     SDL_IOStream* playerSprite = SDL_IOFromFile("sheets/DinoSprites - mort.png", "rb");
     SDL_IOStream* tilesetSprite = SDL_IOFromFile("Platforms/Terrain.png", "rb");
@@ -19,7 +19,10 @@ private:
     SDL_Texture* tileset = nullptr;
     static const int SPRITE_HEIGHT =24;
     static const int SPRITE_WIDTH =24;
-    const float W_scale =5.0f;
+    static const int TILE_HEIGHT =16;
+    static const int TILE_WIDTH =16;
+
+    constexpr static const float W_scale =5.0f;
     int windowH =0,windowW=0;
     bool running =true;
     SDL_Event event;
@@ -45,6 +48,9 @@ public:
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
         SDL_SetTextureScaleMode(tileset,SDL_SCALEMODE_NEAREST);
     }
+
+
+
     void run();
     ~Game(){
 
@@ -55,6 +61,21 @@ public:
         if (playerSprite) SDL_CloseIO(playerSprite);
         if (tilesetSprite) SDL_CloseIO(tilesetSprite);
 
+    }
+    static int getSpriteHeight(){
+        return SPRITE_HEIGHT;
+    }
+    static int getSpriteWidth(){
+        return SPRITE_WIDTH;
+    }
+    static int getTileHeight(){
+        return TILE_HEIGHT;
+    }
+    static int getTileWidth(){
+        return TILE_WIDTH;
+    }
+    static float getWscale(){
+        return W_scale;
     }
 };
 
