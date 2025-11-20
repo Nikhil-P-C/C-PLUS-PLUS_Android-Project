@@ -1,0 +1,21 @@
+<component name="ProjectDictionaryState">
+  <dictionary name="project">
+    <words>
+      <w>aniframe</w>
+      <w>animationindexes</w>
+      <w>definebutton</w>
+      <w>eventhandler</w>
+      <w>facingdir</w>
+      <w>framestart</w>
+      <w>frametime</w>
+      <w>groundlevel</w>
+      <w>isgrounded</w>
+      <w>jumpforce</w>
+      <w>lasttime</w>
+      <w>movingleft</w>
+      <w>movingright</w>
+      <w>playersurface</w>
+      <w>tilesurface</w>
+    </words>
+  </dictionary>
+</component>
