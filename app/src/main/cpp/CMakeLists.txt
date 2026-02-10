@@ -47,6 +47,8 @@ add_library(main SHARED
         game.cpp
         input.h
         input.cpp
+        Player.h
+        platform.h
 )
 target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)
 

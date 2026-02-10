@@ -54,7 +54,7 @@ public:
     }
     void getAnimationindexes(Animation& animation);// gets player animation indices for sprite rendering
 
-
+    bool shouldJump(float& dX,float& dY);
 };
 
 

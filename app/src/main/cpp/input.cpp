@@ -11,7 +11,9 @@
 #include "input.h"
 
 void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime) {
-    float groundlevel =(float)windowH-24*5;
+
+     float groundlevel =600;
+
     while(SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_EVENT_QUIT:
@@ -36,14 +38,19 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
                 break;
         }
     }
-    if(y >groundlevel){
+    if(velocityY <0){
+        velocityY += gravity  * deltaTime;
+    }
+    else {
+        velocityY += 1000.0f*deltaTime;
+    }
+    y+= velocityY * deltaTime;
+    if(y >=groundlevel){
         y =groundlevel;
         isgrounded =true;
         jumping = false;
         P_action =IDLE;
     }
-
-    if(!jumping)y +=  (gravity * 9.0f) * deltaTime;
 
 
 
@@ -64,36 +71,41 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
             P_action = MOVINGLEFT;
             isFacingRight = false;
         }
-        if (dY < 0 && isgrounded && dX < 0.9 && dX > -0.9){
-            isgrounded =false;
-            P_action = CROUCHING;
-            velocityY = -35.00f;
-            jumping = true;
-        }
 
-        if (jumping) {
-            y+= velocityY;
-            velocityY += gravity  * deltaTime;
-            if (y >= groundlevel) {
-                y = groundlevel;
-                isgrounded = true;
+        LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
+             jumping,y,velocityY,(gravity * deltaTime),groundlevel);
+
+        if(shouldJump(dX,dY)) {
+            LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
+                 jumping,y,velocityY,(gravity * deltaTime),groundlevel);
+            if (y > groundlevel) {
                 jumping = false;
-                velocityY = 0;
+                velocityY =0.00f;
                 P_action = IDLE;
             }
         }
 
 
-        if(jumping){
-            if(dX>0)x += 250 * deltaTime;
-            else if(dX<0)x -= 250*deltaTime;
-        }
-        else{
-            if(dX>0)x += 250*deltaTime;
-            else if(dX<0)x -= 250*deltaTime;
-        }
+
+        if(dX>0)x += 250 * deltaTime;
+        else if(dX<0)x -= 250*deltaTime;
+
+
     }
 
+}
+bool Input::shouldJump(float& dX, float& dY) {
+
+    if (dY < 0 && isgrounded && dX < 0.9 && dX > -0.9){
+        isgrounded =false;
+        P_action = CROUCHING;
+        velocityY = -850.00f;
+        LOGI("should jump?true");
+        return true;
+
+    }
+    LOGI("should jump?false");
+    return false;
 }
 //gets player animation indices for sprite rendering
 void Input::getAnimationindexes(Animation& animation) {

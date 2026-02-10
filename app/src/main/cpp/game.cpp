@@ -1,18 +1,26 @@
 //
 // Created by LENOVO on 03-10-2025.
 //
-#include "SDL3/SDL.h"
-#include "enet/enet.h"
+#include <SDL3/SDL.h>
+#include <enet/enet.h>
 #include "input.h"
-
 #include "game.h"
+
 #define LOG_TAG "GAME"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-void Game::createMap(){
+
+void Game::setPlatform() {
+    platforms[0] ={0,0,48,16};
+
+
 
 
 }
+void Game::checkCollisions() {
+
+}
+
 
 void Game::run(){
 
@@ -30,11 +38,26 @@ void Game::run(){
     int frames =0;
     float deltaTime =0.0f;
     Input input(event);
+    setPlatform();
+
+    SDL_GetWindowSize(window,&windowW,&windowH);
+    SDL_GetWindowSizeInPixels(window,&windowW,&windowH);
+    const SDL_DisplayMode* mode =
+            SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+
+    if(mode)
+    {
+        LOGI("Display native: %d x %d", mode->w, mode->h);
+        windowW =mode->w;
+        windowH = mode->h;
+    }
+
+
     while(running){
         if(!window)return;
         if(!renderer)return;
-        SDL_GetWindowSize(window,&windowW,&windowH);
-        input.eventhandler(running,windowW,windowH,x,y, deltaTime);
+
+        input.eventhandler(running,windowW,windowH,player.x,player.y, deltaTime);
         //gets player animation indices for sprite rendering
         input.getAnimationindexes(this->Animation);
         Uint32 now =SDL_GetTicks();
@@ -58,25 +81,19 @@ void Game::run(){
         Uint32 framestart = SDL_GetTicks();
         deltaTime = (float)(framestart - lasttime) / 1000.0f;
         lasttime = framestart;
+
         //game starts
-        //sets color
+
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
         //tile rendering
-        SDL_FRect tileDst = {0, 0, 48*5, 16*5};
-        SDL_FRect tileSrc = {0+96, 0, 48, 16};
-        SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
-        /*SDL_FRect newtileDst = {200, 200, 48*5, 16*5};
-        SDL_FRect newtileSrc = {0+96, 0, 48, 16};
-        SDL_RenderTexture(renderer, tileset, &newtileSrc, &newtileDst);
-        SDL_FRect new2tileDst = {450, 100, 48*5, 16*5};
-        SDL_FRect new2tileSrc = {0+96, 0, 48, 16};
-        SDL_RenderTexture(renderer, tileset, &new2tileSrc, &new2tileDst);
-        SDL_FRect new3tileDst = {300, 600, 48*5, 16*5};
-        SDL_FRect new3tileSrc = {0+96, 0, 48, 16};
-        SDL_RenderTexture(renderer, tileset, &new3tileSrc, &new3tileDst);*/
+        for(int i = 0; i < 100; i++){
+            SDL_FRect tileDst = {platforms[i].x, platforms[i].y, platforms[i].w * P_scale, platforms[i].h * P_scale};
+            SDL_FRect tileSrc = {0+96, 0, 48, 16};
+            SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
+        }
         //player rendering
-        SDL_FRect dst = {x, y, SPRITE_WIDTH * W_scale, SPRITE_HEIGHT * W_scale};
+        SDL_FRect dst = {player.x, player.y, player.w, player.h};
         SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * current_Frame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
         if(input.getPlayerFacingdir())SDL_RenderTexture(renderer, texture, &src, &dst);
         else SDL_RenderTextureRotated(renderer, texture, &src, &dst,0.0,NULL,SDL_FLIP_HORIZONTAL);
