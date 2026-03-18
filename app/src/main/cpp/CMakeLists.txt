@@ -45,8 +45,10 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image EXCLUDE_FROM_ALL)
 add_library(main SHARED
         main.cpp
         game.cpp
-        input.h
         input.cpp
+        gameUtils.cpp
+        gameUtils.h
+        input.h
         Player.h
         platform.h
 )

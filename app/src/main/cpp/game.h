@@ -1,13 +1,16 @@
 //
 // Created by LENOVO on 29-10-2025.
 //
+#pragma once
+#ifndef MY_APP_GAME_H
+#define MY_APP_GAME_H
+#define MAX_PLATFORM 100
+
 #include "SDL3_image/SDL_image.h"
 #include "SDL3/SDL.h"
 #include "platform.h"
 #include "Player.h"
-#ifndef MY_APP_GAME_H
-#define MY_APP_GAME_H
-#define MAX_PLATFORM 100
+
 
 struct Animation{
     int startIndex=0;
@@ -33,6 +36,8 @@ public:
         SDL_DestroySurface(Tilesurface);
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
         SDL_SetTextureScaleMode(tileset,SDL_SCALEMODE_NEAREST);
+        player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
+
     }
     ~Game(){
 
@@ -47,7 +52,7 @@ public:
 public:
     void run();
 
-    void checkCollisions();
+
     void setPlatform();
     static int getSpriteHeight(){
         return SPRITE_HEIGHT;
@@ -64,6 +69,12 @@ public:
     static float getWscale(){
         return P_scale;
     }
+    float getWindowHeight() const{
+        return (float)windowH;
+    }
+    float getWindowWidth() const{
+        return (float)windowW;
+    }
 private:
     //animation and texture
     Animation Animation;
@@ -79,14 +90,14 @@ private:
     Platform platforms[MAX_PLATFORM];
     Player player;
     //scaling and window and input
-    constexpr static const float P_scale =1.0f;
+    constexpr static const float P_scale =5.0f;
     int windowH =0,windowW=0;
     bool running =true;
     SDL_Event event;
     SDL_Window* window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
     //player init pos
-    float x = 100.00f , y =720.00f - SPRITE_HEIGHT * P_scale ;
+    float x = 0,y=0;
 };
 
 #endif //MY_APP_GAME_H

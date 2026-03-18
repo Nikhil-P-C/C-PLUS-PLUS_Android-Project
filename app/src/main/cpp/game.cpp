@@ -5,6 +5,8 @@
 #include <enet/enet.h>
 #include "input.h"
 #include "game.h"
+#include "Player.h"
+#include "gameUtils.h"
 
 #define LOG_TAG "GAME"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -12,14 +14,14 @@
 
 void Game::setPlatform() {
     platforms[0] ={0,0,48,16};
-
+    platforms[1] ={200,200,48,16};
+    platforms[2] ={300,300,48,16};
+    platforms[3] ={400,400,48,16};
 
 
 
 }
-void Game::checkCollisions() {
 
-}
 
 
 void Game::run(){
@@ -39,11 +41,10 @@ void Game::run(){
     float deltaTime =0.0f;
     Input input(event);
     setPlatform();
-
-    SDL_GetWindowSize(window,&windowW,&windowH);
-    SDL_GetWindowSizeInPixels(window,&windowW,&windowH);
+    //display resolution
     const SDL_DisplayMode* mode =
             SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+    x = 100.00f , y =getWindowHeight() - SPRITE_HEIGHT * P_scale;
 
     if(mode)
     {
@@ -51,7 +52,8 @@ void Game::run(){
         windowW =mode->w;
         windowH = mode->h;
     }
-
+    player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
+    player.setPosition(x,y,getWindowHeight());
 
     while(running){
         if(!window)return;
@@ -81,9 +83,9 @@ void Game::run(){
         Uint32 framestart = SDL_GetTicks();
         deltaTime = (float)(framestart - lasttime) / 1000.0f;
         lasttime = framestart;
-
+        LOGI("Collision inputs: %f %f %f %f", player.x, player.y, platforms[0].x, platforms[0].y);
         //game starts
-
+        gameUtilities::checkcollision(player.x,player.y,platforms[3].x,platforms[3].y,player.h,player.w,platforms[0].h,platforms[0].w);
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
         //tile rendering

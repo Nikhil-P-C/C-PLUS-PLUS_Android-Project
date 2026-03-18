@@ -12,7 +12,7 @@
 
 void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime) {
 
-     float groundlevel =600;
+    float groundlevel =600;
 
     while(SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -42,7 +42,7 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
         velocityY += gravity  * deltaTime;
     }
     else {
-        velocityY += 1000.0f*deltaTime;
+        velocityY += gravity *5.0f*deltaTime;
     }
     y+= velocityY * deltaTime;
     if(y >=groundlevel){
@@ -54,12 +54,13 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
 
 
 
+
     if(hold) {
-        float centerX = joystick.x + joystick.w / 2;
-        float centerY = joystick.y + joystick.h / 2;
-        float dY = TouchY - centerY;
-        float dX = TouchX - centerX;
-        float len = sqrtf(dX * dX + dY * dY);
+        centerX = joystick.x + joystick.w / 2;
+        centerY = joystick.y + joystick.h / 2;
+        dY = TouchY - centerY;
+        dX = TouchX - centerX;
+        len = sqrtf(dX * dX + dY * dY);
         if (len > 0) {
             dX /= len;
             dY /= len;
@@ -72,26 +73,42 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
             isFacingRight = false;
         }
 
-        LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
-             jumping,y,velocityY,(gravity * deltaTime),groundlevel);
+//        LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
+//             jumping,y,velocityY,(gravity * deltaTime),groundlevel);
 
         if(shouldJump(dX,dY)) {
-            LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
-                 jumping,y,velocityY,(gravity * deltaTime),groundlevel);
-            if (y > groundlevel) {
+//               LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
+//                    jumping,y,velocityY,(gravity * deltaTime),groundlevel);
+            if (y  >groundlevel) {
                 jumping = false;
                 velocityY =0.00f;
                 P_action = IDLE;
             }
         }
-
-
-
-        if(dX>0)x += 250 * deltaTime;
-        else if(dX<0)x -= 250*deltaTime;
-
+        if(!jumping){
+            if(dX>0)x += 250 * deltaTime;
+            else if(dX<0)x -= 250*deltaTime;
+        }
+        if(jumpPressed){
+            if(dX>0)x += 50 * deltaTime;
+            else if(dX<0)x -= 50*deltaTime;
+        }
 
     }
+    prevJumpPressed =jumpPressed;
+    jumpPressed =false;
+    if(hold){
+        if(dY < 0 && dX < 0.9 && dX > -0.9){
+            jumpPressed=true;
+        }
+    }
+
+    jumpReleased = (!jumpPressed && prevJumpPressed);
+    if(jumpReleased) { LOGI("jump released");
+        jumping = true;
+        velocityY = velocityY * -14;
+    }
+
 
 }
 bool Input::shouldJump(float& dX, float& dY) {
@@ -99,12 +116,12 @@ bool Input::shouldJump(float& dX, float& dY) {
     if (dY < 0 && isgrounded && dX < 0.9 && dX > -0.9){
         isgrounded =false;
         P_action = CROUCHING;
-        velocityY = -850.00f;
-        LOGI("should jump?true");
+        velocityY = -250.00f;
+//        LOGI("should jump?true");
         return true;
 
     }
-    LOGI("should jump?false");
+//    LOGI("should jump?false");
     return false;
 }
 //gets player animation indices for sprite rendering

@@ -17,22 +17,6 @@ enum Action{
     CROUCHING=5
 };
 class Input {
-private:
-
-    bool isFacingRight =true;
-    Action P_action =IDLE;
-    SDL_Event event;
-    bool hold =false;
-    float TouchX =0.00f;
-    float TouchY =0.00f;
-    float gravity =95.9f;
-    float velocityY= 0.00f;
-    float acceleration =0.00f;
-    float jumpForce =10.00f;
-    bool jumping =false;
-
-    bool isgrounded =false;
-    SDL_FRect joystick{200,500,200,200};
 
 public:
     Input(SDL_Event& event){
@@ -55,6 +39,34 @@ public:
     void getAnimationindexes(Animation& animation);// gets player animation indices for sprite rendering
 
     bool shouldJump(float& dX,float& dY);
+private:
+    Action P_action =IDLE;
+    SDL_Event event;
+    //movement variables
+    bool isFacingRight =true;
+    bool jumping =false;
+    bool isgrounded =false;
+    bool hold =false;
+    bool jumpPressed =false;
+    bool jumpReleased =false;
+    bool prevJumpPressed =false;
+    //touch input variables
+    float TouchX =0.00f;
+    float TouchY =0.00f;
+    float centerX=0.00f;
+    float centerY=0.00f;
+    float dY=0.00f;
+    float dX=0.00f;
+    float len=0.00f;
+    //physics variables
+    float gravity =95.9f;
+    float velocityY= 0.00f;
+    float acceleration =0.00f;
+    float jumpForce =10.00f;
+
+
+
+    SDL_FRect joystick{200,500,200,200};
 };
 
 
