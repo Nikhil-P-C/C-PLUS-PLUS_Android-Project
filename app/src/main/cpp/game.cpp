@@ -14,9 +14,9 @@
 
 void Game::setPlatform() {
     platforms[0] ={0,0,48,16};
-    platforms[1] ={200,200,48,16};
-    platforms[2] ={300,300,48,16};
-    platforms[3] ={400,400,48,16};
+    platforms[1] ={100,500,48,16};
+    platforms[2] ={700,500,48,16};
+    platforms[3] ={500,500,48,16};
 
 
 
@@ -54,12 +54,12 @@ void Game::run(){
     }
     player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
     player.setPosition(x,y,getWindowHeight());
-
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     while(running){
         if(!window)return;
         if(!renderer)return;
 
-        input.eventhandler(running,windowW,windowH,player.x,player.y, deltaTime);
+        input.eventhandler(running,windowW,windowH,player.x,player.y, deltaTime,platforms);
         //gets player animation indices for sprite rendering
         input.getAnimationindexes(this->Animation);
         Uint32 now =SDL_GetTicks();
@@ -83,24 +83,36 @@ void Game::run(){
         Uint32 framestart = SDL_GetTicks();
         deltaTime = (float)(framestart - lasttime) / 1000.0f;
         lasttime = framestart;
-        LOGI("Collision inputs: %f %f %f %f", player.x, player.y, platforms[0].x, platforms[0].y);
+
         //game starts
-        gameUtilities::checkcollision(player.x,player.y,platforms[3].x,platforms[3].y,player.h,player.w,platforms[0].h,platforms[0].w);
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
         //tile rendering
-        for(int i = 0; i < 100; i++){
+        for(int i = 0; i < 4; i++){
+
+            gameUtilities::checkcollision(player.x,player.y,platforms[i].x,platforms[i].y,player.h,player.w,16.0f *P_scale,48.0f *P_scale);
+
+
             SDL_FRect tileDst = {platforms[i].x, platforms[i].y, platforms[i].w * P_scale, platforms[i].h * P_scale};
             SDL_FRect tileSrc = {0+96, 0, 48, 16};
             SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
+
+            SDL_FRect border = {platforms[i].x, platforms[i].y, platforms[i].w * P_scale, platforms[i].h * P_scale};
+            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+            SDL_RenderRect(renderer,&border);
         }
         //player rendering
+
+        SDL_FRect border = {player.x, player.y, player.w, player.h};
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_RenderRect(renderer,&border);
+
         SDL_FRect dst = {player.x, player.y, player.w, player.h};
         SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * current_Frame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
         if(input.getPlayerFacingdir())SDL_RenderTexture(renderer, texture, &src, &dst);
         else SDL_RenderTextureRotated(renderer, texture, &src, &dst,0.0,NULL,SDL_FLIP_HORIZONTAL);
 
-        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 90);
         SDL_FRect Joystick=input.getJoystick();
         SDL_RenderFillRect(renderer, &Joystick);
 

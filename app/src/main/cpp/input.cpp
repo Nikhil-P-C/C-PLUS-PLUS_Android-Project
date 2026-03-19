@@ -9,8 +9,10 @@
 
 #include <cmath>
 #include "input.h"
+#include "gameUtils.h"
+#include "platform.h"
 
-void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime) {
+void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime,Platform platforms[]) {
 
     float groundlevel =600;
 
@@ -38,22 +40,31 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
                 break;
         }
     }
-    if(velocityY <0){
-        velocityY += gravity  * deltaTime;
-    }
-    else {
-        velocityY += gravity *5.0f*deltaTime;
-    }
-    y+= velocityY * deltaTime;
+    velocityY += gravity *deltaTime;
+    acceleration =( velocityY *jumpForce) * deltaTime;
+    y+=acceleration;
+
     if(y >=groundlevel){
         y =groundlevel;
+        velocityY =0.00f;
         isgrounded =true;
         jumping = false;
         P_action =IDLE;
     }
 
-
-
+    prevJumpPressed =jumpPressed;
+    jumpPressed =false;
+    if(hold){
+        if(dY < 0 && dX < 0.9 && dX > -0.9){
+            jumpPressed=true;
+            jumping=true;
+            P_action = CROUCHING;
+        }
+    }
+    jumpReleased = (!jumpPressed && prevJumpPressed);
+    if(jumpReleased) { LOGI("jump released");
+        jumping = false;
+    }
 
     if(hold) {
         centerX = joystick.x + joystick.w / 2;
@@ -75,55 +86,49 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
 
 //        LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
 //             jumping,y,velocityY,(gravity * deltaTime),groundlevel);
-
-        if(shouldJump(dX,dY)) {
+        if(jumpReleased && velocityY < 0){
+              // or 0.4–0.6 depending on feel
+              LOGI("jump cancel");
+        }
+        if(jumping && isgrounded){
+            velocityY = -250.0f;
+            isgrounded = false;
 //               LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
 //                    jumping,y,velocityY,(gravity * deltaTime),groundlevel);
-            if (y  >groundlevel) {
-                jumping = false;
-                velocityY =0.00f;
-                P_action = IDLE;
-            }
         }
         if(!jumping){
             if(dX>0)x += 250 * deltaTime;
             else if(dX<0)x -= 250*deltaTime;
         }
-        if(jumpPressed){
+        if(jumping){
             if(dX>0)x += 50 * deltaTime;
             else if(dX<0)x -= 50*deltaTime;
         }
 
     }
-    prevJumpPressed =jumpPressed;
-    jumpPressed =false;
-    if(hold){
-        if(dY < 0 && dX < 0.9 && dX > -0.9){
-            jumpPressed=true;
-        }
-    }
 
-    jumpReleased = (!jumpPressed && prevJumpPressed);
-    if(jumpReleased) { LOGI("jump released");
-        jumping = true;
-        velocityY = velocityY * -14;
-    }
+    if(velocityY >=2000)velocityY =2000;
 
+
+    LOGI("acceleration :%f",acceleration);
 
 }
-bool Input::shouldJump(float& dX, float& dY) {
 
-    if (dY < 0 && isgrounded && dX < 0.9 && dX > -0.9){
-        isgrounded =false;
-        P_action = CROUCHING;
-        velocityY = -250.00f;
-//        LOGI("should jump?true");
-        return true;
 
-    }
-//    LOGI("should jump?false");
-    return false;
-}
+//bool Input::shouldJump(float& dX, float& dY) {
+//
+//    if (dY < 0 && isgrounded && dX < 0.9 && dX > -0.9){
+//        isgrounded =false;
+//        jumping =true;
+//        P_action = CROUCHING;
+//        velocityY = -250.00f;
+////        LOGI("should jump?true");
+//        return true;
+//
+//    }
+////    LOGI("should jump?false");
+//    return false;
+//}
 //gets player animation indices for sprite rendering
 void Input::getAnimationindexes(Animation& animation) {
         switch(P_action){

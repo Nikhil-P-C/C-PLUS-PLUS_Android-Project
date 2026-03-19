@@ -17,8 +17,8 @@ namespace gameUtilities{
             float dx = centerX1 - centerX2;
             float dy = centerY1 - centerY2;
 
-            float overlapX = ((w1 / 2) + (w2 / 2)) - abs(dx);
-            float overlapY = ((h1 / 2) + (h2 / 2)) - abs(dy);
+            float overlapX = ((w1 / 2) + (w2 / 2)) - fabs(dx);
+            float overlapY = ((h1 / 2) + (h2 / 2)) - fabs(dy);
             if (overlapX > 0 && overlapY > 0) {
                 if (overlapX < overlapY) {
                     // Push along X

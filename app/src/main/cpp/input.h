@@ -1,6 +1,7 @@
 //
 // Created by LENOVO on 09-10-2025.
 //
+#include "platform.h"
 #include "SDL3/SDL.h"
 #include <android/log.h>
 #include "game.h"
@@ -22,7 +23,7 @@ public:
     Input(SDL_Event& event){
         this->event =event;
     }
-    void eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime);//does the input handling
+    void eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime ,Platform platforms[]);//does the input handling
 
     SDL_FRect getJoystick(){
         return joystick;
@@ -38,7 +39,7 @@ public:
     }
     void getAnimationindexes(Animation& animation);// gets player animation indices for sprite rendering
 
-    bool shouldJump(float& dX,float& dY);
+//    bool shouldJump(float& dX,float& dY);
 private:
     Action P_action =IDLE;
     SDL_Event event;
@@ -59,10 +60,10 @@ private:
     float dX=0.00f;
     float len=0.00f;
     //physics variables
-    float gravity =95.9f;
+    float gravity =400.9f;
     float velocityY= 0.00f;
     float acceleration =0.00f;
-    float jumpForce =10.00f;
+    float jumpForce =5.00f;
 
 
 
