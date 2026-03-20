@@ -45,7 +45,7 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
     if(isgrounded)acceleration =0.00f;
     y+=acceleration;
     isgrounded=false;
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 100; i++) {
 
         if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, playerH,
                                       playerW, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
@@ -115,8 +115,8 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
             else if(dX<0)x -= 250*deltaTime;
         }
         if(jumping){
-            if(dX>0)x += 50 * deltaTime;
-            else if(dX<0)x -= 50*deltaTime;
+            if(dX>0)x += 100 * deltaTime;
+            else if(dX<0)x -= 100*deltaTime;
         }
 
     }
@@ -124,7 +124,6 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
     if(velocityY >=2000)velocityY =2000;
 
 
-    LOGI("acceleration :%f",acceleration);
 
 }
 

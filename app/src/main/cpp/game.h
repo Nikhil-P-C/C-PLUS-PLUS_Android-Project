@@ -20,22 +20,6 @@ struct Animation{
 class Game{
 public:
     Game(){
-        //player sprite loading
-        SDL_Surface* Playersurface = IMG_Load_IO(playerSprite,true);
-        if(!Playersurface)return;
-        texture = SDL_CreateTextureFromSurface(renderer,Playersurface);
-        if(!texture)return;
-        SDL_DestroySurface(Playersurface);
-
-        // tileset loading
-        SDL_Surface* Tilesurface = IMG_Load_IO(tilesetSprite,true);
-        if(!Tilesurface)return;
-        tileset = SDL_CreateTextureFromSurface(renderer,Tilesurface);
-        if(!tileset)return;
-
-        SDL_DestroySurface(Tilesurface);
-        SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
-        SDL_SetTextureScaleMode(tileset,SDL_SCALEMODE_NEAREST);
         player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
 
     }
@@ -80,8 +64,10 @@ private:
     Animation Animation;
     SDL_IOStream* playerSprite = SDL_IOFromFile("sheets/DinoSprites - mort.png", "rb");
     SDL_IOStream* tilesetSprite = SDL_IOFromFile("Platforms/Terrain.png", "rb");
+    SDL_IOStream* backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
     SDL_Texture* texture = nullptr;
     SDL_Texture* tileset = nullptr;
+    SDL_Texture* backGround = nullptr;
     static const int SPRITE_HEIGHT =24;
     static const int SPRITE_WIDTH =24;
     static const int TILE_HEIGHT =16;
@@ -94,8 +80,8 @@ private:
     int windowH =0,windowW=0;
     bool running =true;
     SDL_Event event;
-    SDL_Window* window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
+    SDL_Window* window =nullptr;
+    SDL_Renderer* renderer =nullptr;
     //player init pos
     float x = 0,y=0;
 };

@@ -25,7 +25,37 @@ void Game::setPlatform() {
 
 
 void Game::run(){
+    window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
 
+    renderer = SDL_CreateRenderer(window, "opengles2");
+    if (!renderer) {
+        LOGE("Renderer creation failed: %s", SDL_GetError());
+    }
+    const char* name = SDL_GetRendererName(renderer);
+    LOGI("Renderer: %s", name);
+    //background sprite loading;
+    SDL_Surface* Backgroundsurface = IMG_Load_IO(backGroundSprite,true);
+    if(!Backgroundsurface)return;
+    backGround = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
+    if(!backGround)return;
+    SDL_DestroySurface(Backgroundsurface);
+    //player sprite loading
+    SDL_Surface* Playersurface = IMG_Load_IO(playerSprite,true);
+    if(!Playersurface)return;
+    texture = SDL_CreateTextureFromSurface(renderer,Playersurface);
+    if(!texture)return;
+    SDL_DestroySurface(Playersurface);
+
+
+    // tileset loading
+    SDL_Surface* Tilesurface = IMG_Load_IO(tilesetSprite,true);
+    if(!Tilesurface)return;
+    tileset = SDL_CreateTextureFromSurface(renderer,Tilesurface);
+    if(!tileset)return;
+
+    SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(tileset,SDL_SCALEMODE_NEAREST);
+    SDL_DestroySurface(Tilesurface);
     if(!playerSprite)LOGE("cannot load");
 
     int current_Frame =0;
@@ -55,6 +85,7 @@ void Game::run(){
     player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
     player.setPosition(x,y,getWindowHeight());
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    SDL_SetTextureBlendMode(backGround,SDL_BLENDMODE_NONE);
     while(running){
         if(!window)return;
         if(!renderer)return;
@@ -87,6 +118,12 @@ void Game::run(){
         //game starts
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
+        //background rendering
+        SDL_FRect backgroundDst = {0, 0, getWindowWidth(), getWindowHeight()};
+
+        SDL_RenderTexture(renderer, backGround, NULL, &backgroundDst);
+
+
         //tile rendering
         for(int i = 0; i < 4; i++){
 
