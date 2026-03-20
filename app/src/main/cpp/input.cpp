@@ -12,7 +12,7 @@
 #include "gameUtils.h"
 #include "platform.h"
 
-void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& deltaTime,Platform platforms[]) {
+void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& playerH,float& playerW,float& deltaTime,Platform platforms[]) {
 
     float groundlevel =600;
 
@@ -42,7 +42,21 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
     }
     velocityY += gravity *deltaTime;
     acceleration =( velocityY *jumpForce) * deltaTime;
+    if(isgrounded)acceleration =0.00f;
     y+=acceleration;
+    isgrounded=false;
+    for(int i = 0; i < 4; i++) {
+
+        if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, playerH,
+                                      playerW, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
+        {
+            velocityY = 0;
+            isgrounded = true;
+            jumping = false;
+            P_action = IDLE;
+            acceleration =0.00f;
+        }
+    }
 
     if(y >=groundlevel){
         y =groundlevel;

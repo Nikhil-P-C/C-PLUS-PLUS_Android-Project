@@ -66,7 +66,7 @@ public:
     static int getTileWidth(){
         return TILE_WIDTH;
     }
-    static float getWscale(){
+    static float getWscale() {
         return P_scale;
     }
     float getWindowHeight() const{

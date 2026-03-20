@@ -13,9 +13,9 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 void Game::setPlatform() {
-    platforms[0] ={0,0,48,16};
-    platforms[1] ={100,500,48,16};
-    platforms[2] ={700,500,48,16};
+    platforms[0] ={1200,200,48,16};
+    platforms[1] ={1000,300,48,16};
+    platforms[2] ={800,400,48,16};
     platforms[3] ={500,500,48,16};
 
 
@@ -59,7 +59,7 @@ void Game::run(){
         if(!window)return;
         if(!renderer)return;
 
-        input.eventhandler(running,windowW,windowH,player.x,player.y, deltaTime,platforms);
+        input.eventhandler(running,windowW,windowH,player.x,player.y,player.h,player.w, deltaTime,platforms);
         //gets player animation indices for sprite rendering
         input.getAnimationindexes(this->Animation);
         Uint32 now =SDL_GetTicks();
