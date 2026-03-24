@@ -5,6 +5,7 @@
 #include "SDL3/SDL.h"
 #include <android/log.h>
 #include "game.h"
+#include "camera.h"
 #include <cmath>
 
 

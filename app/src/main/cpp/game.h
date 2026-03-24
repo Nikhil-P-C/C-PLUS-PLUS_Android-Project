@@ -2,8 +2,7 @@
 // Created by LENOVO on 29-10-2025.
 //
 #pragma once
-#ifndef MY_APP_GAME_H
-#define MY_APP_GAME_H
+
 #define MAX_PLATFORM 100
 
 #include "SDL3_image/SDL_image.h"
@@ -62,7 +61,7 @@ public:
 private:
     //animation and texture
     Animation Animation;
-    SDL_IOStream* playerSprite = SDL_IOFromFile("sheets/DinoSprites - mort.png", "rb");
+    SDL_IOStream* playerSprite = SDL_IOFromFile("sheets/DinoSprites - vita.png", "rb");
     SDL_IOStream* tilesetSprite = SDL_IOFromFile("Platforms/Terrain.png", "rb");
     SDL_IOStream* backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
     SDL_Texture* texture = nullptr;
@@ -86,4 +85,4 @@ private:
     float x = 0,y=0;
 };
 
-#endif //MY_APP_GAME_H
+

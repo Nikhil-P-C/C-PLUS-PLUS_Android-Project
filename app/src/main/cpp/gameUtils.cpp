@@ -1,6 +1,7 @@
 //
 // Created by LENOVO on 17-03-2026.
 //
+#include "SDL3/SDL.h"
 #include "gameUtils.h"
 namespace gameUtilities{
     bool checkcollision(float& x1, float& y1, float x2, float y2, float h1, float w1, float h2, float w2) {
@@ -36,5 +37,11 @@ namespace gameUtilities{
         }
         return false;
 
+    }
+    void interpolate(SDL_FRect& src, float targetX, float targetY ,float&& factor){// try values between 0.05f and 0.2f
+
+        // interpolate towards target
+        src.x += (targetX - src.x) * factor;
+        src.y += (targetY - src.y) * factor;
     }
 }

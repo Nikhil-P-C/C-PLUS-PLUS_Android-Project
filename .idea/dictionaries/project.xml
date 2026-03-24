@@ -4,11 +4,13 @@
       <w>aniframe</w>
       <w>animationindexes</w>
       <w>backgroundsurface</w>
+      <w>checkcollision</w>
       <w>definebutton</w>
       <w>eventhandler</w>
       <w>facingdir</w>
       <w>framestart</w>
       <w>frametime</w>
+      <w>gameutils</w>
       <w>groundlevel</w>
       <w>isgrounded</w>
       <w>jumpforce</w>

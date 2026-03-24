@@ -51,6 +51,7 @@ add_library(main SHARED
         input.h
         Player.h
         platform.h
+        camera.h
 )
 target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)
 

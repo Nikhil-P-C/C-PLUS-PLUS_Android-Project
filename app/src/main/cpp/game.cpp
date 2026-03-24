@@ -7,16 +7,123 @@
 #include "game.h"
 #include "Player.h"
 #include "gameUtils.h"
+#include "camera.h"
 
 #define LOG_TAG "GAME"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 void Game::setPlatform() {
-    platforms[0] ={1200,200,48,16};
-    platforms[1] ={1000,300,48,16};
-    platforms[2] ={800,400,48,16};
-    platforms[3] ={500,500,48,16};
+
+    platforms[0] = {200,200,48,16};
+    platforms[1] = {1800,100,48,16};
+    platforms[2] = {400,0,48,16};
+    platforms[3] = {1600,-100,48,16};
+    platforms[4] = {600,-200,48,16};
+    platforms[5] = {1400,-300,48,16};
+    platforms[6] = {100,-400,48,16};
+    platforms[7] = {1700,-500,48,16};
+    platforms[8] = {300,-600,48,16};
+    platforms[9] = {1500,-700,48,16};
+
+    platforms[10] = {500,-800,48,16};
+    platforms[11] = {1300,-900,48,16};
+    platforms[12] = {250,-1000,48,16};
+    platforms[13] = {1750,-1100,48,16};
+    platforms[14] = {450,-1200,48,16};
+    platforms[15] = {1650,-1300,48,16};
+    platforms[16] = {650,-1400,48,16};
+    platforms[17] = {1200,-1500,48,16};
+    platforms[18] = {150,-1600,48,16};
+    platforms[19] = {1850,-1700,48,16};
+
+    platforms[20] = {350,-1800,48,16};
+    platforms[21] = {1550,-1900,48,16};
+    platforms[22] = {750,-2000,48,16};
+    platforms[23] = {1100,-2100,48,16};
+    platforms[24] = {50,-2200,48,16};
+    platforms[25] = {1950,-2300,48,16};
+    platforms[26] = {550,-2400,48,16};
+    platforms[27] = {1450,-2500,48,16};
+    platforms[28] = {250,-2600,48,16};
+    platforms[29] = {1750,-2700,48,16};
+
+    platforms[30] = {450,-2800,48,16};
+    platforms[31] = {1650,-2900,48,16};
+    platforms[32] = {850,-3000,48,16};
+    platforms[33] = {1050,-3100,48,16};
+    platforms[34] = {150,-3200,48,16};
+    platforms[35] = {1850,-3300,48,16};
+    platforms[36] = {350,-3400,48,16};
+    platforms[37] = {1550,-3500,48,16};
+    platforms[38] = {950,-3600,48,16};
+    platforms[39] = {1000,-3700,48,16};
+
+    platforms[40] = {200,-3800,48,16};
+    platforms[41] = {1800,-3900,48,16};
+    platforms[42] = {400,-4000,48,16};
+    platforms[43] = {1600,-4100,48,16};
+    platforms[44] = {600,-4200,48,16};
+    platforms[45] = {1400,-4300,48,16};
+    platforms[46] = {100,-4400,48,16};
+    platforms[47] = {1700,-4500,48,16};
+    platforms[48] = {300,-4600,48,16};
+    platforms[49] = {1500,-4700,48,16};
+
+    platforms[50] = {500,-4800,48,16};
+    platforms[51] = {1300,-4900,48,16};
+    platforms[52] = {250,-5000,48,16};
+    platforms[53] = {1750,-5100,48,16};
+    platforms[54] = {450,-5200,48,16};
+    platforms[55] = {1650,-5300,48,16};
+    platforms[56] = {650,-5400,48,16};
+    platforms[57] = {1200,-5500,48,16};
+    platforms[58] = {150,-5600,48,16};
+    platforms[59] = {1850,-5700,48,16};
+
+    platforms[60] = {350,-5800,48,16};
+    platforms[61] = {1550,-5900,48,16};
+    platforms[62] = {750,-6000,48,16};
+    platforms[63] = {1100,-6100,48,16};
+    platforms[64] = {50,-6200,48,16};
+    platforms[65] = {1950,-6300,48,16};
+    platforms[66] = {550,-6400,48,16};
+    platforms[67] = {1450,-6500,48,16};
+    platforms[68] = {250,-6600,48,16};
+    platforms[69] = {1750,-6700,48,16};
+
+    platforms[70] = {450,-6800,48,16};
+    platforms[71] = {1650,-6900,48,16};
+    platforms[72] = {850,-7000,48,16};
+    platforms[73] = {1050,-7100,48,16};
+    platforms[74] = {150,-7200,48,16};
+    platforms[75] = {1850,-7300,48,16};
+    platforms[76] = {350,-7400,48,16};
+    platforms[77] = {1550,-7500,48,16};
+    platforms[78] = {950,-7600,48,16};
+    platforms[79] = {1000,-7700,48,16};
+
+    platforms[80] = {200,-7800,48,16};
+    platforms[81] = {1800,-7900,48,16};
+    platforms[82] = {400,-8000,48,16};
+    platforms[83] = {1600,-8100,48,16};
+    platforms[84] = {600,-8200,48,16};
+    platforms[85] = {1400,-8300,48,16};
+    platforms[86] = {100,-8400,48,16};
+    platforms[87] = {1700,-8500,48,16};
+    platforms[88] = {300,-8600,48,16};
+    platforms[89] = {1500,-8700,48,16};
+
+    platforms[90] = {500,-8800,48,16};
+    platforms[91] = {1300,-8900,48,16};
+    platforms[92] = {250,-9000,48,16};
+    platforms[93] = {1750,-9100,48,16};
+    platforms[94] = {450,-9200,48,16};
+    platforms[95] = {1650,-9300,48,16};
+    platforms[96] = {650,-9400,48,16};
+    platforms[97] = {1200,-9500,48,16};
+    platforms[98] = {150,-9600,48,16};
+    platforms[99] = {1850,-9700,48,16};
 
 
 
@@ -84,6 +191,8 @@ void Game::run(){
     }
     player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
     player.setPosition(x,y,getWindowHeight());
+    Camera::getInstance().setSize(getWindowWidth(),getWindowHeight());
+
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
     SDL_SetTextureBlendMode(backGround,SDL_BLENDMODE_NONE);
     while(running){
@@ -116,6 +225,7 @@ void Game::run(){
         lasttime = framestart;
 
         //game starts
+        Camera::getInstance().lockCameraOn(player.x,player.y,player.h,player.w);
         SDL_SetRenderDrawColor(renderer, 0, 128, 255, 255);
         SDL_RenderClear(renderer);
         //background rendering
@@ -125,26 +235,30 @@ void Game::run(){
 
 
         //tile rendering
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 100; i++){
 
-            gameUtilities::checkcollision(player.x,player.y,platforms[i].x,platforms[i].y,player.h,player.w,16.0f *P_scale,48.0f *P_scale);
-
-
-            SDL_FRect tileDst = {platforms[i].x, platforms[i].y, platforms[i].w * P_scale, platforms[i].h * P_scale};
+            SDL_FRect tileDst = {platforms[i].x-Camera::getInstance().getCamera().x,
+                                 platforms[i].y-Camera::getInstance().getCamera().y,
+                                 platforms[i].w * P_scale, platforms[i].h * P_scale};
             SDL_FRect tileSrc = {0+96, 0, 48, 16};
             SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
 
-            SDL_FRect border = {platforms[i].x, platforms[i].y, platforms[i].w * P_scale, platforms[i].h * P_scale};
+            SDL_FRect border = {platforms[i].x-Camera::getInstance().getCamera().x,
+                                platforms[i].y-Camera::getInstance().getCamera().y,
+                                platforms[i].w * P_scale, platforms[i].h * P_scale};
             SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
             SDL_RenderRect(renderer,&border);
         }
         //player rendering
 
-        SDL_FRect border = {player.x, player.y, player.w, player.h};
+        SDL_FRect border = {(player.x)-Camera::getInstance().getCamera().x,
+                            (player.y)-Camera::getInstance().getCamera().y, player.w-26, player.h-20};
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_RenderRect(renderer,&border);
-
-        SDL_FRect dst = {player.x, player.y, player.w, player.h};
+//        LOGI("camera X: %f, camera Y: %f",Camera::getInstance().getCamera().x,Camera::getInstance().getCamera().y);
+        SDL_FRect dst = {(player.x-16)-Camera::getInstance().getCamera().x,
+                         (player.y-9)-Camera::getInstance().getCamera().y,
+                         player.w, player.h};
         SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * current_Frame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
         if(input.getPlayerFacingdir())SDL_RenderTexture(renderer, texture, &src, &dst);
         else SDL_RenderTextureRotated(renderer, texture, &src, &dst,0.0,NULL,SDL_FLIP_HORIZONTAL);

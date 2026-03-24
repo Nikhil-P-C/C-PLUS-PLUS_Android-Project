@@ -40,16 +40,20 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
                 break;
         }
     }
+
     velocityY += gravity *deltaTime;
     acceleration =( velocityY *jumpForce) * deltaTime;
     if(isgrounded)acceleration =0.00f;
     y+=acceleration;
     isgrounded=false;
     for(int i = 0; i < 100; i++) {
-
-        if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, playerH,
-                                      playerW, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
+//        player.x+16, player.y+16, player.w-30, player.h-30
+        SDL_FRect border = {x+16, y+9, playerW-26, playerH-20};
+        if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, border.h,
+                                      border.w, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
         {
+            if(i==99)LOGI("you won");
+
             velocityY = 0;
             isgrounded = true;
             jumping = false;
@@ -76,10 +80,11 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
         }
     }
     jumpReleased = (!jumpPressed && prevJumpPressed);
-    if(jumpReleased) { LOGI("jump released");
+    if(jumpReleased) {;
         jumping = false;
-    }
 
+    }
+    LOGI("velocityY:%f",velocityY);
     if(hold) {
         centerX = joystick.x + joystick.w / 2;
         centerY = joystick.y + joystick.h / 2;
@@ -100,28 +105,25 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
 
 //        LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
 //             jumping,y,velocityY,(gravity * deltaTime),groundlevel);
-        if(jumpReleased && velocityY < 0){
-              // or 0.4–0.6 depending on feel
-              LOGI("jump cancel");
-        }
+
         if(jumping && isgrounded){
             velocityY = -250.0f;
             isgrounded = false;
 //               LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
 //                    jumping,y,velocityY,(gravity * deltaTime),groundlevel);
         }
+
         if(!jumping){
             if(dX>0)x += 250 * deltaTime;
             else if(dX<0)x -= 250*deltaTime;
         }
         if(jumping){
-            if(dX>0)x += 100 * deltaTime;
-            else if(dX<0)x -= 100*deltaTime;
+            if(dX>0)x +=250 * deltaTime;
+            else if(dX<0)x -= 250*deltaTime;
         }
 
     }
 
-    if(velocityY >=2000)velocityY =2000;
 
 
 
