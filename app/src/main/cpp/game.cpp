@@ -15,8 +15,8 @@
 
 void Game::setPlatform() {
 
-    platforms[0] = {200,200,48,16};
-    platforms[1] = {1800,100,48,16};
+    platforms[0] = {200,350,48,16};
+    platforms[1] = {1800,150,48,16};
     platforms[2] = {400,0,48,16};
     platforms[3] = {1600,-100,48,16};
     platforms[4] = {600,-200,48,16};
@@ -242,12 +242,18 @@ void Game::run(){
                                  platforms[i].w * P_scale, platforms[i].h * P_scale};
             SDL_FRect tileSrc = {0+96, 0, 48, 16};
             SDL_RenderTexture(renderer, tileset, &tileSrc, &tileDst);
-
+            //tile border
             SDL_FRect border = {platforms[i].x-Camera::getInstance().getCamera().x,
                                 platforms[i].y-Camera::getInstance().getCamera().y,
                                 platforms[i].w * P_scale, platforms[i].h * P_scale};
             SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
             SDL_RenderRect(renderer,&border);
+            //ground border
+            SDL_FRect groundborder = {platforms[i].x-Camera::getInstance().getCamera().x,
+                                platforms[i].y-Camera::getInstance().getCamera().y,
+                                platforms[i].w * P_scale, 1 * P_scale};
+            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+            SDL_RenderRect(renderer,&groundborder);
         }
         //player rendering
 

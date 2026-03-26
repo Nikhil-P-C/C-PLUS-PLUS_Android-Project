@@ -47,19 +47,35 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
     y+=acceleration;
     isgrounded=false;
     for(int i = 0; i < 100; i++) {
+
 //        player.x+16, player.y+16, player.w-30, player.h-30
         SDL_FRect border = {x+16, y+9, playerW-26, playerH-20};
-        if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, border.h,
-                                      border.w, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
+
+        if(gameUtilities::checkcollision(x, y, platforms[i].x-2, platforms[i].y, border.h,
+                                         border.w, 1.0f * Game::getWscale(), (48.0f * Game::getWscale())-2))
         {
             if(i==99)LOGI("you won");
-
             velocityY = 0;
             isgrounded = true;
             jumping = false;
             P_action = IDLE;
             acceleration =0.00f;
         }
+        if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, border.h,
+                                      border.w, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
+        {
+            if(i==99)LOGI("you won");
+            jumping=false;
+            jumpReleased=true;
+            P_action = IDLE;
+            acceleration =0.000f;
+            if(jumpReleased && velocityY < 0)
+            {
+                velocityY *= 0.3f;   // reduce upward speed
+            }
+        }
+
+
     }
 
     if(y >=groundlevel){
@@ -82,7 +98,10 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
     jumpReleased = (!jumpPressed && prevJumpPressed);
     if(jumpReleased) {;
         jumping = false;
-
+        if(jumpReleased && velocityY < 0)
+        {
+            velocityY *= 0.3f;   // reduce upward speed
+        }
     }
     LOGI("velocityY:%f",velocityY);
     if(hold) {
@@ -109,6 +128,7 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
         if(jumping && isgrounded){
             velocityY = -250.0f;
             isgrounded = false;
+            jumpReleased=false;
 //               LOGI("jumping:%d , y:%f,velocityY:%f,gravity:%f,ground:%f",
 //                    jumping,y,velocityY,(gravity * deltaTime),groundlevel);
         }
