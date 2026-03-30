@@ -12,7 +12,7 @@
 #include "gameUtils.h"
 #include "platform.h"
 
-void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& playerH,float& playerW,float& deltaTime,Platform platforms[]) {
+void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& playerH,float& playerW,float& deltaTime,Platform platforms[],bool& isCompleted) {
 
     float groundlevel =600;
 
@@ -54,6 +54,7 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
         if(gameUtilities::checkcollision(x, y, platforms[i].x-2, platforms[i].y, border.h,
                                          border.w, 1.0f * Game::getWscale(), (48.0f * Game::getWscale())-2))
         {
+            isCompleted=true;
             if(i==99)LOGI("you won");
             velocityY = 0;
             isgrounded = true;
@@ -61,6 +62,7 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
             P_action = IDLE;
             acceleration =0.00f;
         }
+        else isCompleted=false;
         if(gameUtilities::checkcollision(x, y, platforms[i].x, platforms[i].y, border.h,
                                       border.w, 16.0f * Game::getWscale(), 48.0f * Game::getWscale()))
         {
@@ -103,7 +105,6 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
             velocityY *= 0.3f;   // reduce upward speed
         }
     }
-    LOGI("velocityY:%f",velocityY);
     if(hold) {
         centerX = joystick.x + joystick.w / 2;
         centerY = joystick.y + joystick.h / 2;

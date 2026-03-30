@@ -6,8 +6,12 @@
       <w>backgroundsurface</w>
       <w>checkcollision</w>
       <w>definebutton</w>
+      <w>etextrect</w>
+      <w>etexture</w>
       <w>eventhandler</w>
       <w>facingdir</w>
+      <w>fpstextrect</w>
+      <w>fpstexture</w>
       <w>framestart</w>
       <w>frametime</w>
       <w>gameutils</w>
@@ -18,6 +22,7 @@
       <w>movingleft</w>
       <w>movingright</w>
       <w>playersurface</w>
+      <w>sdlttf</w>
       <w>tilesurface</w>
     </words>
   </dictionary>

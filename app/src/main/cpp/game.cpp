@@ -2,12 +2,15 @@
 // Created by LENOVO on 03-10-2025.
 //
 #include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <enet/enet.h>
 #include "input.h"
 #include "game.h"
 #include "Player.h"
 #include "gameUtils.h"
 #include "camera.h"
+#include "string"
+
 
 #define LOG_TAG "GAME"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -132,6 +135,9 @@ void Game::setPlatform() {
 
 
 void Game::run(){
+    if(!TTF_Init())LOGI("failed tff:%s",SDL_GetError());
+    if(!fontFile)LOGI("cant find font");
+
     window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
 
     renderer = SDL_CreateRenderer(window, "opengles2");
@@ -140,12 +146,19 @@ void Game::run(){
     }
     const char* name = SDL_GetRendererName(renderer);
     LOGI("Renderer: %s", name);
+
+    //font loading
+    font = TTF_OpenFontIO(fontFile,false,36);
+
+//    if(!font)return;
+    LOGI("font:%d",(bool)font);
     //background sprite loading;
     SDL_Surface* Backgroundsurface = IMG_Load_IO(backGroundSprite,true);
     if(!Backgroundsurface)return;
     backGround = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
     if(!backGround)return;
     SDL_DestroySurface(Backgroundsurface);
+
     //player sprite loading
     SDL_Surface* Playersurface = IMG_Load_IO(playerSprite,true);
     if(!Playersurface)return;
@@ -159,11 +172,12 @@ void Game::run(){
     if(!Tilesurface)return;
     tileset = SDL_CreateTextureFromSurface(renderer,Tilesurface);
     if(!tileset)return;
+    SDL_DestroySurface(Tilesurface);
 
     SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(tileset,SDL_SCALEMODE_NEAREST);
-    SDL_DestroySurface(Tilesurface);
-    if(!playerSprite)LOGE("cannot load");
+    SDL_SetTextureScaleMode(fpstexture,SDL_SCALEMODE_NEAREST);
+    if(!playerSprite)LOGE("cannot load sprite");
 
     int current_Frame =0;
     int Aniframe_delay =50;//delayed by 50ms
@@ -199,7 +213,7 @@ void Game::run(){
         if(!window)return;
         if(!renderer)return;
 
-        input.eventhandler(running,windowW,windowH,player.x,player.y,player.h,player.w, deltaTime,platforms);
+        input.eventhandler(running,windowW,windowH,player.x,player.y,player.h,player.w, deltaTime,platforms, isCompleted);
         //gets player animation indices for sprite rendering
         input.getAnimationindexes(this->Animation);
         Uint32 now =SDL_GetTicks();
@@ -273,6 +287,26 @@ void Game::run(){
         SDL_FRect Joystick=input.getJoystick();
         SDL_RenderFillRect(renderer, &Joystick);
 
+        //mechanics rendering
+        if(isCompleted)
+        {
+            SDL_Color EColor = {2, 255, 25, 255};
+            SDL_Surface *ESurface = TTF_RenderText_Blended(font, "YOU WON", 7, EColor);
+            Etexture = SDL_CreateTextureFromSurface(renderer, ESurface);
+            SDL_FRect Etextrect = {((player.x)-Camera::getInstance().getCamera().x)-((static_cast<float>(ESurface->w) * 2)/2)/2,
+                                   (player.y)-Camera::getInstance().getCamera().y, static_cast<float>(ESurface->w) * 2,
+                                   static_cast<float>(ESurface->h) * 2};
+            SDL_DestroySurface(ESurface);
+            SDL_RenderTexture(renderer, Etexture, nullptr, &Etextrect);
+        }
+
+        //fps counter rendering
+        SDL_Color fpsColor = { 255, 255, 255, 255 };
+        SDL_Surface* fpsSurface = TTF_RenderText_Blended(font, "FPS:", 4,fpsColor);
+        fpstexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
+        SDL_FRect fpstextrect = {0, 0, static_cast<float>(fpsSurface->w)*2,static_cast<float>(fpsSurface->h)*2 };
+        SDL_DestroySurface(fpsSurface);
+        SDL_RenderTexture(renderer,fpstexture,nullptr,&fpstextrect);
         SDL_RenderPresent(renderer);
         Uint32 frametime = SDL_GetTicks() - framestart;
         if (frametime < frameDelay) {

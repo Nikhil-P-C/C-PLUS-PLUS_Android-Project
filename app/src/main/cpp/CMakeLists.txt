@@ -41,6 +41,10 @@ set(SDLIMAGE_TIF  OFF CACHE BOOL "" FORCE)
 set(SDLIMAGE_WEBP OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image EXCLUDE_FROM_ALL)
+# ---- SDL_ttf ----
+set(SDL_DISABLE_VERSIONING ON)
+set(SDLTTF_VENDORED ON)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf EXCLUDE_FROM_ALL)
 # --- Your main native library ---
 add_library(main SHARED
         main.cpp
@@ -66,6 +70,7 @@ target_include_directories(enet PUBLIC
 
 # --- Include directories ---
 target_include_directories(main PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/enet-1.3.18/include
@@ -73,6 +78,7 @@ target_include_directories(main PRIVATE
 
 # --- Link libraries ---
 target_link_libraries(main
+        SDL3_ttf::SDL3_ttf
         SDL3_image::SDL3_image
         SDL3::SDL3
         enet

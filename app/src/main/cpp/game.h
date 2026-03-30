@@ -4,7 +4,7 @@
 #pragma once
 
 #define MAX_PLATFORM 100
-
+#include "SDL3_ttf/SDL_ttf.h"
 #include "SDL3_image/SDL_image.h"
 #include "SDL3/SDL.h"
 #include "platform.h"
@@ -26,11 +26,14 @@ public:
 
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
         if (texture) SDL_DestroyTexture(texture);
         if (tileset) SDL_DestroyTexture(tileset);
+        if (fpstexture)SDL_DestroyTexture(fpstexture);
+        if (Etexture)SDL_DestroyTexture(Etexture);
         if (playerSprite) SDL_CloseIO(playerSprite);
         if (tilesetSprite) SDL_CloseIO(tilesetSprite);
-
+        if (backGroundSprite)SDL_CloseIO(backGroundSprite);
     }
 public:
     void run();
@@ -59,14 +62,21 @@ public:
         return (float)windowW;
     }
 private:
+    //mechanics
+    bool isCompleted=false;
     //animation and texture
     Animation Animation;
-    SDL_IOStream* playerSprite = SDL_IOFromFile("sheets/DinoSprites - vita.png", "rb");
-    SDL_IOStream* tilesetSprite = SDL_IOFromFile("Platforms/Terrain.png", "rb");
+    SDL_IOStream* playerSprite     = SDL_IOFromFile("sheets/DinoSprites - vita.png", "rb");
+    SDL_IOStream* tilesetSprite    = SDL_IOFromFile("Platforms/Terrain.png", "rb");
     SDL_IOStream* backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
-    SDL_Texture* texture = nullptr;
-    SDL_Texture* tileset = nullptr;
+    SDL_IOStream* fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf","rb");
+    TTF_Font*    font       = nullptr;
+    SDL_Texture* texture    = nullptr;
+    SDL_Texture* tileset    = nullptr;
     SDL_Texture* backGround = nullptr;
+    SDL_Texture* Etexture = nullptr;
+    SDL_Texture* fpstexture = nullptr;
+    //sprites
     static const int SPRITE_HEIGHT =24;
     static const int SPRITE_WIDTH =24;
     static const int TILE_HEIGHT =16;

@@ -24,7 +24,7 @@ public:
     Input(SDL_Event& event){
         this->event =event;
     }
-    void eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& playerH,float& playerW,float& deltaTime ,Platform platforms[]);//does the input handling
+    void eventhandler(bool& running,int windowW,int windowH,float& x,float& y,float& playerH,float& playerW,float& deltaTime ,Platform platforms[],bool& isCompleted);//does the input handling
 
     SDL_FRect getJoystick(){
         return joystick;
