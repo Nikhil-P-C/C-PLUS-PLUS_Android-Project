@@ -10,6 +10,7 @@
 #include "gameUtils.h"
 #include "camera.h"
 #include "string"
+#include "string.h"
 
 
 #define LOG_TAG "GAME"
@@ -184,7 +185,8 @@ void Game::run(){
     Uint32 Last_Frame_Time =SDL_GetTicks();
     Uint32 last =SDL_GetTicks();
     Uint32 lasttime =SDL_GetTicks();
-    const int FPS =60;
+    const int FPS =120;
+    std::string str = "FPS:";
 
     const int frameDelay = 1000/FPS;
     int fps =0;
@@ -230,7 +232,7 @@ void Game::run(){
             frames =fps;
             fps =0;
             last = current;
-            LOGI("FPS: %d",frames);
+//            LOGI("FPS: %d",frames);
         }
 
         //delta time
@@ -293,16 +295,17 @@ void Game::run(){
             SDL_Color EColor = {2, 255, 25, 255};
             SDL_Surface *ESurface = TTF_RenderText_Blended(font, "YOU WON", 7, EColor);
             Etexture = SDL_CreateTextureFromSurface(renderer, ESurface);
-            SDL_FRect Etextrect = {((player.x)-Camera::getInstance().getCamera().x)-((static_cast<float>(ESurface->w) * 2)/2)/2,
-                                   (player.y)-Camera::getInstance().getCamera().y, static_cast<float>(ESurface->w) * 2,
+            SDL_FRect Etextrect = {800,
+                                   360, static_cast<float>(ESurface->w) * 2,
                                    static_cast<float>(ESurface->h) * 2};
             SDL_DestroySurface(ESurface);
             SDL_RenderTexture(renderer, Etexture, nullptr, &Etextrect);
         }
-
+        std::string Fpstxt = str + std::to_string(frames);
+        LOGI("text:%s",Fpstxt.c_str());
         //fps counter rendering
         SDL_Color fpsColor = { 255, 255, 255, 255 };
-        SDL_Surface* fpsSurface = TTF_RenderText_Blended(font, "FPS:", 4,fpsColor);
+        SDL_Surface* fpsSurface = TTF_RenderText_Blended(font, Fpstxt.c_str(), Fpstxt.length(),fpsColor);
         fpstexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
         SDL_FRect fpstextrect = {0, 0, static_cast<float>(fpsSurface->w)*2,static_cast<float>(fpsSurface->h)*2 };
         SDL_DestroySurface(fpsSurface);

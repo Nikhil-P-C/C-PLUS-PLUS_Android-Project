@@ -29,12 +29,12 @@ set(SDL_SHARED ON CACHE BOOL "Enable shared SDL" FORCE)
 
 # --- Add SDL3 ---
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3 EXCLUDE_FROM_ALL)
-message(WARNING "SDL3 shared: ${SDL_SHARED}, static: ${SDL_STATIC}, build shared: ${BUILD_SHARED_LIBS}")
+message(WARNING "SDL3 shared: ${SDL_SHARED}, static: ${SDL_STATIC}, build shared: ${BUILD_SHARED_LIBS}")#used for debugging :To do- can be removed
 # ---- SDL_image ----
-# Enable only what we need (optional)
+# Enable only what is needed
 set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE)
 set(SDLIMAGE_BMP  ON  CACHE BOOL "" FORCE)
-set(SDLIMAGE_GIF  OFF CACHE BOOL "" FORCE)
+set(SDLIMAGE_GIF  ON CACHE BOOL "" FORCE)
 set(SDLIMAGE_JPG  ON  CACHE BOOL "" FORCE)
 set(SDLIMAGE_PNG  ON  CACHE BOOL "" FORCE)
 set(SDLIMAGE_TIF  OFF CACHE BOOL "" FORCE)
@@ -56,7 +56,9 @@ add_library(main SHARED
         Player.h
         platform.h
         camera.h
+
 )
+
 target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)
 
 # --- ENet ---
@@ -74,6 +76,7 @@ target_include_directories(main PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/enet-1.3.18/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
 # --- Link libraries ---

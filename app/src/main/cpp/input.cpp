@@ -52,7 +52,7 @@ void Input::eventhandler(bool& running,int windowW,int windowH,float& x,float& y
         SDL_FRect border = {x+16, y+9, playerW-26, playerH-20};
 
         if(gameUtilities::checkcollision(x, y, platforms[i].x-2, platforms[i].y, border.h,
-                                         border.w, 1.0f * Game::getWscale(), (48.0f * Game::getWscale())-2))
+                                         border.w, 1.0f * Game::getWscale(), (49.0f * Game::getWscale())-2))
         {
             isCompleted=true;
             if(i==99)LOGI("you won");

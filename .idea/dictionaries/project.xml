@@ -12,6 +12,7 @@
       <w>facingdir</w>
       <w>fpstextrect</w>
       <w>fpstexture</w>
+      <w>fpstxt</w>
       <w>framestart</w>
       <w>frametime</w>
       <w>gameutils</w>

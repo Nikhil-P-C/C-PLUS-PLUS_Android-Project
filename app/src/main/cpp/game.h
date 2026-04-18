@@ -9,7 +9,7 @@
 #include "SDL3/SDL.h"
 #include "platform.h"
 #include "Player.h"
-
+#include "State/state.h"
 
 struct Animation{
     int startIndex=0;
