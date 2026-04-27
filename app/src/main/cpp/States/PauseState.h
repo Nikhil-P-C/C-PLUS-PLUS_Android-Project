@@ -11,16 +11,16 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 class PauseState : public State{
 public:
-    void render(){
+    void render()override{
         LOGI("render");
     }
-    void update(float dt){
+    void update(float dt)override{
         LOGI("update");
     }
-    void handleEvents(){
+    void handleEvents()override{
         LOGI("handleEvents");
     }
-    virtual ~PauseState(){
+    ~PauseState(){
         LOGI("destructor");
     }
 };

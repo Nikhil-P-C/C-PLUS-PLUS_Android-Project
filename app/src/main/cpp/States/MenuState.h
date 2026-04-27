@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "State/State.h"
+#include "State/state.h"
 #include <android/log.h>
 
 #define LOG_TAG "MenuState"
@@ -11,16 +11,14 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 class MenuState : public State{
 public:
-    void render(){
-        LOGI("render");
+    void render(SDL_Renderer* renderer)override{
+
     }
-    void update(float dt){
-        LOGI("update");
+    void update(float dt)override{
     }
-    void handleEvents(){
-        LOGI("handleEvents");
+    void handleEvents()override{
     }
-    virtual ~MenuState(){
+    ~MenuState(){
         LOGI("destructor");
     }
 };

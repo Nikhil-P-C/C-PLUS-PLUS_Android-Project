@@ -10,11 +10,8 @@
 #include "platform.h"
 #include "Player.h"
 #include "State/state.h"
+#include "States/GameState/GameState.h"
 
-struct Animation{
-    int startIndex=0;
-    int lastIndex=0;
-};
 
 class Game{
 public:

@@ -3,15 +3,17 @@
 #include <enet/enet.h>
 #include <cmath>
 #include "game.h"
+#include "engine/Engine.h"
 #define LOG_TAG "MYSDLAPP"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 extern "C" int SDL_main(int argc, char* argv[]) {
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+    LOGI("main is here");
+    Engine engine;
+    LOGI("main2 is here");
+    engine.run();
 
-    Game game;
-    game.run();
     return 0;
 }

@@ -22,6 +22,7 @@
       <w>lasttime</w>
       <w>movingleft</w>
       <w>movingright</w>
+      <w>mysdlapp</w>
       <w>playersurface</w>
       <w>sdlttf</w>
       <w>tilesurface</w>
