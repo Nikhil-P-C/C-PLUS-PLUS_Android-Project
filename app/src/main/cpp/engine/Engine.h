@@ -1,8 +1,9 @@
 //
 // Created by LENOVO on 17-04-2026.
 //
-#include "State/state.h"
-#include "States/MenuState.h"
+
+#include "State/State.h"
+#include "States/MenuState/MenuState.h"
 #include "States/GameState/GameState.h"
 #include <SDL3/SDL.h>
 #include <android/log.h>
@@ -27,10 +28,9 @@ public:
             LOGI("failed SDL:%s", SDL_GetError());
         if (TTF_Init() != 0)
             LOGI("failed ttf:%s", SDL_GetError());
-        if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG)
-            LOGI("failed img:%s", SDL_GetError());
 
-        window = SDL_CreateWindow("SDL3 Android App", 0, 0, SDL_WINDOW_FULLSCREEN);
+
+        window = SDL_CreateWindow("Dino", 0, 0, SDL_WINDOW_FULLSCREEN);
         if (!window) {
             LOGE("Window creation failed: %s", SDL_GetError());
         }
@@ -42,17 +42,17 @@ public:
 
         const char* name = SDL_GetRendererName(renderer);
         LOGI("Renderer: %s", name);
-        CurrentState = new MenuState();
+        CurrentState = new GameState(renderer);
     }
     void run(){
 
         while(true){
 
-        CurrentState->handleEvents();
+            CurrentState->handleEvents(event);
 
-        CurrentState->update(0.0f);
+            CurrentState->update(0.0f);
 
-        CurrentState->render(renderer);
+            CurrentState->render(renderer);
         }
     }
 

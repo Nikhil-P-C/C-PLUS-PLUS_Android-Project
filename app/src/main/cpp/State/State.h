@@ -15,7 +15,7 @@ public:
     }
     virtual void render(SDL_Renderer* renderer) = 0;
     virtual void update(float dt) = 0;
-    virtual void handleEvents() = 0;
+    virtual void handleEvents(SDL_Event& event) = 0;
     virtual ~State() =default;
 };
  //MY_APP_STATE_H
