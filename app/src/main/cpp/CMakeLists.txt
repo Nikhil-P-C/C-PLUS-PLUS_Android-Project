@@ -58,6 +58,7 @@ add_library(main SHARED
         camera.h
         States/GameState/GameState.cpp
         States/MenuState/MenuState.cpp
+        engine/Engine.cpp
 )
 
 target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)

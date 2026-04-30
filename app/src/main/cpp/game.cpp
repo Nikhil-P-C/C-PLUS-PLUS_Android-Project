@@ -168,7 +168,7 @@ void Game::run(){
     SDL_DestroySurface(Playersurface);
 
 
-    // tileset loading
+    // m_tileset loading
     SDL_Surface* Tilesurface = IMG_Load_IO(tilesetSprite,true);
     if(!Tilesurface)return;
     tileset = SDL_CreateTextureFromSurface(renderer,Tilesurface);
@@ -206,7 +206,7 @@ void Game::run(){
         windowH = mode->h;
     }
     player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
-    player.setPosition(x,y,getWindowHeight());
+    player.setPosition(x,y,(int)getWindowHeight(),SPRITE_HEIGHT,P_scale);
     Camera::getInstance().setSize(getWindowWidth(),getWindowHeight());
 
     SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);

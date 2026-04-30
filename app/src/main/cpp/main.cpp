@@ -10,10 +10,7 @@
 
 extern "C" int SDL_main(int argc, char* argv[]) {
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
-    LOGI("main is here");
-    Engine engine;
-    LOGI("main2 is here");
-    engine.run();
+    Engine::Get().run();
 
     return 0;
 }

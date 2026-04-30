@@ -17,9 +17,9 @@ public:
         h = height;
     }
 
-    void setPosition(float px, float py, float windowH) {
+    void setPosition(float px, float py, int windowH,int SPRITE_HEIGHT, int P_scale) {
         x = (float) 100.00f;
-        y = (float) windowH - 120;
+        y = (float) (windowH - SPRITE_HEIGHT * P_scale);
     }
 };
 

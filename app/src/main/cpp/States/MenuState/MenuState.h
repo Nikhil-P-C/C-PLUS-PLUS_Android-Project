@@ -3,10 +3,14 @@
 //
 
 #pragma once
-#include "State/State.h"
 #include <android/log.h>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
+
+#include "State/State.h"
+#include "engine/Engine.h"
+
+
 #define LOG_TAG "MenuState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -14,8 +18,9 @@ class MenuState : public State{
 public:
 
     MenuState(SDL_Renderer* renderer){
+        this->m_renderer = renderer;
         LOGI("menu state constructor");
-        if(backGroundSprite)LOGI("backGroundSprite:true");
+        if(backGroundSprite)LOGI("m_backGroundSprite:true");
         Backgroundsurface = IMG_Load_IO(backGroundSprite,false);
         if(!Backgroundsurface)return;
         SDL_RenderClear(renderer);
@@ -26,6 +31,7 @@ public:
     }
     ~MenuState() override{
         LOGI("destructor");
+        if (backGround)      SDL_DestroyTexture(backGround);
         if (backGroundSprite)SDL_CloseIO(backGroundSprite);
     }
     void render(SDL_Renderer* renderer)override;
@@ -37,5 +43,7 @@ private:
     SDL_IOStream* backGroundSprite = SDL_IOFromFile("dinoCharacters-display.gif", "rb");
     SDL_Texture* backGround = nullptr;
     SDL_Surface* Backgroundsurface= nullptr;
+
+    SDL_Renderer* m_renderer = nullptr;
 };
 
