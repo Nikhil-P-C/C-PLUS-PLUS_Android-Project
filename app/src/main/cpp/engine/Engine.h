@@ -8,10 +8,19 @@
 #include <android/log.h>
 #include <vector>
 #include <memory>
+
 #define LOG_TAG "Engine"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #pragma once//MY_APP_ENGINE_H
+enum class commandType{
+    PUSH,
+    POP,
+};
+struct Command{
+    commandType type;
+    std::unique_ptr<State> state;
+};
 struct Event{
     bool handled =false;
     SDL_Event event;
@@ -34,10 +43,11 @@ public:
         return instance;
     }
     void pushState(std::unique_ptr<State> state){
-        m_States.push_back(std::move(state));
+        m_CommandQueue.push_back({commandType::PUSH, std::move(state)});
     }
+
     void popState(){
-        m_States.pop_back();
+        m_CommandQueue.push_back({commandType::POP, nullptr});
     }
     void changeState(std::unique_ptr<State> state){
         popState();
@@ -49,30 +59,51 @@ public:
         unsigned int lastTime = SDL_GetTicks();
         unsigned int currentTime;
         int framedelay = 1000/60;
+        unsigned int last = SDL_GetTicks();
         while(true){
             currentTime = SDL_GetTicks();
             float deltaTime =(float) (currentTime - lastTime) / 1000.0f;
             lastTime = currentTime;
 
+            m_fps++;
+            unsigned int current =SDL_GetTicks();
+            if(current - last >= 1000){
+
+                m_frames =m_fps;
+                m_fps =0;
+                last = current;
+                LOGI("FPS: %d",m_frames);
+            }
             while(SDL_PollEvent(&m_event)) {
                 for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
                     (*it)->handleEvents(m_event);
             }
 
 
-            for(const auto &state : m_States)
-                state->update(0.0f);
+            for(const auto &state : m_States) {
+                if (!m_States.empty())
+                    m_States.back()->update(deltaTime);
+            }
+
+
+            for (auto& cmd : m_CommandQueue) {
+                if (cmd.type == commandType::PUSH) {
+                    m_States.push_back(std::move(cmd.state));
+                }
+                else if (cmd.type == commandType::POP) {
+                    if (!m_States.empty())
+                        m_States.pop_back();
+                }
+            }
+            m_CommandQueue.clear();
 
 
             SDL_RenderClear(m_renderer);
-            for(const auto &state : m_States)
+            for(const auto &state : m_States) {
                 state->render(m_renderer);
+            }
             SDL_RenderPresent(m_renderer);
-//            m_CurrentState->handleEvents(m_event);
-//
-//            m_CurrentState->update(0.0f);
-//
-//            m_CurrentState->render(m_renderer);
+
             unsigned int frametime = SDL_GetTicks() - currentTime;
             if(frametime < framedelay){
                 SDL_Delay(framedelay - frametime);
@@ -81,9 +112,12 @@ public:
     }
 
 private:
-    State* m_CurrentState= nullptr;
+    std::vector<Command> m_CommandQueue;
     std::vector<std::unique_ptr<State>> m_States;
     SDL_Window*   m_window = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     SDL_Event     m_event;
+
+    int m_fps =0;
+    int m_frames =0;
 };

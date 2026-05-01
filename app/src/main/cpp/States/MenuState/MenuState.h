@@ -17,33 +17,23 @@
 class MenuState : public State{
 public:
 
-    MenuState(SDL_Renderer* renderer){
-        this->m_renderer = renderer;
-        LOGI("menu state constructor");
-        if(backGroundSprite)LOGI("m_backGroundSprite:true");
-        Backgroundsurface = IMG_Load_IO(backGroundSprite,false);
-        if(!Backgroundsurface)return;
-        SDL_RenderClear(renderer);
-        backGround = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
-        SDL_DestroySurface(Backgroundsurface);
-        if(!backGround)return;
-        SDL_SetTextureScaleMode(backGround,SDL_SCALEMODE_NEAREST);
-    }
-    ~MenuState() override{
-        LOGI("destructor");
-        if (backGround)      SDL_DestroyTexture(backGround);
-        if (backGroundSprite)SDL_CloseIO(backGroundSprite);
-    }
+    MenuState(SDL_Renderer* renderer);
+    ~MenuState() override;
+
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
     void handleEvents(SDL_Event& event)override;
 
 private:
-    SDL_IOStream* fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf","rb");
-    SDL_IOStream* backGroundSprite = SDL_IOFromFile("dinoCharacters-display.gif", "rb");
-    SDL_Texture* backGround = nullptr;
-    SDL_Surface* Backgroundsurface= nullptr;
+    SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf","rb");
+    SDL_IOStream* m_backgroundSprite = SDL_IOFromFile("menu-animate.png","rb");
 
+    SDL_Texture* m_background = nullptr;
+
+    int m_currentFrame =0;
+    unsigned int m_last=SDL_GetTicks();
+    unsigned int m_now = 0;
+    int m_aniDelay=50;//50ms
     SDL_Renderer* m_renderer = nullptr;
 };
 

@@ -11,9 +11,11 @@
       <w>etexture</w>
       <w>eventhandler</w>
       <w>facingdir</w>
+      <w>fontfile</w>
       <w>fpstextrect</w>
       <w>fpstexture</w>
       <w>fpstxt</w>
+      <w>framedelay</w>
       <w>framestart</w>
       <w>frametime</w>
       <w>gameutils</w>

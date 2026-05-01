@@ -58,6 +58,7 @@ add_library(main SHARED
         camera.h
         States/GameState/GameState.cpp
         States/MenuState/MenuState.cpp
+        States/PauseState/PauseState.cpp
         engine/Engine.cpp
 )
 

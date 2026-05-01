@@ -24,73 +24,20 @@ struct Animation{
 
 class GameState : public State{
 public:
-    GameState(SDL_Renderer* renderer){
-        this->m_renderer = renderer;
-        LOGI("game state constructor");
-        const SDL_DisplayMode* mode =
-                SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
-        if(mode)
-        {
-            LOGI("Display native: %d x %d", mode->w, mode->h);
-            m_windowW =mode->w;
-            m_windowH = mode->h;
-        }
-        //init player attributes
-        m_player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
-        m_player.setPosition(100,0,m_windowH,SPRITE_HEIGHT,P_scale);
-
-        //font loading
-        m_font = TTF_OpenFontIO(m_fontFile, false, 36);
-        LOGI("font:%d",(bool)m_font);
-
-        //background sprite loading;
-        SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backGroundSprite, false);
-        if(!Backgroundsurface)return;
-        m_backGround = SDL_CreateTextureFromSurface(renderer, Backgroundsurface);
-        if(!m_backGround)return;
-        SDL_DestroySurface(Backgroundsurface);
-
-        //player sprite loading
-        SDL_Surface* playerSurface = IMG_Load_IO(m_playerSprite, false);
-        if(!playerSurface)return;
-        m_playerTexture = SDL_CreateTextureFromSurface(renderer, playerSurface);
-        if(!m_playerTexture)return;
-        SDL_DestroySurface(playerSurface);
-
-        // m_tileset loading
-        SDL_Surface* Tilesurface = IMG_Load_IO(m_tilesetSprite, false);
-        if(!Tilesurface)return;
-        m_tileset = SDL_CreateTextureFromSurface(renderer, Tilesurface);
-        if(!m_tileset)return;
-        SDL_DestroySurface(Tilesurface);
-
-        SDL_SetTextureScaleMode(m_playerTexture, SDL_SCALEMODE_NEAREST);
-        SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);
-        SDL_SetTextureScaleMode(m_fpsTexture, SDL_SCALEMODE_NEAREST);
-
-        if(!m_playerSprite)LOGE("cannot load sprite");
-
-    }
+    GameState(SDL_Renderer* renderer);
     ~GameState() override{
-        LOGI("destructor");
         if (m_font)            TTF_CloseFont(m_font);
         if (m_backGround)      SDL_DestroyTexture(m_backGround);
         if (m_playerTexture)   SDL_DestroyTexture(m_playerTexture);
-        LOGI("destructor end-1");
-
         if (m_tileset)         SDL_DestroyTexture(m_tileset);
         if (m_fpsTexture)      SDL_DestroyTexture(m_fpsTexture);
         if (m_endTexture)      SDL_DestroyTexture(m_endTexture);
-        LOGI("destructor end 0");
 
         if (m_playerSprite)    SDL_CloseIO(m_playerSprite);
-        LOGI("destructor end 1");
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
-        LOGI("destructor end 2");
-
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
-        LOGI("destructor end");
     }
+
 
     void render(SDL_Renderer* renderer) override;
 

@@ -13,9 +13,10 @@ public:
     State(){
         LOGI("state constructor");
     }
-    virtual void render(SDL_Renderer* renderer) = 0;
-    virtual void update(float dt) = 0;
-    virtual void handleEvents(SDL_Event& event) = 0;
+    virtual void render(SDL_Renderer* renderer){};
+    virtual void update(float dt){};
+    virtual void handleEvents(SDL_Event& event){};
     virtual ~State() =default;
+
 };
  //MY_APP_STATE_H
