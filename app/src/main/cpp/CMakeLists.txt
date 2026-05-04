@@ -48,18 +48,24 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf EXCLUDE_FROM_ALL)
 # --- Your main native library ---
 add_library(main SHARED
         main.cpp
-        game.cpp
-        input.cpp
-        gameUtils.cpp
-        gameUtils.h
-        input.h
-        Player.h
-        platform.h
-        camera.h
+#        game.cpp
+#        input.cpp
+#        gameUtils.cpp
+#        gameUtils.h
+#        input.h
+#        Player.h
+#        platform.h
+#        camera.h
+        States/DebugState/DebugState.cpp
         States/GameState/GameState.cpp
+        States/MenuState/TitleScreenState.cpp
         States/MenuState/MenuState.cpp
         States/PauseState/PauseState.cpp
         engine/Engine.cpp
+
+        utils/Camera.cpp
+        utils/gameMath.cpp
+
 )
 
 target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)

@@ -1,12 +1,16 @@
 
-#include "States/MenuState/MenuState.h"
+#include "States/MenuState/TitleScreenState.h"
 #include "GameState.h"
 #include "States/PauseState/PauseState.h"
+#include "utils/gameMath.h"
+#include "States/DebugState/DebugState.h"
 
 //
 // Created by LENOVO on 27-04-2026.
 //
 GameState::GameState(SDL_Renderer *renderer) {
+
+
     m_renderer = renderer;
     LOGI("game state constructor");
     const SDL_DisplayMode* mode =
@@ -20,6 +24,8 @@ GameState::GameState(SDL_Renderer *renderer) {
     //init player attributes
     m_player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
     m_player.setPosition(100,0,m_windowH,SPRITE_HEIGHT,P_scale);
+    Camera::getInstance().setSize(m_windowW,m_windowH);
+
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
@@ -48,8 +54,6 @@ GameState::GameState(SDL_Renderer *renderer) {
 
     SDL_SetTextureScaleMode(m_playerTexture, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_fpsTexture, SDL_SCALEMODE_NEAREST);
-
     if(!m_playerSprite)LOGE("cannot load sprite");
 
 
@@ -60,16 +64,47 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
 
 
-    SDL_FRect dst = {m_player.x,m_player.y,m_player.w,m_player.h};
+    SDL_FRect dst = {m_player.x-Camera::getInstance().getCamera().x,m_player.y-Camera::getInstance().getCamera().y,m_player.w,m_player.h};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
-//    SDL_FRect src = {24, 0, SPRITE_WIDTH, SPRITE_HEIGHT};
     SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
 }
 
 void GameState::update(float dt){
-    m_currentFrame = m_currentFrame%16;
-    m_currentFrame++;
+    Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
+
+    switch(m_playerAction){
+        case IDLE:
+            m_Animation.startIndex=0;
+            m_Animation.lastIndex =3;
+            break;
+        case MOVINGLEFT:
+        case MOVINGRIGHT:
+            m_Animation.startIndex=4;
+            m_Animation.lastIndex =10;
+            break;
+        case HURT:
+            m_Animation.startIndex=14;
+            m_Animation.lastIndex =16;
+            break;
+        case CROUCHING:
+            m_Animation.startIndex=17;
+            m_Animation.lastIndex =23;
+            break;
+        case KICK:
+            m_Animation.startIndex=11;
+            m_Animation.lastIndex =13;
+            break;
+    }
+    m_aniNowTime = SDL_GetTicks();
+    if(m_aniNowTime - m_aniLastTime > m_aniframeDelay){
+        if(m_currentFrame < m_Animation.lastIndex)
+            m_currentFrame++;
+        else
+            m_currentFrame = m_Animation.startIndex;
+        m_aniLastTime = m_aniNowTime;
+    }
+
 }
 
 void GameState::handleEvents(SDL_Event& event) {
@@ -78,6 +113,7 @@ void GameState::handleEvents(SDL_Event& event) {
         LOGI("game state transitions to menu state");
         Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
     }
+
 }
 
 

@@ -9,6 +9,7 @@
 #include "PauseState.h"
 #include "engine/Engine.h"
 #include "States/GameState/GameState.h"
+#include "States/MenuState/TitleScreenState.h"
 #include "States/MenuState/MenuState.h"
 
 PauseState::PauseState(SDL_Renderer *renderer) {
@@ -81,10 +82,13 @@ void PauseState::handleEvents(SDL_Event &event) {
 
 PauseState::~PauseState() {
     LOGI("Pause destructor");
-    if(m_font)TTF_CloseFont(m_font);
+    if(m_font)      TTF_CloseFont(m_font);
     if(m_fontShadow)TTF_CloseFont(m_fontShadow);
-    if(m_fontTexture)SDL_DestroyTexture(m_fontTexture);
-    if(m_fontShadowTexture)SDL_DestroyTexture(m_fontShadowTexture);
-    if(m_fontfile)SDL_CloseIO(m_fontfile);
+
+    if(m_fontfile)      SDL_CloseIO(m_fontfile);
     if(m_fontShadowfile)SDL_CloseIO(m_fontShadowfile);
+
+    if(m_fontTexture)      SDL_DestroyTexture(m_fontTexture);
+    if(m_fontShadowTexture)SDL_DestroyTexture(m_fontShadowTexture);
+
 }

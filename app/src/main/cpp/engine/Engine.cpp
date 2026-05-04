@@ -7,7 +7,7 @@
 #include "State/State.h"
 #include "engine/Engine.h"
 #include "States/GameState/GameState.h"
-#include "States/MenuState/MenuState.h"
+#include "States/MenuState/TitleScreenState.h"
 void Engine::initEngine(){
     LOGI("initEngine");
     if (SDL_Init(SDL_INIT_VIDEO) == 0)
@@ -26,5 +26,5 @@ void Engine::initEngine(){
 
     const char* name = SDL_GetRendererName(m_renderer);
     LOGI("Renderer: %s", name);
-    pushState(std::make_unique<MenuState>(m_renderer));
+    pushState(std::make_unique<TitleScreenState>(m_renderer));
 }

@@ -18,14 +18,16 @@ public:
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
     void handleEvents(SDL_Event& event)override;
-    ~PauseState();
+    ~PauseState() override;
 private:
     SDL_FRect m_exit = {800-100, 600 - 50, 200, 100};
-    SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
+    SDL_IOStream* m_fontfile       = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
     SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
-    TTF_Font* m_font = nullptr;
+
+    TTF_Font* m_font       = nullptr;
     TTF_Font* m_fontShadow = nullptr;
-    SDL_Texture* m_fontTexture = nullptr;
+
+    SDL_Texture* m_fontTexture       = nullptr;
     SDL_Texture* m_fontShadowTexture = nullptr;
 
     SDL_Renderer* m_renderer = nullptr;

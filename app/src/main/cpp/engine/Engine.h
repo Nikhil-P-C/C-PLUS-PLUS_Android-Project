@@ -59,21 +59,13 @@ public:
         unsigned int lastTime = SDL_GetTicks();
         unsigned int currentTime;
         int framedelay = 1000/60;
-        unsigned int last = SDL_GetTicks();
+
         while(true){
             currentTime = SDL_GetTicks();
             float deltaTime =(float) (currentTime - lastTime) / 1000.0f;
             lastTime = currentTime;
 
-            m_fps++;
-            unsigned int current =SDL_GetTicks();
-            if(current - last >= 1000){
 
-                m_frames =m_fps;
-                m_fps =0;
-                last = current;
-                LOGI("FPS: %d",m_frames);
-            }
             while(SDL_PollEvent(&m_event)) {
                 for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
                     (*it)->handleEvents(m_event);
@@ -118,6 +110,5 @@ private:
     SDL_Renderer* m_renderer = nullptr;
     SDL_Event     m_event;
 
-    int m_fps =0;
-    int m_frames =0;
+
 };

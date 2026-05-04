@@ -1,39 +1,38 @@
 //
-// Created by LENOVO on 17-04-2026.
+// Created by LENOVO on 04-05-2026.
 //
-
 #pragma once
-#include <android/log.h>
-#include <SDL3/SDL.h>
-#include <SDL3_image/SDL_image.h>
-
-#include "State/State.h"
-#include "engine/Engine.h"
-
-
-#define LOG_TAG "MenuState"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-class MenuState : public State{
+#include <SDL3_ttf/SDL_ttf.h>
+#include "State/state.h"
+#include "utils/utils.h"
+class MenuState:public State{
 public:
-
     MenuState(SDL_Renderer* renderer);
-    ~MenuState() override;
-
+    ~MenuState()override;
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
     void handleEvents(SDL_Event& event)override;
-
 private:
-    SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf","rb");
-    SDL_IOStream* m_backgroundSprite = SDL_IOFromFile("menu-animate.png","rb");
+    Button m_playButton{150,100,350,150};
+    Button m_settingsButton{150,270,350,150};
+    Button m_quitButton{150,440,350,150};
+    Button m_customizeButton{1100,350,350,150};
+
+    SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("misc/bg.png","rb");
+    SDL_IOStream* m_buttonSprite = SDL_IOFromFile("button/buttons.png","rb");
+    SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
+    SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
 
     SDL_Texture* m_background = nullptr;
+    SDL_Texture* m_playButtonTexture = nullptr;
+    SDL_Texture* m_settingsButtonTexture = nullptr;
+    SDL_Texture* m_quitButtonTexture = nullptr;
+    SDL_Texture* m_customizeButtonTexture = nullptr;
+    SDL_Texture* m_playText = nullptr;
+    SDL_Texture* m_playTextShadow = nullptr;
 
-    int m_currentFrame =0;
-    unsigned int m_last=SDL_GetTicks();
-    unsigned int m_now = 0;
-    int m_aniDelay=50;//50ms
+    TTF_Font* m_font = nullptr;
+    TTF_Font* m_fontShadow = nullptr;
+
     SDL_Renderer* m_renderer = nullptr;
 };
-
