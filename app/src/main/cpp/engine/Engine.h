@@ -3,7 +3,7 @@
 //
 
 #include "State/State.h"
-
+#include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3/SDL.h>
 #include <android/log.h>
 #include <vector>
@@ -109,6 +109,9 @@ private:
     SDL_Window*   m_window = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     SDL_Event     m_event;
+    SDL_IOStream* m_musicfile = SDL_IOFromFile("music.wav", "rb");
 
-
+    MIX_Audio* m_audio = nullptr;
+    MIX_Mixer* m_mixer =nullptr;
+    MIX_Track* m_track = nullptr;
 };

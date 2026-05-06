@@ -28,7 +28,7 @@ enum PlayerAction{
     MOVINGRIGHT=2,
     CROUCHING=3,
     HURT=4,
-    KICK=5,
+    JUMP=5,
 
 };
 class GameState : public State{
@@ -103,7 +103,6 @@ private:
     Button m_LeftButton;
     Button m_RightButton;
     Button m_CrouchButton;
-    Button m_KickButton;
 
 };
 

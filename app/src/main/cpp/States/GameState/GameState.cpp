@@ -68,6 +68,8 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
     SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
+
+
 }
 
 void GameState::update(float dt){
@@ -83,6 +85,10 @@ void GameState::update(float dt){
             m_Animation.startIndex=4;
             m_Animation.lastIndex =10;
             break;
+        case JUMP:
+            m_Animation.startIndex=11;
+            m_Animation.lastIndex =13;
+            break;
         case HURT:
             m_Animation.startIndex=14;
             m_Animation.lastIndex =16;
@@ -91,10 +97,7 @@ void GameState::update(float dt){
             m_Animation.startIndex=17;
             m_Animation.lastIndex =23;
             break;
-        case KICK:
-            m_Animation.startIndex=11;
-            m_Animation.lastIndex =13;
-            break;
+
     }
     m_aniNowTime = SDL_GetTicks();
     if(m_aniNowTime - m_aniLastTime > m_aniframeDelay){
@@ -113,6 +116,7 @@ void GameState::handleEvents(SDL_Event& event) {
         LOGI("game state transitions to menu state");
         Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
     }
+
 
 }
 

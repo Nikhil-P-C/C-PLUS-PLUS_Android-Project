@@ -45,6 +45,19 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image EXCLUDE_FROM_ALL)
 set(SDL_DISABLE_VERSIONING ON)
 set(SDLTTF_VENDORED ON)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf EXCLUDE_FROM_ALL)
+
+#---- SDL_mixer ----
+set(SDLMIXER_WAV ON CACHE BOOL "" FORCE)
+set(SDLMIXER_FLAC OFF CACHE BOOL "" FORCE)
+set(SDLMIXER_MP3 OFF CACHE BOOL "" FORCE)
+set(SDLMIXER_OGG OFF CACHE BOOL "" FORCE)
+set(SDLMIXER_OPUS OFF CACHE BOOL "" FORCE)
+set(BUILD_PROGRAMS OFF)
+set(BUILD_EXAMPLES OFF)
+set(BUILD_TESTING OFF)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_mixer EXCLUDE_FROM_ALL)
+
 # --- Your main native library ---
 add_library(main SHARED
         main.cpp
@@ -84,12 +97,16 @@ target_include_directories(main PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3_image/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_mixer/include
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/enet-1.3.18/include
         ${CMAKE_CURRENT_SOURCE_DIR}/
+
 )
 
 # --- Link libraries ---
 target_link_libraries(main
+
+        SDL3_mixer::SDL3_mixer
         SDL3_ttf::SDL3_ttf
         SDL3_image::SDL3_image
         SDL3::SDL3
