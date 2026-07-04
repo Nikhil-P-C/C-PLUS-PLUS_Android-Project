@@ -11,6 +11,7 @@
 #include "States/GameState/GameState.h"
 #include "States/MenuState/TitleScreenState.h"
 #include "States/MenuState/MenuState.h"
+#include "States/InputOverlayState/JoystickOverlay.h"
 
 PauseState::PauseState(SDL_Renderer *renderer) {
     LOGI("Pause construct");
@@ -75,7 +76,9 @@ void PauseState::handleEvents(SDL_Event &event) {
     }
     if(event.type == SDL_EVENT_FINGER_DOWN){
         LOGI("back to game state");
+
         Engine::Get().popState();
+        Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
     }
 
 }

@@ -39,11 +39,11 @@ namespace gameMath{
         return false;
 
     }
-    void interpolate(float& cameraX,float& cameraY,
+    void interpolate(float& vX,float& vY,
                      float targetX, float targetY ,float factor){// try values between 0.05f and 0.2f
 
         // interpolate towards target
-        cameraX += (targetX - cameraX) * factor;
-        cameraY += (targetY - cameraY) * factor;
+        vX += (targetX - vX) * factor;
+        vY += (targetY - vY) * factor;
     }
 }

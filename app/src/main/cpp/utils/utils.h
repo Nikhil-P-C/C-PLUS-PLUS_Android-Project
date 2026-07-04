@@ -7,4 +7,6 @@
 #include "Player.h"
 #include "Button.h"
 #include "Camera.h"
+#include "GameData.h"
+#include "InputDispatcher.h"
 #endif //MY_APP_UTILS_H

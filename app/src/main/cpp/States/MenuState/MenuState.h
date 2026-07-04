@@ -14,7 +14,7 @@ public:
     void handleEvents(SDL_Event& event)override;
 private:
     Button m_playButton{150,100,350,150};
-    Button m_settingsButton{150,270,350,150};
+    Button m_optionButton{150,270,350,150};
     Button m_quitButton{150,440,350,150};
     Button m_customizeButton{1100,350,350,150};
 
@@ -35,4 +35,5 @@ private:
     TTF_Font* m_fontShadow = nullptr;
 
     SDL_Renderer* m_renderer = nullptr;
+
 };

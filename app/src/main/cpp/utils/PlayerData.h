@@ -4,7 +4,10 @@
 #pragma once
 
 #include <string>
-
+enum ControlType{
+    JOYSTICK =0,
+    BUTTON=1
+};
 enum PlayerSkin{
     YELLOW=0,
     BLUE=1,
@@ -18,23 +21,24 @@ private:
     PlayerDetail operator=(const PlayerDetail&) = delete;
 public:
     PlayerSkin getPlayerSkin(){
-        return playerSkin;
+        return m_playerSkin;
     }
     void setPlayerSkin(PlayerSkin skin){
-        playerSkin = skin;
+        m_playerSkin = skin;
     }
     std::string_view getPlayerName(){
-        return name;
+        return m_name;
     }
-//    void setPlayerName(const char* n){
-//        strcpy(name,n);
-//    }
+    void setPlayerName(const std::string& newName){
+        m_name = newName;
+    }
     static PlayerDetail& getInstance(){
         static PlayerDetail instance;
         return instance;
 
     }
 private:
-    std::string name="";
-    PlayerSkin playerSkin = YELLOW; //default:0(yellow) , 1(blue),2(red),3(green)
+
+    std::string m_name;
+    PlayerSkin m_playerSkin = PlayerSkin::YELLOW; //default:0(yellow) , 1(blue),2(red),3(green)
 };

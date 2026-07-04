@@ -46,7 +46,7 @@ public:
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
     }
-
+    void setPlatform();
 
     void render(SDL_Renderer* renderer) override;
 
@@ -84,6 +84,7 @@ private:
     static const int TILE_WIDTH    =16;
 \
     //player and platform
+    bool m_isPlayerfacingRight =true;
     Platform m_platforms[100];
     Player   m_player;
 

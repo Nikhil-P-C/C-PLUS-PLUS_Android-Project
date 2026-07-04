@@ -7,6 +7,10 @@
 #include "MenuState.h"
 #include "Engine/engine.h"
 #include "States/GameState/GameState.h"
+#include "States/InputOverlayState/JoystickOverlay.h"
+#include "States/DebugState/DebugState.h"
+#include "States/InputOverlayState/ButtonOverlay.h"
+#include "States/MenuState/OptionMenuState/OptionMenuState.h"
 
 MenuState::MenuState(SDL_Renderer *renderer) {
     if(!m_fontfile)return;
@@ -38,7 +42,7 @@ MenuState::MenuState(SDL_Renderer *renderer) {
 MenuState::~MenuState() {
     SDL_CloseIO(m_backGroundSprite);
     SDL_CloseIO(m_buttonSprite);
-
+    LOGI("menu destructor");
     SDL_DestroyTexture(m_background);
     SDL_DestroyTexture(m_playButtonTexture);
 }
@@ -52,7 +56,7 @@ void MenuState::render(SDL_Renderer* renderer) {
     SDL_RenderTexture(renderer, m_playButtonTexture, &playButtonSrc, &playButtonDst);
 
     SDL_FRect settingButtonSrc{0+(2*594),0,594,282};
-    SDL_FRect settingButtonDst{m_settingsButton.x,m_settingsButton.y,m_settingsButton.w,m_settingsButton.h};
+    SDL_FRect settingButtonDst{m_optionButton.x,m_optionButton.y,m_optionButton.w,m_optionButton.h};
     SDL_RenderTexture(renderer, m_playButtonTexture, &settingButtonSrc, &settingButtonDst);
 
     SDL_FRect quitButtonSrc{0+(3*594),0,594,282};
@@ -87,7 +91,7 @@ void MenuState::render(SDL_Renderer* renderer) {
         m_playTextShadow = SDL_CreateTextureFromSurface(renderer, fontShadowSurface);
         SDL_DestroySurface(fontSurface);
         SDL_DestroySurface(fontShadowSurface);
-        SDL_FRect dst = {m_settingsButton.x+80,m_settingsButton.y+30,m_settingsButton.w-160,m_settingsButton.h-40};
+        SDL_FRect dst = {m_optionButton.x+80,m_optionButton.y+30,m_optionButton.w-160,m_optionButton.h-40};
         SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &dst);
         SDL_RenderTexture(renderer, m_playText, nullptr, &dst);
     }
@@ -127,11 +131,34 @@ void MenuState::update(float dt) {
 
 void MenuState::handleEvents(SDL_Event &event) {
     if(event.type == SDL_EVENT_FINGER_DOWN){
-        int touchX =event.tfinger.x * 1600, touchY =event.tfinger.y*720;
+        float touchX =event.tfinger.x * 1600, touchY =event.tfinger.y*720;
         if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w){
             if(touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
                 LOGI("menu starts transitioning to game state");
                 Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
+                if(GameData::getInstance().isDebugEnabled()){
+                    Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer));
+                }
+                if(GameData::getInstance().getControlType() == JOYSTICK) {
+                    Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
+                }
+                if(GameData::getInstance().getControlType() == BUTTONS){
+                    Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+                }
+                return;
+
+            }
+
+        }
+        if(touchX > m_optionButton.x && touchX < m_optionButton.x + m_optionButton.w){
+            if(touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
+                Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
+            }
+        }
+        if(touchX > m_quitButton.x && touchX < m_quitButton.x + m_quitButton.w){
+            if(touchY > m_quitButton.y && touchY < m_quitButton.y + m_quitButton.h){
+                LOGI("menu starts transitioning to game state");
+                Engine::Get().exitEngine();
                 return;
             }
 

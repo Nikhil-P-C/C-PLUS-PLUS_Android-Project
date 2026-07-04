@@ -49,7 +49,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf EXCLUDE_FROM_ALL)
 #---- SDL_mixer ----
 set(SDLMIXER_WAV ON CACHE BOOL "" FORCE)
 set(SDLMIXER_FLAC OFF CACHE BOOL "" FORCE)
-set(SDLMIXER_MP3 OFF CACHE BOOL "" FORCE)
+set(SDLMIXER_MP3 ON CACHE BOOL "" FORCE)
 set(SDLMIXER_OGG OFF CACHE BOOL "" FORCE)
 set(SDLMIXER_OPUS OFF CACHE BOOL "" FORCE)
 set(BUILD_PROGRAMS OFF)
@@ -69,13 +69,17 @@ add_library(main SHARED
 #        Player.h
 #        platform.h
 #        camera.h
+        States/inputOverlayState/JoystickOverlay.cpp
+        States/inputOverlayState/ButtonOverlay.cpp
         States/DebugState/DebugState.cpp
         States/GameState/GameState.cpp
         States/MenuState/TitleScreenState.cpp
         States/MenuState/MenuState.cpp
+        States/MenuState/OptionMenuState/OptionMenuState.cpp
+        States/MenuState/OptionMenuState/ControlMenuState.cpp
+        States/MenuState/OptionMenuState/AudioMenuState.cpp
         States/PauseState/PauseState.cpp
         engine/Engine.cpp
-
         utils/Camera.cpp
         utils/gameMath.cpp
 

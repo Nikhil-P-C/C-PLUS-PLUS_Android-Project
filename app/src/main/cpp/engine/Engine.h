@@ -36,6 +36,7 @@ public:
         LOGI("engine destructor");
         if(m_window)SDL_DestroyWindow(m_window);
         if(m_renderer)SDL_DestroyRenderer(m_renderer);
+
         SDL_Quit();
     }
     static Engine& Get(){
@@ -53,65 +54,53 @@ public:
         popState();
         pushState(std::move(state));
     }
+    void pushOverlayState(std::unique_ptr<State> state){
+        m_CommandOverlayQueue.push_back({commandType::PUSH, std::move(state)});
+    }
+
+    void popOverlayState(){
+        m_CommandOverlayQueue.push_back({commandType::POP, nullptr});
+    }
+    void changeOverlayState(std::unique_ptr<State> state){
+        popOverlayState();
+        pushOverlayState(std::move(state));
+    }
+    bool isOverlayStatesEmpty(){
+        return m_OverlayStates.empty();
+    }
+    bool isStatesEmpty(){
+        return m_States.empty();
+    }
+    size_t getOverlayStateCount(){
+        return m_OverlayStates.size();
+    }
+    size_t getStateCount(){
+        return m_States.size();
+    }
     void initEngine();
 
-    void run(){
-        unsigned int lastTime = SDL_GetTicks();
-        unsigned int currentTime;
-        int framedelay = 1000/60;
+    void exitEngine();
 
-        while(true){
-            currentTime = SDL_GetTicks();
-            float deltaTime =(float) (currentTime - lastTime) / 1000.0f;
-            lastTime = currentTime;
+    void run();
 
 
-            while(SDL_PollEvent(&m_event)) {
-                for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
-                    (*it)->handleEvents(m_event);
-            }
-
-
-            for(const auto &state : m_States) {
-                if (!m_States.empty())
-                    m_States.back()->update(deltaTime);
-            }
-
-
-            for (auto& cmd : m_CommandQueue) {
-                if (cmd.type == commandType::PUSH) {
-                    m_States.push_back(std::move(cmd.state));
-                }
-                else if (cmd.type == commandType::POP) {
-                    if (!m_States.empty())
-                        m_States.pop_back();
-                }
-            }
-            m_CommandQueue.clear();
-
-
-            SDL_RenderClear(m_renderer);
-            for(const auto &state : m_States) {
-                state->render(m_renderer);
-            }
-            SDL_RenderPresent(m_renderer);
-
-            unsigned int frametime = SDL_GetTicks() - currentTime;
-            if(frametime < framedelay){
-                SDL_Delay(framedelay - frametime);
-            }
-        }
-    }
 
 private:
     std::vector<Command> m_CommandQueue;
     std::vector<std::unique_ptr<State>> m_States;
+
+    std::vector<Command> m_CommandOverlayQueue;
+    std::vector<std::unique_ptr<State>> m_OverlayStates;
+
     SDL_Window*   m_window = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     SDL_Event     m_event;
-    SDL_IOStream* m_musicfile = SDL_IOFromFile("music.wav", "rb");
+    SDL_IOStream* m_musicfile = SDL_IOFromFile("music.mp3", "rb");
+
 
     MIX_Audio* m_audio = nullptr;
     MIX_Mixer* m_mixer =nullptr;
     MIX_Track* m_track = nullptr;
+
+    bool m_running =true;
 };

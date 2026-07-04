@@ -19,6 +19,7 @@
       <w>framedelay</w>
       <w>framestart</w>
       <w>frametime</w>
+      <w>gamemeta</w>
       <w>gameutils</w>
       <w>groundlevel</w>
       <w>isgrounded</w>
@@ -26,6 +27,7 @@
       <w>lasttime</w>
       <w>movingleft</w>
       <w>movingright</w>
+      <w>musicfile</w>
       <w>mysdlapp</w>
       <w>opengles</w>
       <w>playersurface</w>
