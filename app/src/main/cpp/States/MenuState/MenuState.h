@@ -11,12 +11,13 @@ public:
     ~MenuState()override;
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
-    void handleEvents(SDL_Event& event)override;
+    bool handleEvents(SDL_Event& event)override;
 private:
     Button m_playButton{150,100,350,150};
     Button m_optionButton{150,270,350,150};
     Button m_quitButton{150,440,350,150};
     Button m_customizeButton{1100,350,350,150};
+    bool m_transitioning =false;
 
     SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("misc/bg.png","rb");
     SDL_IOStream* m_buttonSprite = SDL_IOFromFile("button/buttons.png","rb");

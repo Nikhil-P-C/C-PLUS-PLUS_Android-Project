@@ -49,7 +49,7 @@ void JoystickOverlay::update(float dt) {
             ndX /= len;
             ndY /= len;
         }
-        LOGI("DX:%f ,DY:%f",dX,dY);
+
         const float deadZone = 45.00f;
         if(len <deadZone)
             InputDispatcher::getInstance().inputLogClear();
@@ -79,7 +79,7 @@ void JoystickOverlay::update(float dt) {
     }
 }
 
-void JoystickOverlay::handleEvents(SDL_Event &event) {
+bool JoystickOverlay::handleEvents(SDL_Event &event) {
     if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION){
         InputDispatcher::getInstance().setInputReleased(false);
         float touchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
@@ -98,6 +98,7 @@ void JoystickOverlay::handleEvents(SDL_Event &event) {
             m_touchX = touchX;
             m_touchY = touchY;
         }
+        return true;
     }
 
     if(event.type == SDL_EVENT_FINGER_UP){
@@ -105,8 +106,9 @@ void JoystickOverlay::handleEvents(SDL_Event &event) {
             m_joystickFingerActive =false;
             InputDispatcher::getInstance().inputLogClear();
         }
+        return true;
     }
-
+    return false;
 }
 
 JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
@@ -117,4 +119,8 @@ JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
     SDL_Surface* joystickHandleSurface = IMG_Load_IO(m_joystickHandleFile, false);
     m_joystickHandleTexture =SDL_CreateTextureFromSurface(renderer, joystickHandleSurface);
     SDL_DestroySurface(joystickHandleSurface);
+    LOGI("joystick overlay constructor:%p",this);
+}
+JoystickOverlay::~JoystickOverlay() {
+    LOGI("joystick overlay destructor:%p",this);
 }

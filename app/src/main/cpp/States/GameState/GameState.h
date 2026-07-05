@@ -35,6 +35,7 @@ class GameState : public State{
 public:
     GameState(SDL_Renderer* renderer);
     ~GameState() override{
+        LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
         if (m_backGround)      SDL_DestroyTexture(m_backGround);
         if (m_playerTexture)   SDL_DestroyTexture(m_playerTexture);
@@ -52,7 +53,7 @@ public:
 
     void update(float dt) override;
 
-    void handleEvents(SDL_Event& event) override;
+    bool handleEvents(SDL_Event& event) override;
 
 
 private:
@@ -98,7 +99,7 @@ private:
     //mechanics
     bool m_running =true;
     bool m_isCompleted=false;
-
+    bool m_transitioning=false;
     //input
     Button m_JumpButton;
     Button m_LeftButton;

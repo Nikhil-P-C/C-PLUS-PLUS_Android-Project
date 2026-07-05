@@ -13,6 +13,7 @@
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
 
 MenuState::MenuState(SDL_Renderer *renderer) {
+    LOGI("menu construct:%p",this);
     if(!m_fontfile)return;
     if(!m_fontShadowfile)return;
 
@@ -42,7 +43,7 @@ MenuState::MenuState(SDL_Renderer *renderer) {
 MenuState::~MenuState() {
     SDL_CloseIO(m_backGroundSprite);
     SDL_CloseIO(m_buttonSprite);
-    LOGI("menu destructor");
+    LOGI("menu destructor:%p",this);
     SDL_DestroyTexture(m_background);
     SDL_DestroyTexture(m_playButtonTexture);
 }
@@ -129,11 +130,13 @@ void MenuState::update(float dt) {
 
 }
 
-void MenuState::handleEvents(SDL_Event &event) {
+bool MenuState::handleEvents(SDL_Event &event) {
+    if(m_transitioning)return true;
     if(event.type == SDL_EVENT_FINGER_DOWN){
         float touchX =event.tfinger.x * 1600, touchY =event.tfinger.y*720;
         if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w){
             if(touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
+                m_transitioning =true;
                 LOGI("menu starts transitioning to game state");
                 Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
                 if(GameData::getInstance().isDebugEnabled()){
@@ -145,13 +148,14 @@ void MenuState::handleEvents(SDL_Event &event) {
                 if(GameData::getInstance().getControlType() == BUTTONS){
                     Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
                 }
-                return;
+                return true;
 
             }
 
         }
         if(touchX > m_optionButton.x && touchX < m_optionButton.x + m_optionButton.w){
             if(touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
+                m_transitioning =true;
                 Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
             }
         }
@@ -159,9 +163,11 @@ void MenuState::handleEvents(SDL_Event &event) {
             if(touchY > m_quitButton.y && touchY < m_quitButton.y + m_quitButton.h){
                 LOGI("menu starts transitioning to game state");
                 Engine::Get().exitEngine();
-                return;
+                return true;
             }
 
         }
+        return true;
     }
+    return false;
 }

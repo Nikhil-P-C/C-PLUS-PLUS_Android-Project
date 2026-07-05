@@ -5,18 +5,22 @@
 #include "ButtonOverlay.h"
 #include "utils/GameData.h"
 #include "utils/InputDispatcher.h"
+#include "SDL3_image/SDL_image.h"
 
 
 void ButtonOverlay::render(SDL_Renderer *renderer) {
-    SDL_FRect jumpButton{m_JumpButton.x, m_JumpButton.y, m_JumpButton.w, m_JumpButton.h};
-    SDL_FRect leftButton{m_LeftButton.x, m_LeftButton.y, m_LeftButton.w, m_LeftButton.h};
-    SDL_FRect rightButton{m_RightButton.x, m_RightButton.y, m_RightButton.w, m_RightButton.h};
-    SDL_FRect crouchButton{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    SDL_RenderRect(renderer, &jumpButton);
-    SDL_RenderRect(renderer, &leftButton);
-    SDL_RenderRect(renderer, &rightButton);
-    SDL_RenderRect(renderer, &crouchButton);
+    SDL_FRect jumpButtonDst{m_JumpButton.x, m_JumpButton.y, m_JumpButton.w, m_JumpButton.h};
+    SDL_FRect leftButtonDst{m_LeftButton.x, m_LeftButton.y, m_LeftButton.w, m_LeftButton.h};
+    SDL_FRect rightButtonDst{m_RightButton.x, m_RightButton.y, m_RightButton.w, m_RightButton.h};
+
+    SDL_RenderTexture(renderer, m_jumpButtonTexture, nullptr, &jumpButtonDst);
+    SDL_RenderTexture(renderer, m_leftButtonTexture, nullptr, &leftButtonDst);
+    SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
+
+
+//    SDL_FRect crouchButtonDst{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
+//    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+//    SDL_RenderRect(renderer, &crouchButtonDst);
 }
 
 void ButtonOverlay::update(float dt) {
@@ -46,20 +50,33 @@ void ButtonOverlay::update(float dt) {
     }
 }
 
-void ButtonOverlay::handleEvents(SDL_Event &event) {
+bool ButtonOverlay::handleEvents(SDL_Event &event) {
 
     if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION){
         InputDispatcher::getInstance().setInputReleased(false);
         m_TouchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         m_TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
 
-
+        return true;
     }
     if(event.type == SDL_EVENT_FINGER_UP){
         InputDispatcher::getInstance().inputLogClear();
+        return true;
     }
+    return false;
 }
 
 ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
-
+    SDL_Surface* jumpButtonSurface = IMG_Load_IO(m_jumpButtonFile,false);
+    SDL_Surface* leftButtonSurface = IMG_Load_IO(m_leftButtonFile,false);
+    SDL_Surface* rightButtonSurface = IMG_Load_IO(m_rightButtonFile,false);
+    m_jumpButtonTexture = SDL_CreateTextureFromSurface(renderer,jumpButtonSurface);
+    m_leftButtonTexture = SDL_CreateTextureFromSurface(renderer,leftButtonSurface);
+    m_rightButtonTexture = SDL_CreateTextureFromSurface(renderer,rightButtonSurface);
+    SDL_CloseIO(m_jumpButtonFile);
+    SDL_CloseIO(m_leftButtonFile);
+    SDL_CloseIO(m_rightButtonFile);
+    SDL_DestroySurface(jumpButtonSurface);
+    SDL_DestroySurface(leftButtonSurface);
+    SDL_DestroySurface(rightButtonSurface);
 }

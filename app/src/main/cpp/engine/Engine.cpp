@@ -59,30 +59,7 @@ void Engine::run(){
         currentTime = SDL_GetTicks();
         float deltaTime =(float) (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
-
-        //polling events from states
-
-        while(SDL_PollEvent(&m_event)) {
-
-            for (auto it = m_OverlayStates.rbegin(); it != m_OverlayStates.rend() ; ++it)
-                (*it)->handleEvents(m_event);
-            for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
-                (*it)->handleEvents(m_event);
-        }
-
-        //updating states
-
-
-        if(!m_OverlayStates.empty())
-            m_OverlayStates.back()->update(deltaTime);
-
-        if (!m_States.empty())
-            m_States.back()->update(deltaTime);
-
-
-
-        //rendering states
-
+        //RENDER
         for (auto& cmd : m_CommandQueue) {
             if (cmd.type == commandType::PUSH)
                 m_States.push_back(std::move(cmd.state));
@@ -117,8 +94,24 @@ void Engine::run(){
 
         SDL_RenderPresent(m_renderer);
 
+        //polling events from states
+
+        while(SDL_PollEvent(&m_event)) {
+
+            for (auto it = m_OverlayStates.rbegin(); it != m_OverlayStates.rend() ; ++it)
+                if((*it)->handleEvents(m_event))break;
+            for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
+                if((*it)->handleEvents(m_event))break;
+        }
+
+        //updating states
 
 
+        if(!m_OverlayStates.empty())
+            m_OverlayStates.back()->update(deltaTime);
+
+        if (!m_States.empty())
+            m_States.back()->update(deltaTime);
 
 
         unsigned int frametime = SDL_GetTicks() - currentTime;

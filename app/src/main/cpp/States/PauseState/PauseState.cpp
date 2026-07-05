@@ -12,9 +12,10 @@
 #include "States/MenuState/TitleScreenState.h"
 #include "States/MenuState/MenuState.h"
 #include "States/InputOverlayState/JoystickOverlay.h"
+#include "States/InputOverlayState/ButtonOverlay.h"
 
 PauseState::PauseState(SDL_Renderer *renderer) {
-    LOGI("Pause construct");
+    LOGI("Pause construct:%p",this);
     init(renderer);
 }
 
@@ -67,24 +68,34 @@ bool PauseState::shouldClose(float x ,float y) const{
     if(x >= m_exit.x && x <= m_exit.x + m_exit.w && y >= m_exit.y && y <= m_exit.y + m_exit.h)return true;
     return false;
 }
-void PauseState::handleEvents(SDL_Event &event) {
-    if(shouldClose(event.tfinger.x * 1600,event.tfinger.y*720)){
-        LOGI("should close");
-        Engine::Get().popState();
-        Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
-        return;
+bool PauseState::handleEvents(SDL_Event &event) {
+    if(m_transitioning)return true;
+    if(event.type == SDL_EVENT_FINGER_DOWN){
+        if (shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)) {
+            m_transitioning = true;
+            LOGI("should close");
+            Engine::Get().popState();
+            Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+            return true;
+        }
     }
     if(event.type == SDL_EVENT_FINGER_DOWN){
+        m_transitioning =true;
         LOGI("back to game state");
-
         Engine::Get().popState();
-        Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
+            Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)
+            Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+        return true;
     }
 
+
+    return false;
 }
 
 PauseState::~PauseState() {
-    LOGI("Pause destructor");
+    LOGI("Pause destructor:%p",this);
     if(m_font)      TTF_CloseFont(m_font);
     if(m_fontShadow)TTF_CloseFont(m_fontShadow);
 

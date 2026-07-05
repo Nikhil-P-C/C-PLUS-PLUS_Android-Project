@@ -17,7 +17,7 @@ public:
     bool shouldClose(float x ,float y) const;
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
-    void handleEvents(SDL_Event& event)override;
+    bool handleEvents(SDL_Event& event)override;
     ~PauseState() override;
 private:
     SDL_FRect m_exit = {800-100, 600 - 50, 200, 100};
@@ -31,4 +31,6 @@ private:
     SDL_Texture* m_fontShadowTexture = nullptr;
 
     SDL_Renderer* m_renderer = nullptr;
+
+    bool m_transitioning =false;
 };

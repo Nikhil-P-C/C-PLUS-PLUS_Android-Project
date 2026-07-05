@@ -10,12 +10,10 @@
 
 class State{
 public:
-    State(){
-        LOGI("state constructor");
-    }
+    State() =default;
     virtual void render(SDL_Renderer* renderer){};
     virtual void update(float dt){};
-    virtual void handleEvents(SDL_Event& event){};
+    virtual bool handleEvents(SDL_Event& event){};
     virtual ~State() =default;
 
 };

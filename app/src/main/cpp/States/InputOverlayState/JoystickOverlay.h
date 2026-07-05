@@ -8,16 +8,17 @@
 class JoystickOverlay: public State {
 public:
     JoystickOverlay(SDL_Renderer* renderer);
+    ~JoystickOverlay() override;
     void render(SDL_Renderer* renderer) override;
 
     void update(float dt) override;
 
-    void handleEvents(SDL_Event& event) override;
+    bool handleEvents(SDL_Event& event) override;
 
 private:
     Button m_joystick{0+ 200, 720 -400,300,300};
-    Button m_joystickHandle{ m_touchX -150/ 2,
-                             m_touchY - 150 / 2,
+    Button m_joystickHandle{ m_touchX -150.00f/ 2.00f,
+                             m_touchY - 150.00f / 2.00f,
                              150,150};
     float m_touchX =m_joystick.x + m_joystick.w/2,m_touchY =m_joystick.y + m_joystick.h/2;
     bool m_joystickFingerActive =false;

@@ -13,7 +13,7 @@ GameState::GameState(SDL_Renderer *renderer) {
 
 
     m_renderer = renderer;
-    LOGI("game state constructor");
+    LOGI("gamestate constructor:%p",this);
     m_windowH =GameData::getInstance().getWinHeight();
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
@@ -24,7 +24,7 @@ GameState::GameState(SDL_Renderer *renderer) {
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
-    LOGI("font:%d",(bool)m_font);
+
 
     //background sprite loading;
     SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backGroundSprite, false);
@@ -49,7 +49,7 @@ GameState::GameState(SDL_Renderer *renderer) {
 
     SDL_SetTextureScaleMode(m_playerTexture, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);
-    if(!m_playerSprite)LOGE("cannot load sprite");
+
 
     setPlatform();
 }
@@ -79,14 +79,14 @@ void GameState::render(SDL_Renderer* renderer)  {
 void GameState::update(float dt){
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
     if(InputDispatcher::getInstance().released){
-        LOGI("Player is IDLE");
+
         m_playerAction=PlayerAction::IDLE;
     }
     if(InputDispatcher::getInstance().movingLeft){
         m_isPlayerfacingRight =false;
         m_playerAction=PlayerAction::MOVINGLEFT;
         m_player.x -= 200 * dt;
-        LOGI("playerX b =%f",m_player.x);
+
     }
     if(InputDispatcher::getInstance().movingRight){
         m_isPlayerfacingRight =true;
@@ -131,15 +131,20 @@ void GameState::update(float dt){
 
 }
 
-void GameState::handleEvents(SDL_Event& event) {
-
-    if(event.key.key == SDLK_AC_BACK){
+bool GameState::handleEvents(SDL_Event& event) {
+//    if (m_transitioning)return true;
+    if(event.type == SDL_EVENT_KEY_DOWN)
+    {
+        if(event.key.key == SDLK_AC_BACK){
+        m_transitioning = true;
         LOGI("game state transitions to menu state");
         Engine::Get().popOverlayState();
         Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
+        return true;
+        }
     }
 
-
+    return false;
 }
 
 void GameState::setPlatform() {

@@ -17,7 +17,7 @@ public:
     }
     void render(SDL_Renderer* renderer) override;
     void update(float dt) override;
-    void handleEvents(SDL_Event& event) override;
+    bool handleEvents(SDL_Event& event) override;
 private:
     SDL_Texture*  m_fpsTexture       = nullptr;
     TTF_Font*     m_font             = nullptr;

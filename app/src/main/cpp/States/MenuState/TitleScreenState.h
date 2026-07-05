@@ -22,7 +22,7 @@ public:
 
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
-    void handleEvents(SDL_Event& event)override;
+    bool handleEvents(SDL_Event& event)override;
 
 private:
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf","rb");

@@ -5,25 +5,6 @@
 #include "States/GameState/GameState.h"
 #include "MenuState.h"
 
-TitleScreenState::TitleScreenState(SDL_Renderer *renderer)
-    {
-        m_renderer = renderer;
-        LOGI("menu state constructor");
-//        if(backGroundSprite)LOGI("m_backGroundSprite:true");
-//        Backgroundsurface = IMG_Load_IO(backGroundSprite,false);
-//        if(!Backgroundsurface)return;
-
-        SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backgroundSprite,false);
-        if(!Backgroundsurface)return;
-
-
-        m_background = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
-        SDL_DestroySurface(Backgroundsurface);
-        if(!m_background)return;
-        SDL_SetTextureScaleMode(m_background,SDL_SCALEMODE_NEAREST);
-    }
-
-
 void TitleScreenState::render(SDL_Renderer *renderer) {
     SDL_FRect backgroundSrc{};
     SDL_FRect backgroundDst = {0, 0, 1600, 720};
@@ -46,18 +27,30 @@ void TitleScreenState::update(float dt) {
         m_last = m_now;
     }
 }
-void TitleScreenState::handleEvents(SDL_Event &event){
-
+bool TitleScreenState::handleEvents(SDL_Event &event){
     if(event.type == SDL_EVENT_FINGER_DOWN){
-        LOGI("menu starts transitioning to game state");
-        Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
-        return;
-        LOGI("menu state handleEvents end");
-    }
-}
 
+        Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+        return true;
+
+    }
+    return false;
+}
+TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
+    m_renderer = renderer;
+    LOGI("TitleScreenState constructor:%p",this);
+//        if(backGroundSprite)LOGI("m_backGroundSprite:true");
+//        Backgroundsurface = IMG_Load_IO(backGroundSprite,false);
+//        if(!Backgroundsurface)return;
+    SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backgroundSprite,false);
+    if(!Backgroundsurface)return;
+    m_background = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
+    SDL_DestroySurface(Backgroundsurface);
+    if(!m_background)return;
+    SDL_SetTextureScaleMode(m_background,SDL_SCALEMODE_NEAREST);
+}
 TitleScreenState::~TitleScreenState() {
-        LOGI("Menu destructor");
+        LOGI("TitleScreenState destructor:%p",this);
 //        if (backGround)      SDL_DestroyTexture(backGround);
 //        if (backGroundSprite)SDL_CloseIO(backGroundSprite);
 }

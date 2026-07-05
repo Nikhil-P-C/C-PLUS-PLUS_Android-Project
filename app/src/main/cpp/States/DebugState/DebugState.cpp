@@ -32,8 +32,9 @@ void DebugState::update(float dt) {
     }
 }
 
-void DebugState::handleEvents(SDL_Event &event) {
+bool DebugState::handleEvents(SDL_Event &event) {
     LOGI("debug state handle events");
+    return false;
 }
 
 DebugState::DebugState(SDL_Renderer *renderer) {

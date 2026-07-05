@@ -14,13 +14,7 @@ void OptionMenuState::render(SDL_Renderer *renderer) {
     SDL_FRect backgroundDst{0, 0, static_cast<float>(GameData::getInstance().getWinWidth()), static_cast<float>(GameData::getInstance().getWinHeight())};
     SDL_RenderTexture(renderer, m_backGroundTexture, nullptr, &backgroundDst);
 
-    SDL_FRect audioButton ={m_audioButton.x,m_audioButton.y,m_audioButton.w,m_audioButton.h};
-    SDL_SetRenderDrawColor(renderer,255,0,0,255);
-    SDL_RenderFillRect(renderer,&audioButton);
 
-    SDL_FRect controlsButton ={m_controlButton.x,m_controlButton.y,m_controlButton.w,m_controlButton.h};
-    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderFillRect(renderer,&controlsButton);
 
     SDL_FRect backButton ={m_backButton.x,m_backButton.y,m_backButton.w,m_backButton.h};
     SDL_SetRenderDrawColor(renderer,0,0,255,255);
@@ -32,7 +26,7 @@ void OptionMenuState::update(float dt) {
 
 }
 
-void OptionMenuState::handleEvents(SDL_Event &event) {
+bool OptionMenuState::handleEvents(SDL_Event &event) {
     if(event.key.key == SDLK_AC_BACK) {
         int count = (int)Engine::Get().getOverlayStateCount();
         while(count){
@@ -41,6 +35,7 @@ void OptionMenuState::handleEvents(SDL_Event &event) {
             Engine::Get().popOverlayState();
         }
         Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+        return true;
     }
 
     if(event.type == SDL_EVENT_FINGER_DOWN){
@@ -58,14 +53,21 @@ void OptionMenuState::handleEvents(SDL_Event &event) {
         }
         if(TouchX >= m_controlButton.x && TouchX <= m_controlButton.x + m_controlButton.w &&
             TouchY >= m_controlButton.y && TouchY <= m_controlButton.y + m_controlButton.h){
-
+            if(Engine::Get().getOverlayStateCount()>0)
+                Engine::Get().popOverlayState();
             Engine::Get().pushOverlayState(std::make_unique<ControlMenuState>(m_renderer));
+            return true;
         }
         if(TouchX >= m_audioButton.x && TouchX <= m_audioButton.x + m_audioButton.w &&
             TouchY >= m_audioButton.y && TouchY <= m_audioButton.y + m_audioButton.h){
+            if(Engine::Get().getOverlayStateCount()>0)
+                Engine::Get().popOverlayState();
             Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));
+            return true;
         }
+        return true;
     }
+    return false;
 
 }
 
@@ -74,7 +76,7 @@ OptionMenuState::OptionMenuState(SDL_Renderer *renderer) {
     SDL_Surface* backgroundSurface = IMG_Load_IO(m_backGroundSprite,false);
     m_backGroundTexture = SDL_CreateTextureFromSurface(renderer,backgroundSurface);
     SDL_CloseIO(m_backGroundSprite);
-
+    SDL_DestroySurface(backgroundSurface);
     //push default optionstate
     Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));
 
