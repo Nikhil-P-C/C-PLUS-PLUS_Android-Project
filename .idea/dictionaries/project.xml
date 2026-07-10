@@ -25,6 +25,7 @@
       <w>isgrounded</w>
       <w>jumpforce</w>
       <w>lasttime</w>
+      <w>menutile</w>
       <w>movingleft</w>
       <w>movingright</w>
       <w>musicfile</w>

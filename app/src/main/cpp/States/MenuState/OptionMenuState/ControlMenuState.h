@@ -13,7 +13,7 @@ public:
 
     ControlMenuState(SDL_Renderer* renderer);
 private:
-    SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("optionMenu.png","rb");
+    SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("menu/optionMenu.png","rb");
     SDL_Texture* m_menuTexture = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     ControlType m_controlType = ControlType::JOYSTICK;

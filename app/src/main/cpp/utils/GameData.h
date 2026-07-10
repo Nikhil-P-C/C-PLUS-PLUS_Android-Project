@@ -22,11 +22,19 @@ public:
     int getControlType()const{
         return m_controlType;
     }
+    float getAudioScale()const{
+        return m_audioScale;
+    }
     void setControlType(ControlType type){
         m_controlType= type;
     }
     void setDebug(bool debug){
         m_debug=debug;
+    }
+    void setAudioScale(float scale) {
+        if (scale > 1.0f) scale = 1.0f;
+        if (scale < 0.0f) scale = 0.0f;
+        m_audioScale =scale;
     }
     bool isDebugEnabled() const{
         return m_debug;
@@ -36,10 +44,14 @@ public:
         return gameMeta;
     }
 
+
+
 private:
     GameData()= default;
     int m_winWidth;
     int m_winHeight;
     bool m_debug=false;
+    float m_audioScale= 0.0f;
+
     ControlType m_controlType=ControlType::BUTTONS;
 };

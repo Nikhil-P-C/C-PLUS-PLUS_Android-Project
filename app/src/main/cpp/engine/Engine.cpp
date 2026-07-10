@@ -25,6 +25,8 @@ void Engine::initEngine(){
     if (!m_renderer) {
         LOGE("Renderer creation failed: %s", SDL_GetError());
     }
+    SDL_SetRenderLogicalPresentation(m_renderer,1600,720,SDL_LOGICAL_PRESENTATION_LETTERBOX);
+
     m_mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (!m_mixer) {
         LOGE("Mixer creation failed: %s", SDL_GetError());
