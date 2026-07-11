@@ -14,9 +14,18 @@ public:
     ControlMenuState(SDL_Renderer* renderer);
 private:
     SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("menu/optionMenu.png","rb");
+    SDL_IOStream* m_optionBlockFile= SDL_IOFromFile("menu/menutile.png","rb");
+    SDL_IOStream* m_radioButtonfile = SDL_IOFromFile("menu/radioButton.png","rb");
+
+    SDL_Texture* m_optionBlockTexture = nullptr;
+    SDL_Texture* m_radioButtonTexture = nullptr;
     SDL_Texture* m_menuTexture = nullptr;
+
     SDL_Renderer* m_renderer = nullptr;
-    ControlType m_controlType = ControlType::JOYSTICK;
-    Button m_joystickButton{400.00f,360.00f,200.00f,100.00f};
-    Button m_buttonButton{600.00f,360.00f,200.00f,100.00f};
+
+    ControlType m_controlType =GameData::getInstance().getControlType();
+
+    Button m_joystickButton{400.00f,100.00f,200.00f,100.00f};
+    Button m_buttonButton{400.00f,200.00f,200.00f,100.00f};
+    Button m_joystickWButtons{400.00f,300.00f,200.00f,100.00f};
 };

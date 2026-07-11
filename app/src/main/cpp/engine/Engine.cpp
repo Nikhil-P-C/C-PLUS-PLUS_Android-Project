@@ -55,8 +55,12 @@ void Engine::run(){
         LOGI("height:%d,width:%d",GameData::getInstance().getWinHeight(),GameData::getInstance().getWinWidth());
     }
 
-
+    float lastmasterAudioScale = GameData::getInstance().getAudioScale();
+    float nowmasterAudioScale = GameData::getInstance().getAudioScale();
     while(m_running){
+        nowmasterAudioScale = GameData::getInstance().getAudioScale();
+        if(nowmasterAudioScale != lastmasterAudioScale)
+        MIX_SetMixerGain(m_mixer,GameData::getInstance().getAudioScale());
 
         currentTime = SDL_GetTicks();
         float deltaTime =(float) (currentTime - lastTime) / 1000.0f;

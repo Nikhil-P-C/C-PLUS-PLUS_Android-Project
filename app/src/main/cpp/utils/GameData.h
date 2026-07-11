@@ -19,7 +19,7 @@ public:
     int getWinWidth()const{
         return m_winWidth;
     }
-    int getControlType()const{
+    ControlType getControlType()const{
         return m_controlType;
     }
     float getAudioScale()const{
@@ -51,7 +51,7 @@ private:
     int m_winWidth;
     int m_winHeight;
     bool m_debug=false;
-    float m_audioScale= 0.0f;
+    float m_audioScale= 1.0f;
 
     ControlType m_controlType=ControlType::BUTTONS;
 };

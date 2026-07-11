@@ -13,11 +13,11 @@ public:
     void update(float dt)override;
     bool handleEvents(SDL_Event& event)override;
     AudioMenuState(SDL_Renderer* renderer);
+    ~AudioMenuState()override;
 private:
     float m_minimumSliderX =930.00f,m_maximumSliderX =1357.50f;
     Button m_slider{m_minimumSliderX + GameData::getInstance().getAudioScale() *(m_maximumSliderX-m_minimumSliderX),
                     175.00f,25.00f,40.00f};
-
     Button m_slidebar{930.00f,182.50f,450.00f,25.00f};
     SDL_FingerID m_sliderFingerID =0;
     SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("menu/optionMenu.png","rb");
