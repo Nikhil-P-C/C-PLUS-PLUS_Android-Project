@@ -8,7 +8,6 @@
 
 
 void AudioMenuState::render(SDL_Renderer *renderer) {
-    LOGI("audio menu state render");
     SDL_SetTextureScaleMode(m_menuTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_slidebarTexture,SDL_SCALEMODE_NEAREST);
@@ -23,17 +22,13 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
     SDL_FRect optionBlockSrc ={0.00f,0.00f,185.00f,34.00f};
     SDL_RenderTexture(renderer,m_optionBlockTexture,&optionBlockSrc,&optionBlockDst);
 
-    LOGI("audio menu state render");
     SDL_Surface* fontSurface = TTF_RenderText_Solid(m_font,"paused ",
                                                     7,SDL_Color{255,255,255,255});
-    LOGI("audio menu state render");
     m_fontTexture = SDL_CreateTextureFromSurface(renderer,fontSurface);
     SDL_DestroySurface(fontSurface);
-    LOGI("audio menu state render");
     SDL_FRect fontDst ={330.00f,120.00f,1100.00f,150.00f};
     SDL_RenderTexture(renderer,m_fontTexture,nullptr,&fontDst);
 
-    LOGI("audio menu state render");
     SDL_SetRenderDrawColor(renderer,255,0,0,0);
     SDL_FRect scaleValueRect ={m_minimumSliderX+5,m_slidebar.y+4,m_slider.x-m_minimumSliderX,m_slidebar.h-7};
     SDL_RenderFillRect(renderer,&scaleValueRect);
@@ -41,7 +36,6 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
     SDL_FRect slidebarDst ={m_slidebar.x,m_slidebar.y,m_slidebar.w,m_slidebar.h};
     SDL_FRect slidebarSrc ={0.00f,0.00f,98.75f,7.00f};
     SDL_RenderTexture(renderer,m_slidebarTexture,&slidebarSrc,&slidebarDst);
-    LOGI("audio menu state render");
     SDL_FRect sliderDst ={m_slider.x,m_slider.y,m_slider.w,m_slider.h};
     SDL_FRect sliderSrc ={0.00f,0.00f,5.00f,13.00f};
     SDL_RenderTexture(renderer,m_sliderTexture,&sliderSrc,&sliderDst);
@@ -94,6 +88,7 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
     return false;
 }
 AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
+    LOGI("Audio menu state constructor:%p",this);
     SDL_Surface* menuSurface = IMG_Load_IO(m_menuSpriteFile,false);
     m_menuTexture =SDL_CreateTextureFromSurface(renderer,menuSurface);
     SDL_CloseIO(m_menuSpriteFile);
@@ -113,14 +108,16 @@ AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
     m_sliderTexture = SDL_CreateTextureFromSurface(renderer,sliderSurface);
     SDL_CloseIO(m_sliderFile);
     SDL_DestroySurface(sliderSurface);
-    LOGI("audio menu state constructor");
+
     m_font = TTF_OpenFontIO(m_fontfile,false,24);
+    LOGI("Loaded font %p", m_font);
+    if (!m_font)
+        LOGI("%s", SDL_GetError());
 
     m_fontShadow = TTF_OpenFontIO(m_fontShadowfile,false,24);
     SDL_SetTextureScaleMode(m_fontShadowTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_fontTexture,SDL_SCALEMODE_NEAREST);
-    SDL_CloseIO(m_fontfile);
-    SDL_CloseIO(m_fontShadowfile);
+
     LOGI("audio menu state constructor");
 
 }
