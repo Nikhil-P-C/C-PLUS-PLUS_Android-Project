@@ -30,6 +30,18 @@ public:
     void setMovingRight(bool shouldMoveRight){
         movingRight=shouldMoveRight;
     }
+    bool getJump(){
+        return jump;
+    }
+    bool getMovingLeft(){
+        return movingLeft;
+    }
+    bool getMovingRight(){
+        return movingRight;
+    }
+    bool getReleased(){
+        return released;
+    }
     static InputDispatcher& getInstance(){
         static InputDispatcher inputDispatcher;
         return inputDispatcher;

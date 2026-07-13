@@ -23,7 +23,13 @@ public:
         return m_controlType;
     }
     float getAudioScale()const{
-        return m_audioScale;
+        return m_masterAudioScale;
+    }
+    float getMusicAudioScale()const{
+        return m_musicAudioScale;
+    }
+    float getSFXAudioScale()const{
+        return m_sfxAudioScale;
     }
     void setControlType(ControlType type){
         m_controlType= type;
@@ -31,14 +37,31 @@ public:
     void setDebug(bool debug){
         m_debug=debug;
     }
+    //set audio scales
+    //master
     void setAudioScale(float scale) {
         if (scale > 1.0f) scale = 1.0f;
         if (scale < 0.0f) scale = 0.0f;
-        m_audioScale =scale;
+        m_masterAudioScale =scale;
     }
+    //music
+    void setMusicAudioScale(float scale) {
+        if (scale > 1.0f) scale = 1.0f;
+        if (scale < 0.0f) scale = 0.0f;
+        m_musicAudioScale =scale;
+    }
+    //sfx
+    void setSFXAudioScale(float scale) {
+        if (scale > 1.0f) scale = 1.0f;
+        if (scale < 0.0f) scale = 0.0f;
+        m_sfxAudioScale = scale;
+    }
+
     bool isDebugEnabled() const{
         return m_debug;
     }
+
+
     static GameData& getInstance(){
         static GameData gameMeta;
         return gameMeta;
@@ -51,7 +74,8 @@ private:
     int m_winWidth;
     int m_winHeight;
     bool m_debug=false;
-    float m_audioScale= 1.0f;
-
+    float m_masterAudioScale= 1.0f;
+    float m_musicAudioScale= 1.0f;
+    float m_sfxAudioScale= 1.0f;
     ControlType m_controlType=ControlType::BUTTONS;
 };

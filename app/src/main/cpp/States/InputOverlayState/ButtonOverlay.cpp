@@ -24,47 +24,102 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
 }
 
 void ButtonOverlay::update(float dt) {
-    if(m_TouchX > m_JumpButton.x && m_TouchX < m_JumpButton.x + m_JumpButton.w){
-        if(m_TouchY > m_JumpButton.y && m_TouchY < m_JumpButton.y + m_JumpButton.h){
-            InputDispatcher::getInstance().setJump(true);
-        }
+    if( m_jumpFingerActive){
+        InputDispatcher::getInstance().setJump(true);
+    }
+    if(m_dFingerActive){
+        LOGI("dfinger active");
+         if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w &&
+            m_TouchY > m_LeftButton.y && m_TouchY < m_LeftButton.y + m_LeftButton.h){
+
+             InputDispatcher::getInstance().setMovingLeft(true);
+             InputDispatcher::getInstance().setMovingRight(false);
+             LOGI("left pressed");
+             LOGI("TouchX:%f TouchY:%f",m_TouchX,m_TouchY);
+         }
+         if(m_TouchX > m_RightButton.x && m_TouchX < m_RightButton.x + m_RightButton.w &&
+            m_TouchY > m_RightButton.y && m_TouchY < m_RightButton.y + m_RightButton.h){
+
+             InputDispatcher::getInstance().setMovingRight(true);
+             InputDispatcher::getInstance().setMovingLeft(false);
+             LOGI("right pressed");
+         }
+
 
     }
-    if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w){
-        if(m_TouchY > m_LeftButton.y && m_TouchY < m_LeftButton.y + m_LeftButton.h){
-            InputDispatcher::getInstance().setMovingLeft(true);
-            InputDispatcher::getInstance().setMovingRight(false);
-        }
-
+    else{
+        InputDispatcher::getInstance().setMovingLeft(false);
+        InputDispatcher::getInstance().setMovingRight(false);
     }
-
-    if(m_TouchX > m_RightButton.x && m_TouchX < m_RightButton.x + m_RightButton.w){
-        if(m_TouchY > m_RightButton.y && m_TouchY < m_RightButton.y + m_RightButton.h){
-            InputDispatcher::getInstance().setMovingRight(true);
-            InputDispatcher::getInstance().setMovingLeft(false);
-        }
-
+    if(!m_jumpFingerActive && !m_dFingerActive){
+        InputDispatcher::getInstance().inputLogClear();
     }
     if(InputDispatcher::getInstance().released){
         InputDispatcher::getInstance().inputLogClear();
     }
+    //uncomment for debuging
+//    LOGI(" jump:%d left:%d right:%d",InputDispatcher::getInstance().getJump(),
+//                InputDispatcher::getInstance().getMovingLeft(),
+//                InputDispatcher::getInstance().getMovingRight());
 }
 
 bool ButtonOverlay::handleEvents(SDL_Event &event) {
 
-    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION){
+    if(event.type == SDL_EVENT_FINGER_DOWN ){
         InputDispatcher::getInstance().setInputReleased(false);
-        m_TouchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        m_TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
 
-        return true;
+
+        if((touchX > m_LeftButton.x && touchX < m_LeftButton.x + m_LeftButton.w&&
+            touchY > m_LeftButton.y && touchY < m_LeftButton.y + m_LeftButton.h||
+            touchX > m_RightButton.x && touchX < m_RightButton.x + m_RightButton.w&&
+            touchY > m_RightButton.y && touchY < m_RightButton.y + m_RightButton.h )&& !m_dFingerActive){
+            m_dFingerID = event.tfinger.fingerID;
+            m_dFingerActive =true;
+        }
+        if(event.tfinger.fingerID == m_dFingerID){
+            m_TouchX =touchX;
+            m_TouchY = touchY;
+        }
+        if((touchX > m_JumpButton.x && touchX < m_JumpButton.x + m_JumpButton.w&&
+            touchY > m_JumpButton.y && touchY < m_JumpButton.y + m_JumpButton.h )&& !m_jumpFingerActive){
+
+            m_jumpFingerID = event.tfinger.fingerID;
+            m_jumpFingerActive=true;
+        }
+
+
+    }
+    if(event.type == SDL_EVENT_FINGER_MOTION){
+        float touchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.tfinger.fingerID == m_dFingerID){
+            if ((touchX > m_LeftButton.x && touchX < m_LeftButton.x + m_LeftButton.w &&
+                 touchY > m_LeftButton.y && touchY < m_LeftButton.y + m_LeftButton.h ||
+                 touchX > m_RightButton.x && touchX < m_RightButton.x + m_RightButton.w &&
+                 touchY > m_RightButton.y && touchY < m_RightButton.y + m_RightButton.h) &&
+                !m_dFingerActive) {
+
+                m_dFingerActive = true;
+            }
+            m_TouchX = touchX;
+            m_TouchY = touchY;
+        }
     }
     if(event.type == SDL_EVENT_FINGER_UP){
-        InputDispatcher::getInstance().inputLogClear();
+        if(event.tfinger.fingerID == m_jumpFingerID){
+            m_jumpFingerActive =false;
+        }
+        if(event.tfinger.fingerID == m_dFingerID){
+            LOGI("d finger up");
+            m_dFingerActive =false;
+        }
         return true;
     }
     return false;
 }
+
 
 ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
     SDL_Surface* jumpButtonSurface = IMG_Load_IO(m_jumpButtonFile,false);

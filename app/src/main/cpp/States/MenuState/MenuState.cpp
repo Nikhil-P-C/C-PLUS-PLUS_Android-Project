@@ -7,9 +7,10 @@
 #include "MenuState.h"
 #include "Engine/engine.h"
 #include "States/GameState/GameState.h"
-#include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/DebugState/DebugState.h"
+#include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/InputOverlayState/ButtonOverlay.h"
+#include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
 
 MenuState::MenuState(SDL_Renderer *renderer) {
@@ -147,6 +148,9 @@ bool MenuState::handleEvents(SDL_Event &event) {
                 }
                 if(GameData::getInstance().getControlType() == BUTTONS){
                     Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+                }
+                if(GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK){
+                    Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
                 }
                 return true;
 

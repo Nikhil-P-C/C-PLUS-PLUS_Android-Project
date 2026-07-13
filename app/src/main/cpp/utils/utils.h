@@ -9,4 +9,5 @@
 #include "Camera.h"
 #include "GameData.h"
 #include "InputDispatcher.h"
+#include "gameMath.h"
 #endif //MY_APP_UTILS_H

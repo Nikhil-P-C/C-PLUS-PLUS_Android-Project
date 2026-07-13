@@ -27,22 +27,22 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
                                                         6, SDL_Color{0, 0, 0, 255});
         m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
         SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_slidebar.y, 120.00f, 30.00f};
+        SDL_FRect fontDst = {400.00f, m_masterSlidebar.y, 120.00f, 30.00f};
         SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
-        SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_slidebar.y + 4,
-                                    m_slider.x - m_minimumSliderX, m_slidebar.h - 7};
+        SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_masterSlidebar.y + 4,
+                                    m_masterSlider.x - m_minimumSliderX, m_masterSlidebar.h - 7};
         SDL_RenderFillRect(renderer, &scaleValueRect);
 
-        SDL_FRect slidebarDst = {m_slidebar.x, m_slidebar.y, m_slidebar.w, m_slidebar.h};
+        SDL_FRect slidebarDst = {m_masterSlidebar.x, m_masterSlidebar.y, m_masterSlidebar.w, m_masterSlidebar.h};
         SDL_FRect slidebarSrc = {0.00f, 0.00f, 98.75f, 7.00f};
         SDL_RenderTexture(renderer, m_slidebarTexture, &slidebarSrc, &slidebarDst);
-        SDL_FRect sliderDst = {m_slider.x, m_slider.y, m_slider.w, m_slider.h};
+        SDL_FRect sliderDst = {m_masterSlider.x, m_masterSlider.y, m_masterSlider.w, m_masterSlider.h};
         SDL_FRect sliderSrc = {0.00f, 0.00f, 5.00f, 13.00f};
         SDL_RenderTexture(renderer, m_sliderTexture, &sliderSrc, &sliderDst);
     }
-    //AUDIO option block Rendering
+    //Music option block Rendering
     {
         SDL_FRect optionBlockDst = {330.f, 120.00f+150.00f+20.00f, 1100.00f, 150.00f};
 
@@ -53,18 +53,18 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
                                                         5, SDL_Color{0, 0, 0, 255});
         m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
         SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_slidebar.y+150.00f+20.00f, 100.00f, 30.00f};
+        SDL_FRect fontDst = {400.00f, m_musicSlidebar.y, 100.00f, 30.00f};
         SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
-        SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_slidebar.y + 4+150.00f+20.00f,
-                                    m_slider.x - m_minimumSliderX, m_slidebar.h - 7};
+        SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_musicSlidebar.y +4,
+                                    m_musicSlider.x - m_minimumSliderX, m_musicSlidebar.h - 7};
         SDL_RenderFillRect(renderer, &scaleValueRect);
 
-        SDL_FRect slidebarDst = {m_slidebar.x, m_slidebar.y+150.00f+20.00f, m_slidebar.w, m_slidebar.h};
+        SDL_FRect slidebarDst = {m_musicSlidebar.x, m_musicSlidebar.y, m_musicSlidebar.w, m_musicSlidebar.h};
         SDL_FRect slidebarSrc = {0.00f, 0.00f, 98.75f, 7.00f};
         SDL_RenderTexture(renderer, m_slidebarTexture, &slidebarSrc, &slidebarDst);
-        SDL_FRect sliderDst = {m_slider.x, m_slider.y+150.00f+20.00f, m_slider.w, m_slider.h};
+        SDL_FRect sliderDst = {m_musicSlider.x, m_musicSlider.y, m_musicSlider.w, m_musicSlider.h};
         SDL_FRect sliderSrc = {0.00f, 0.00f, 5.00f, 13.00f};
         SDL_RenderTexture(renderer, m_sliderTexture, &sliderSrc, &sliderDst);
     }
@@ -79,25 +79,27 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
                                                         3, SDL_Color{0, 0, 0, 255});
         m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
         SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_slidebar.y+(150.00f+20.00f)*2, 60.00f, 30.00f};
+        SDL_FRect fontDst = {400.00f, m_sfxSlidebar.y, 60.00f, 30.00f};
         SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
-        SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_slidebar.y + 4+(150.00f+20.00f)*2,
-                                    m_slider.x - m_minimumSliderX, m_slidebar.h - 7};
+        SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_sfxSlidebar.y + 4,
+                                    m_sfxSlider.x - m_minimumSliderX, m_sfxSlidebar.h - 7};
         SDL_RenderFillRect(renderer, &scaleValueRect);
 
-        SDL_FRect slidebarDst = {m_slidebar.x, m_slidebar.y+(150.00f+20.00f)*2, m_slidebar.w, m_slidebar.h};
+        SDL_FRect slidebarDst = {m_sfxSlidebar.x, m_sfxSlidebar.y, m_sfxSlidebar.w, m_sfxSlidebar.h};
         SDL_FRect slidebarSrc = {0.00f, 0.00f, 98.75f, 7.00f};
         SDL_RenderTexture(renderer, m_slidebarTexture, &slidebarSrc, &slidebarDst);
-        SDL_FRect sliderDst = {m_slider.x, m_slider.y+(150.00f+20.00f)*2, m_slider.w, m_slider.h};
+        SDL_FRect sliderDst = {m_sfxSlider.x, m_sfxSlider.y, m_sfxSlider.w, m_sfxSlider.h};
         SDL_FRect sliderSrc = {0.00f, 0.00f, 5.00f, 13.00f};
         SDL_RenderTexture(renderer, m_sliderTexture, &sliderSrc, &sliderDst);
     }
 }
 
 void AudioMenuState::update(float dt) {
-    m_slider.x = m_minimumSliderX + GameData::getInstance().getAudioScale() *(m_maximumSliderX-m_minimumSliderX);
+    m_masterSlider.x = m_minimumSliderX + GameData::getInstance().getAudioScale() *(m_maximumSliderX-m_minimumSliderX);
+    m_musicSlider.x = m_minimumSliderX + GameData::getInstance().getMusicAudioScale() *(m_maximumSliderX-m_minimumSliderX);
+    m_sfxSlider.x = m_minimumSliderX + GameData::getInstance().getSFXAudioScale() *(m_maximumSliderX-m_minimumSliderX);
 }
 
 bool AudioMenuState::handleEvents(SDL_Event &event) {
@@ -107,14 +109,29 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
 
         float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-        LOGI("touch x:%f y:%f",touchX,touchY);
-        if(touchX >= m_slidebar.x && touchX <= m_slidebar.x + m_slidebar.w &&
-            touchY >= m_slidebar.y && touchY <= m_slidebar.y + m_slidebar.h){
+//        LOGI("touch x:%f y:%f",touchX,touchY);
+        if(touchX >= m_masterSlidebar.x && touchX <= m_masterSlidebar.x + m_masterSlidebar.w &&
+            touchY >= m_masterSlidebar.y && touchY <= m_masterSlidebar.y + m_masterSlidebar.h){
+            m_scaleType =ScaleType::MASTER;
             m_sliderFingerID =event.tfinger.fingerID;
             startTouchX=touchX;
             startTouchY=touchY;
-
         }
+        else if(touchX >= m_musicSlidebar.x && touchX <= m_musicSlidebar.x + m_musicSlidebar.w &&
+            touchY >= m_musicSlidebar.y && touchY <= m_musicSlidebar.y + m_musicSlidebar.h){
+            m_scaleType =ScaleType::MUSIC;
+            m_sliderFingerID =event.tfinger.fingerID;
+            startTouchX=touchX;
+            startTouchY=touchY;
+        }
+        else if(touchX >= m_sfxSlidebar.x && touchX <= m_sfxSlidebar.x + m_sfxSlidebar.w &&
+            touchY >= m_sfxSlidebar.y && touchY <= m_sfxSlidebar.y + m_sfxSlidebar.h){
+            m_scaleType =ScaleType::SFX;
+            m_sliderFingerID =event.tfinger.fingerID;
+            startTouchX=touchX;
+            startTouchY=touchY;
+        }
+
         else{
             m_sliderFingerID =0;
             startTouchX=0.0f;
@@ -122,21 +139,25 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
         }
     }
     if(event.type == SDL_EVENT_FINGER_MOTION && m_sliderFingerID == event.tfinger.fingerID){
-
         float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
 
         float diffX = touchX - startTouchX;
         float diffY = touchY - startTouchY;
         if(diffX > 0){
+
             float fullwidth =m_maximumSliderX - m_minimumSliderX;
-            LOGI("fullwidth:%f",fullwidth);
             float len =(touchX-m_minimumSliderX);
-            LOGI("len:%f",len);
             if(len > m_maximumSliderX)len = fullwidth;
-            GameData::getInstance().setAudioScale(len/fullwidth);
-            LOGI("audio scale:%f",GameData::getInstance().getAudioScale());
+            if(m_scaleType == ScaleType::MASTER)
+                GameData::getInstance().setAudioScale(len/fullwidth);
+            if(m_scaleType == ScaleType::MUSIC)
+                GameData::getInstance().setMusicAudioScale(len/fullwidth);
+            if(m_scaleType == ScaleType::SFX)
+                GameData::getInstance().setSFXAudioScale(len/fullwidth);
+
         }
+        return true;
     }
     return false;
 }

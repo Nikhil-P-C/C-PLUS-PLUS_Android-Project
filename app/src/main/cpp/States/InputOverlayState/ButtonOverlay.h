@@ -28,6 +28,10 @@ private:
     SDL_Texture* m_leftButtonTexture = nullptr;
     SDL_Texture* m_rightButtonTexture = nullptr;
 
+    SDL_FingerID m_jumpFingerID;
+    SDL_FingerID m_dFingerID;
+    bool m_jumpFingerActive = false;
+    bool m_dFingerActive = false;
     float m_TouchX =0;
     float m_TouchY =0;
 };

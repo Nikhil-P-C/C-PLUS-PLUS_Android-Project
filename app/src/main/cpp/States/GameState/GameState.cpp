@@ -79,7 +79,6 @@ void GameState::render(SDL_Renderer* renderer)  {
 void GameState::update(float dt){
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
     if(InputDispatcher::getInstance().released){
-
         m_playerAction=PlayerAction::IDLE;
     }
     if(InputDispatcher::getInstance().movingLeft){

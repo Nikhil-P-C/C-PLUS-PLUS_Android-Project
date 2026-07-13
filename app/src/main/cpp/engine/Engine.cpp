@@ -35,7 +35,8 @@ void Engine::initEngine(){
     m_audio = MIX_LoadAudio_IO(m_mixer,m_musicfile,false,false);
     m_track = MIX_CreateTrack(m_mixer);
     MIX_SetTrackAudio(m_track, m_audio);
-    MIX_PlayTrack(m_track,false);
+    MIX_PlayTrack(m_track,true);
+    MIX_SetTrackLoops(m_track,-1);
 
     const char* name = SDL_GetRendererName(m_renderer);
     LOGI("Renderer: %s", name);
@@ -55,12 +56,21 @@ void Engine::run(){
         LOGI("height:%d,width:%d",GameData::getInstance().getWinHeight(),GameData::getInstance().getWinWidth());
     }
 
-    float lastmasterAudioScale = GameData::getInstance().getAudioScale();
-    float nowmasterAudioScale = GameData::getInstance().getAudioScale();
+    float lastMasterAudioScale = GameData::getInstance().getAudioScale();
+    float nowMasterAudioScale = GameData::getInstance().getAudioScale();
+
+    float nowMusicAudioScale = GameData::getInstance().getMusicAudioScale();
+    float lastMusicAudioScale = GameData::getInstance().getMusicAudioScale();
     while(m_running){
-        nowmasterAudioScale = GameData::getInstance().getAudioScale();
-        if(nowmasterAudioScale != lastmasterAudioScale)
+        nowMasterAudioScale = GameData::getInstance().getAudioScale();
+        if(nowMasterAudioScale != lastMasterAudioScale)
         MIX_SetMixerGain(m_mixer,GameData::getInstance().getAudioScale());
+
+        nowMusicAudioScale = GameData::getInstance().getMusicAudioScale();
+        if(nowMusicAudioScale != lastMusicAudioScale)
+            MIX_SetTrackGain(m_track,GameData::getInstance().getMusicAudioScale());
+        lastMasterAudioScale = nowMasterAudioScale;
+        lastMusicAudioScale = nowMusicAudioScale;
 
         currentTime = SDL_GetTicks();
         float deltaTime =(float) (currentTime - lastTime) / 1000.0f;

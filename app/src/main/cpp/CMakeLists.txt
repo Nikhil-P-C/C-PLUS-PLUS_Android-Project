@@ -71,6 +71,7 @@ add_library(main SHARED
 #        camera.h
         States/inputOverlayState/JoystickOverlay.cpp
         States/inputOverlayState/ButtonOverlay.cpp
+        States/inputOverlayState/SepJoysticknButton.cpp
         States/DebugState/DebugState.cpp
         States/GameState/GameState.cpp
         States/MenuState/TitleScreenState.cpp
