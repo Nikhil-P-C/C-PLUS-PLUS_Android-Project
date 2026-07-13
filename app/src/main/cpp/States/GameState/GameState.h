@@ -18,10 +18,10 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-typedef struct Animation{
+struct Animation{
     int startIndex=0;
     int lastIndex=0;
-}Animation;
+};
 enum PlayerAction{
     IDLE =0,
     MOVINGLEFT=1,
@@ -101,8 +101,8 @@ private:
     bool m_transitioning=false;
     //physics
     float m_velocityY =0.0f;
-    float m_gravity =1800.8f;
-    float m_jumpVelocity =1600.00f;
+    float m_gravity =1800.00f;
+    float m_jumpVelocity =1000.00f;
     bool  m_isGrounded =true;
     //input
     Button m_JumpButton;

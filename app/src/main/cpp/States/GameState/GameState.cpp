@@ -17,8 +17,10 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowH =GameData::getInstance().getWinHeight();
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
-    m_player.setSize(SPRITE_WIDTH * P_scale, SPRITE_HEIGHT * P_scale);
+    m_player.setSize(SPRITE_WIDTH*P_scale-55.00f,SPRITE_HEIGHT*P_scale-35.00f);
     m_player.setPosition(100,0,m_windowH,SPRITE_HEIGHT,P_scale);
+    m_player.setSpriteOffset(-35.00f,-20.00f);
+    m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
 
 
@@ -58,16 +60,39 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_FRect backgroundDst{0, 0, 1600, 720};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
     for(int i=0;i<100;i++){
+        int tileSize = 48;
+        const int platformWidth = 480;
+
+        int tiles = platformWidth / tileSize;
+
+        for (int i = 0; i < tiles; i++) {
+            SDL_Rect src;
+
+            if (i == 0)
+                src = {0, 0, 48, 48};       // Left
+            else if (i == tiles - 1)
+                src = {96, 0, 48, 48};      // Right
+            else
+                src = {48, 0, 48, 48};      // Middle
+
+            SDL_FRect dst = {m_platforms[i].x + i * 48, m_platforms[i].y, 48, 48};
+
+            SDL_RenderTexture(renderer, texture, &src, &dst);
+        }
         SDL_FRect tileDst = {m_platforms[i].x-Camera::getInstance().getCamera().x,
                                  m_platforms[i].y-Camera::getInstance().getCamera().y,
-                                 m_platforms[i].w * P_scale, m_platforms[i].h * 5};
+                                 m_platforms[i].w * 5, m_platforms[i].h * 5};
         SDL_FRect tileSrc = {0+96, 0, 48, 16};
         SDL_RenderTexture(renderer, m_tileset, &tileSrc, &tileDst);
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_RenderRect(renderer, &tileDst);
     }
-
-    SDL_FRect dst = {m_player.x-Camera::getInstance().getCamera().x,m_player.y-Camera::getInstance().getCamera().y,m_player.w,m_player.h};
+    SDL_FRect playerBorder{m_player.x-Camera::getInstance().getCamera().x,
+                           m_player.y-Camera::getInstance().getCamera().y,
+                           m_player.w, m_player.h};
+    SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-Camera::getInstance().getCamera().x,
+                     m_player.y+m_player.spriteOffsetY-Camera::getInstance().getCamera().y,
+                     m_player.spriteW,m_player.spriteH};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
     if(!m_isPlayerfacingRight)
@@ -75,10 +100,11 @@ void GameState::render(SDL_Renderer* renderer)  {
                              SDL_FLIP_HORIZONTAL);
     else
         SDL_RenderTexture(renderer,m_playerTexture,&src,&dst);
-    SDL_RenderRect(renderer, &dst);
+    SDL_RenderRect(renderer, &playerBorder);
 }
 
 void GameState::update(float dt){
+    m_isGrounded =false;
     //ground check
     if(gameMath::checkcollision(m_player.x,m_player.y,-2000,720.00f,
                                 m_player.h,m_player.w,1.00f,4000.00f)){
@@ -87,6 +113,7 @@ void GameState::update(float dt){
         m_player.y=720.00f-m_player.h;
 
     }
+
     for(int i=0;i<100;i++){
         if(gameMath::checkcollision(m_player.x,m_player.y,m_platforms[i].x,m_platforms[i].y,
                                     m_player.h,m_player.w,m_platforms[i].h*5,m_platforms[i].w*5)){
@@ -94,7 +121,9 @@ void GameState::update(float dt){
             m_velocityY =0.0f;
             m_player.y=m_platforms[i].y-m_player.h;
         }
+
     }
+
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
     if(!InputDispatcher::getInstance().movingLeft&&!InputDispatcher::getInstance().movingRight){
         m_playerAction=PlayerAction::IDLE;
@@ -102,17 +131,18 @@ void GameState::update(float dt){
     if(InputDispatcher::getInstance().movingLeft){
         m_isPlayerfacingRight =false;
         m_playerAction=PlayerAction::MOVINGLEFT;
-        m_player.x -= 200 * dt;
+        m_player.x -= 250.00f* dt;
 
     }
     if(InputDispatcher::getInstance().movingRight){
         m_isPlayerfacingRight =true;
         m_playerAction=PlayerAction::MOVINGRIGHT;
-        m_player.x +=200 * dt;
+        m_player.x +=250.00f * dt;
     }
     if(InputDispatcher::getInstance().jump && m_isGrounded){
+
         m_playerAction=PlayerAction::JUMP;
-        m_player.y -= m_jumpVelocity*dt;
+        m_velocityY =-m_jumpVelocity;
     }
     m_velocityY+=m_gravity*dt;
     m_player.y +=m_velocityY*dt;
