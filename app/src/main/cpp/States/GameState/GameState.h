@@ -93,13 +93,17 @@ private:
     constexpr static const float P_scale =5.0f;
     int m_windowH =0,m_windowW=0;
 
-
     SDL_Renderer* m_renderer = nullptr;
 
     //mechanics
     bool m_running =true;
     bool m_isCompleted=false;
     bool m_transitioning=false;
+    //physics
+    float m_velocityY =0.0f;
+    float m_gravity =1800.8f;
+    float m_jumpVelocity =1600.00f;
+    bool  m_isGrounded =true;
     //input
     Button m_JumpButton;
     Button m_LeftButton;

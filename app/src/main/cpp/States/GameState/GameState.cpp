@@ -63,6 +63,8 @@ void GameState::render(SDL_Renderer* renderer)  {
                                  m_platforms[i].w * P_scale, m_platforms[i].h * 5};
         SDL_FRect tileSrc = {0+96, 0, 48, 16};
         SDL_RenderTexture(renderer, m_tileset, &tileSrc, &tileDst);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_RenderRect(renderer, &tileDst);
     }
 
     SDL_FRect dst = {m_player.x-Camera::getInstance().getCamera().x,m_player.y-Camera::getInstance().getCamera().y,m_player.w,m_player.h};
@@ -73,12 +75,28 @@ void GameState::render(SDL_Renderer* renderer)  {
                              SDL_FLIP_HORIZONTAL);
     else
         SDL_RenderTexture(renderer,m_playerTexture,&src,&dst);
-
+    SDL_RenderRect(renderer, &dst);
 }
 
 void GameState::update(float dt){
+    //ground check
+    if(gameMath::checkcollision(m_player.x,m_player.y,-2000,720.00f,
+                                m_player.h,m_player.w,1.00f,4000.00f)){
+        m_isGrounded =true;
+        m_velocityY =0.0f;
+        m_player.y=720.00f-m_player.h;
+
+    }
+    for(int i=0;i<100;i++){
+        if(gameMath::checkcollision(m_player.x,m_player.y,m_platforms[i].x,m_platforms[i].y,
+                                    m_player.h,m_player.w,m_platforms[i].h*5,m_platforms[i].w*5)){
+            m_isGrounded =true;
+            m_velocityY =0.0f;
+            m_player.y=m_platforms[i].y-m_player.h;
+        }
+    }
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-    if(InputDispatcher::getInstance().released){
+    if(!InputDispatcher::getInstance().movingLeft&&!InputDispatcher::getInstance().movingRight){
         m_playerAction=PlayerAction::IDLE;
     }
     if(InputDispatcher::getInstance().movingLeft){
@@ -92,6 +110,12 @@ void GameState::update(float dt){
         m_playerAction=PlayerAction::MOVINGRIGHT;
         m_player.x +=200 * dt;
     }
+    if(InputDispatcher::getInstance().jump && m_isGrounded){
+        m_playerAction=PlayerAction::JUMP;
+        m_player.y -= m_jumpVelocity*dt;
+    }
+    m_velocityY+=m_gravity*dt;
+    m_player.y +=m_velocityY*dt;
 
     switch(m_playerAction){
         case IDLE:

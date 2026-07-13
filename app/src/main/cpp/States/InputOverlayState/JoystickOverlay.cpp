@@ -53,6 +53,13 @@ void JoystickOverlay::update(float dt) {
         const float deadZone = 45.00f;
         if(len <deadZone)
             InputDispatcher::getInstance().inputLogClear();
+        if(dY <-deadZone && dX < 106.0f && dX > -106.0f){
+            LOGI("dY:%f ,dX:%f",dY,dX);
+            LOGI("JUmp pressed");
+            InputDispatcher::getInstance().setJump(true);
+        }
+        else InputDispatcher::getInstance().setJump(false);
+        LOGI("dY:%f ,dX:%f",dY,dX);
         if (dX > deadZone) {
             InputDispatcher::getInstance().setMovingRight(true);
             InputDispatcher::getInstance().setMovingLeft(false);
@@ -61,11 +68,8 @@ void JoystickOverlay::update(float dt) {
             InputDispatcher::getInstance().setMovingLeft(true);
             InputDispatcher::getInstance().setMovingRight(false);
         }
-        if(dY <deadZone && dX < 0.9 && dX > -0.9){
-            LOGI("JUmp pressed");
-            InputDispatcher::getInstance().setJump(true);
-        }
-        else InputDispatcher::getInstance().setJump(false);
+
+
 
         m_joystickHandle.x = (centerX + dX);
         m_joystickHandle.y = (centerY + dY);

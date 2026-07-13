@@ -24,9 +24,10 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
 }
 
 void ButtonOverlay::update(float dt) {
-    if( m_jumpFingerActive){
+    if(m_jumpFingerActive){
         InputDispatcher::getInstance().setJump(true);
     }
+    else InputDispatcher::getInstance().setJump(false);
     if(m_dFingerActive){
         LOGI("dfinger active");
          if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w &&
