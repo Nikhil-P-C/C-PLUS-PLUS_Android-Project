@@ -60,25 +60,10 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_FRect backgroundDst{0, 0, 1600, 720};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
     for(int i=0;i<100;i++){
-        int tileSize = 48;
-        const int platformWidth = 480;
 
-        int tiles = platformWidth / tileSize;
 
-        for (int i = 0; i < tiles; i++) {
-            SDL_Rect src;
 
-            if (i == 0)
-                src = {0, 0, 48, 48};       // Left
-            else if (i == tiles - 1)
-                src = {96, 0, 48, 48};      // Right
-            else
-                src = {48, 0, 48, 48};      // Middle
 
-            SDL_FRect dst = {m_platforms[i].x + i * 48, m_platforms[i].y, 48, 48};
-
-            SDL_RenderTexture(renderer, texture, &src, &dst);
-        }
         SDL_FRect tileDst = {m_platforms[i].x-Camera::getInstance().getCamera().x,
                                  m_platforms[i].y-Camera::getInstance().getCamera().y,
                                  m_platforms[i].w * 5, m_platforms[i].h * 5};
@@ -86,6 +71,48 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_RenderTexture(renderer, m_tileset, &tileSrc, &tileDst);
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_RenderRect(renderer, &tileDst);
+    }
+    int tileSize = 160;
+    const int platformWidth = 9600;
+    const int platformHeight = 720;
+    int widthTiles = platformWidth / tileSize;
+    int heightTiles = platformHeight / tileSize;
+    for (int y = 0; y < heightTiles; y++)
+    {
+        for (int x = 0; x < widthTiles; x++)
+        {
+            SDL_FRect src;
+
+            bool left   = (x == 0);
+            bool right  = (x == widthTiles - 1);
+            bool top    = (y == 0);
+            bool bottom = (y == heightTiles - 1);
+
+            if (top)
+            {
+                if (left)      src = {96.00f,0.00f,16.00f,16.00f};
+                else if (right) src = {96.00f+32.00f,0.00f,16.00f,16.00f};
+                else            src = {96.00f+16.00f,0.00f,16.00f,16.00f};
+            }
+            else if (bottom)
+            {
+                if (left)      src = {96.00f,32.00f,16.00f,16.00f};
+                else if (right) src = {96.00f+32.00f,32.00f,16.00f,16.00f};
+                else            src = {96.00f+16.00f,32.00f,16.00f,16.00f};
+            }
+            else
+            {
+                if (left)      src = {96.00f,16.00f,16.00f,16.00f};
+                else if (right) src = {96.00f+32.00f,16.00f,16.00f,16.00f};
+                else            src = {96.00f+16.00f,16.00f,16.00f,16.00f};
+            }
+
+
+//          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
+            SDL_FRect dst = {(-2000.00f + x * (16*5))-Camera::getInstance().getCamera().x
+                         ,(720.00f+y*(16*5))-Camera::getInstance().getCamera().y, 16*5, 16*5};
+            SDL_RenderTexture(renderer, m_tileset, &src, &dst);
+        }
     }
     SDL_FRect playerBorder{m_player.x-Camera::getInstance().getCamera().x,
                            m_player.y-Camera::getInstance().getCamera().y,
@@ -106,8 +133,8 @@ void GameState::render(SDL_Renderer* renderer)  {
 void GameState::update(float dt){
     m_isGrounded =false;
     //ground check
-    if(gameMath::checkcollision(m_player.x,m_player.y,-2000,720.00f,
-                                m_player.h,m_player.w,1.00f,4000.00f)){
+    if(gameMath::checkcollision(m_player.x,m_player.y,-2000.00,720.00f,
+                                m_player.h,m_player.w,160.00f,9600.00f)){
         m_isGrounded =true;
         m_velocityY =0.0f;
         m_player.y=720.00f-m_player.h;
