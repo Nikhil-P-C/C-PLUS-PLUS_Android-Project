@@ -10,4 +10,5 @@
 #include "GameData.h"
 #include "InputDispatcher.h"
 #include "gameMath.h"
+#include "SpriteCollector.h"
 #endif //MY_APP_UTILS_H

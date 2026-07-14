@@ -13,6 +13,7 @@
 #include "States/MenuState/MenuState.h"
 #include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/InputOverlayState/ButtonOverlay.h"
+#include "States/InputOverlayState/SepJoysticknButton.h"
 
 PauseState::PauseState(SDL_Renderer *renderer) {
     LOGI("Pause construct:%p",this);
@@ -87,6 +88,8 @@ bool PauseState::handleEvents(SDL_Event &event) {
             Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
         if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)
             Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
+            Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
         return true;
     }
 

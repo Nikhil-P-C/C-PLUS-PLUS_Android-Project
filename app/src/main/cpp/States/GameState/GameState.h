@@ -83,7 +83,7 @@ private:
     static const int SPRITE_WIDTH  =24;
     static const int TILE_HEIGHT   =16;
     static const int TILE_WIDTH    =16;
-\
+    SpriteCollection m_sprite;
     //player and platform
     bool m_isPlayerfacingRight =true;
     Platform m_platforms[100];
