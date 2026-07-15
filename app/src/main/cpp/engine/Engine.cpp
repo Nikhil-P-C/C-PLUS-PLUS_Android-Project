@@ -123,8 +123,9 @@ void Engine::run(){
         //updating states
 
 
-        if(!m_OverlayStates.empty())
-            m_OverlayStates.back()->update(deltaTime);
+        for(const auto &state : m_OverlayStates){
+            state->update(deltaTime);
+        }
 
         if (!m_States.empty())
             m_States.back()->update(deltaTime);

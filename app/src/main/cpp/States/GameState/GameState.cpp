@@ -65,7 +65,6 @@ void GameState::render(SDL_Renderer* renderer)  {
         const int platformHeight = (int)m_platforms[i].h;
         int widthTiles = platformWidth / tileSize;
         int heightTiles = platformHeight / tileSize;
-
         for (int y = 0; y < heightTiles; y++) {
             for (int x = 0; x < widthTiles; x++) {
                 SDL_FRect src;
@@ -176,16 +175,15 @@ void GameState::update(float dt){
                                 m_player.h,m_player.w,160.00f,9600.00f)){
         m_isGrounded =true;
         m_velocityY =0.0f;
-        m_player.y=720.00f-m_player.h;
+
 
     }
-    LOGI("stone brick x:%f",m_sprite.stoneBrick.x);
     for(int i=0;i<100;i++){
         if(gameMath::checkcollision(m_player.x,m_player.y,m_platforms[i].x,m_platforms[i].y,
                                     m_player.h,m_player.w,m_platforms[i].h*5,m_platforms[i].w*5)){
             m_isGrounded =true;
             m_velocityY =0.0f;
-            m_player.y=m_platforms[i].y-m_player.h;
+
         }
 
     }
@@ -258,6 +256,8 @@ bool GameState::handleEvents(SDL_Event& event) {
         m_transitioning = true;
         LOGI("game state transitions to menu state");
         Engine::Get().popOverlayState();
+        if(GameData::getInstance().isDebugEnabled())
+            Engine::Get().popOverlayState();
         Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
         return true;
         }

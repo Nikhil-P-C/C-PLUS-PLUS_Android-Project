@@ -29,21 +29,20 @@ void ButtonOverlay::update(float dt) {
     }
     else InputDispatcher::getInstance().setJump(false);
     if(m_dFingerActive){
-        LOGI("dfinger active");
+
          if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w &&
             m_TouchY > m_LeftButton.y && m_TouchY < m_LeftButton.y + m_LeftButton.h){
 
              InputDispatcher::getInstance().setMovingLeft(true);
              InputDispatcher::getInstance().setMovingRight(false);
-             LOGI("left pressed");
-             LOGI("TouchX:%f TouchY:%f",m_TouchX,m_TouchY);
+
          }
          if(m_TouchX > m_RightButton.x && m_TouchX < m_RightButton.x + m_RightButton.w &&
             m_TouchY > m_RightButton.y && m_TouchY < m_RightButton.y + m_RightButton.h){
 
              InputDispatcher::getInstance().setMovingRight(true);
              InputDispatcher::getInstance().setMovingLeft(false);
-             LOGI("right pressed");
+
          }
 
 

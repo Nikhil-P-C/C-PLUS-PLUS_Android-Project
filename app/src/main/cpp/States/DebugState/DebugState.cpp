@@ -18,6 +18,8 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_fpsTexture, nullptr, &fpsrect);
     SDL_DestroyTexture(m_fpsTexture);
     SDL_DestroySurface(fpsSurface);
+
+
 }
 
 void DebugState::update(float dt) {
@@ -28,19 +30,24 @@ void DebugState::update(float dt) {
         m_frames =m_fps;
         m_fps =0;
         m_last = current;
-        LOGI("FPS: %d",m_frames);
     }
 }
 
 bool DebugState::handleEvents(SDL_Event &event) {
-    LOGI("debug state handle events");
+
     return false;
 }
 
 DebugState::DebugState(SDL_Renderer *renderer) {
-
+    LOGI("Debug state constructor :%p",this);
     m_font = TTF_OpenFontIO(m_fontFile,false, 24);
     LOGI("font:%d",(bool)m_font);
     if(!m_font)LOGE("failed to load font");
+}
+DebugState::~DebugState(){
+    SDL_CloseIO(m_fontFile);
+    TTF_CloseFont(m_font);
+    SDL_DestroyTexture(m_fpsTexture);
+    LOGI("debug state destructor :%p",this);
 }
 

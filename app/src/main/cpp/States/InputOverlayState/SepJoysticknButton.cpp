@@ -73,9 +73,9 @@ void SepJoysticknButton::update(float dt) {
     }
     if(!m_joystickFingerActive && !m_jumpFingerActive)
         InputDispatcher::getInstance().inputLogClear();
-    LOGI(" jump:%d left:%d right:%d",InputDispatcher::getInstance().getJump(),
-                InputDispatcher::getInstance().getMovingLeft(),
-                InputDispatcher::getInstance().getMovingRight());
+//    LOGI(" jump:%d left:%d right:%d",InputDispatcher::getInstance().getJump(),
+//                InputDispatcher::getInstance().getMovingLeft(),
+//                InputDispatcher::getInstance().getMovingRight());
 }
 
 bool SepJoysticknButton::handleEvents(SDL_Event &event) {
@@ -100,7 +100,7 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
 
         if((touchX > m_JumpButton.x && touchX < m_JumpButton.x + m_JumpButton.w&&
             touchY > m_JumpButton.y && touchY < m_JumpButton.y + m_JumpButton.h )&& !m_jumpFingerActive){
-            LOGI("jump button pressed");
+//            LOGI("jump button pressed");
             m_jumpFingerID = event.tfinger.fingerID;
             m_jumpFingerActive=true;
         }
@@ -113,7 +113,7 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
             m_joystickFingerActive =false;
         }
         if(event.tfinger.fingerID == m_jumpFingerID){
-            LOGI("jump finger up");
+//            LOGI("jump finger up");
             m_jumpFingerActive =false;
 
         }

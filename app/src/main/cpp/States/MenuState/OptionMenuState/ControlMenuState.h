@@ -34,4 +34,5 @@ private:
     Button m_joystickButton{400.00f,100.00f,1000.00f,100.00f};
     Button m_buttonButton{400.00f,200.00f,1000.00f,100.00f};
     Button m_joystickWButtons{400.00f,300.00f,1000.00f,100.00f};
+    Button m_debugButton{400.00f,500.00f,1000.00f,100.00f};
 };

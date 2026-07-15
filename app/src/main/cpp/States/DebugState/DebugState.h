@@ -11,10 +11,7 @@
 class DebugState : public State{
 public:
     DebugState(SDL_Renderer* renderer);
-    ~DebugState() override{
-        if (m_font)            TTF_CloseFont(m_font);
-        if (m_fpsTexture)      SDL_DestroyTexture(m_fpsTexture);
-    }
+    ~DebugState() override;
     void render(SDL_Renderer* renderer) override;
     void update(float dt) override;
     bool handleEvents(SDL_Event& event) override;

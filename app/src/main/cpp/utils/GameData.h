@@ -34,8 +34,8 @@ public:
     void setControlType(ControlType type){
         m_controlType= type;
     }
-    void setDebug(bool debug){
-        m_debug=debug;
+    void toggleDebug(){
+        m_debug=!m_debug;
     }
     //set audio scales
     //master
@@ -73,7 +73,7 @@ private:
     GameData()= default;
     int m_winWidth;
     int m_winHeight;
-    bool m_debug=false;
+    bool m_debug=true;
     float m_masterAudioScale= 1.0f;
     float m_musicAudioScale= 1.0f;
     float m_sfxAudioScale= 1.0f;
