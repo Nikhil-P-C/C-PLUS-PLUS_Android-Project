@@ -5,8 +5,9 @@
 #include <cmath>
 
 namespace gameMath{
-    bool checkcollision(float &x1, float &y1, float x2, float y2, float h1, float w1,
+    collisionSide checkcollision(float &x1, float &y1, float x2, float y2, float h1, float w1,
                                   float h2, float w2) {
+        collisionSide side = collisionSide::NONE;
         if (x1 < x2 + w2 &&
             x1 + w1 > x2 &&
             y1 < y2 + h2 &&
@@ -24,19 +25,29 @@ namespace gameMath{
             if (overlapX > 0 && overlapY > 0) {
                 if (overlapX < overlapY) {
                     // Push along X
-                    if (dx > 0) x1 += overlapX;
-                    else        x1 -= overlapX;
+                    if (dx > 0){
+                        x1 += overlapX;
+                        side = collisionSide::RIGHT;
+                    }
+                    else {
+                        x1 -= overlapX;
+                        side =collisionSide::LEFT;
+                    }
                 }
                 else {
                     // Push along Y
-                    if (dy > 0) y1 += overlapY;
-                    else        y1 -= overlapY;
+                    if (dy > 0) {
+                        y1 += overlapY;
+                        side = collisionSide::BOTTOM;
+                    }
+                    else {
+                        y1 -= overlapY;
+                        side = collisionSide::TOP;
+                    }
                 }
-                return true;
             }
-            return false;
         }
-        return false;
+        return side;
 
     }
     void interpolate(float& vX,float& vY,

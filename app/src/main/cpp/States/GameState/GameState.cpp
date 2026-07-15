@@ -59,7 +59,7 @@ GameState::GameState(SDL_Renderer *renderer) {
 void GameState::render(SDL_Renderer* renderer)  {
     SDL_FRect backgroundDst{0, 0, 1600, 720};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
-    for(int i=0;i<100;i++){
+    for(int i=0;i<50;i++){
         int tileSize = 16;
         const int platformWidth = (int)m_platforms[i].w;
         const int platformHeight = (int)m_platforms[i].h;
@@ -171,19 +171,28 @@ void GameState::render(SDL_Renderer* renderer)  {
 void GameState::update(float dt){
     m_isGrounded =false;
     //ground check
-    if(gameMath::checkcollision(m_player.x,m_player.y,-2000.00,720.00f,
-                                m_player.h,m_player.w,160.00f,9600.00f)){
+    LOGI("velocity y :%f",m_velocityY);
+    gameMath::collisionSide currentSide = gameMath::checkcollision(m_player.x,m_player.y,-2000.00,720.00f,
+                                                                   m_player.h,m_player.w,160.00f,9600.00f);
+    if(currentSide == gameMath::collisionSide::TOP){
         m_isGrounded =true;
         m_velocityY =0.0f;
-
-
     }
-    for(int i=0;i<100;i++){
-        if(gameMath::checkcollision(m_player.x,m_player.y,m_platforms[i].x,m_platforms[i].y,
-                                    m_player.h,m_player.w,m_platforms[i].h*5,m_platforms[i].w*5)){
-            m_isGrounded =true;
-            m_velocityY =0.0f;
+    if(currentSide == gameMath::collisionSide::BOTTOM){
+        m_velocityY =0.0f;
+    }
 
+
+    for(int i=0;i<50;i++){
+        gameMath::collisionSide side = gameMath::checkcollision(m_player.x,m_player.y,m_platforms[i].x,m_platforms[i].y,
+                                                                m_player.h,m_player.w,m_platforms[i].h*5,m_platforms[i].w*5);
+        if(side == gameMath::collisionSide::TOP){
+
+            m_velocityY =0.0f;
+            m_isGrounded =true;
+        }
+        if(side == gameMath::collisionSide::BOTTOM){
+            m_velocityY =0.0f;
         }
 
     }
@@ -208,6 +217,7 @@ void GameState::update(float dt){
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
     }
+
     m_velocityY+=m_gravity*dt;
     m_player.y +=m_velocityY*dt;
 
@@ -267,116 +277,106 @@ bool GameState::handleEvents(SDL_Event& event) {
 }
 
 void GameState::setPlatform() {
-    m_platforms[0]  = {896, 350,192,48};
-
-    m_platforms[1]  = {720,250,160,48};
-    m_platforms[2]  = {1088,150,128,32};
-    m_platforms[3]  = {544,50,144,32};
-    m_platforms[4]  = {1312,-50,160,48};
-    m_platforms[5]  = {864,-150,96,32};
-    m_platforms[6]  = {320,-250,128,32};
-    m_platforms[7]  = {1440,-350,112,32};
-    m_platforms[8]  = {960,-450,80,32};
-    m_platforms[9]  = {608,-550,128,32};
-
-    m_platforms[10] = {224,-650,96,32};
-    m_platforms[11] = {1376,-760,96,32};
-    m_platforms[12] = {1024,-870,64,32};
-    m_platforms[13] = {704,-980,128,32};
-    m_platforms[14] = {1568,-1090,80,32};
-    m_platforms[15] = {384,-1200,160,48};
-    m_platforms[16] = {1152,-1310,96,32};
-    m_platforms[17] = {608,-1420,64,32};
-    m_platforms[18] = {1472,-1530,112,32};
-    m_platforms[19] = {864,-1640,80,32};
-
-    m_platforms[20] = {224,-1760,64,32};
-    m_platforms[21] = {544,-1880,96,32};
-    m_platforms[22] = {1248,-2000,128,32};
-    m_platforms[23] = {1696,-2120,64,32};
-    m_platforms[24] = {928,-2240,160,48};
-    m_platforms[25] = {288,-2360,80,32};
-    m_platforms[26] = {768,-2480,112,32};
-    m_platforms[27] = {1504,-2600,64,32};
-    m_platforms[28] = {1184,-2720,96,32};
-    m_platforms[29] = {416,-2840,128,32};
-
-    m_platforms[30] = {224,-2960,64,16};
-    m_platforms[31] = {864,-3080,80,32};
-    m_platforms[32] = {1568,-3200,64,16};
-    m_platforms[33] = {1216,-3320,112,32};
-    m_platforms[34] = {640,-3440,96,32};
-    m_platforms[35] = {160,-3560,160,48};
-    m_platforms[36] = {1024,-3680,64,16};
-    m_platforms[37] = {1472,-3800,80,32};
-    m_platforms[38] = {704,-3920,96,32};
-    m_platforms[39] = {320,-4040,64,16};
-
-    m_platforms[40] = {1184,-4170,128,32};
-    m_platforms[41] = {1664,-4300,64,16};
-    m_platforms[42] = {832,-4430,80,32};
-    m_platforms[43] = {448,-4560,96,32};
-    m_platforms[44] = {1344,-4690,64,16};
-    m_platforms[45] = {608,-4820,160,48};
-    m_platforms[46] = {224,-4950,80,32};
-    m_platforms[47] = {1056,-5080,64,16};
-    m_platforms[48] = {1568,-5210,96,32};
-    m_platforms[49] = {896,-5340,128,32};
-
-    m_platforms[50] = {512,-5470,96,32};
-    m_platforms[51] = {1760,-5600,64,16};
-    m_platforms[52] = {1184,-5730,80,32};
-    m_platforms[53] = {320,-5860,112,32};
-    m_platforms[54] = {832,-5990,64,16};
-    m_platforms[55] = {1472,-6120,160,48};
-    m_platforms[56] = {1056,-6250,80,32};
-    m_platforms[57] = {576,-6380,64,16};
-    m_platforms[58] = {160,-6510,96,32};
-    m_platforms[59] = {1344,-6640,128,32};
-
-    m_platforms[60] = {1792,-6770,64,16};
-    m_platforms[61] = {960,-6900,80,32};
-    m_platforms[62] = {416,-7030,96,32};
-    m_platforms[63] = {1216,-7160,64,16};
-    m_platforms[64] = {736,-7290,112,32};
-    m_platforms[65] = {192,-7420,160,48};
-    m_platforms[66] = {1472,-7550,80,32};
-    m_platforms[67] = {1056,-7680,64,16};
-    m_platforms[68] = {640,-7810,96,32};
-    m_platforms[69] = {1600,-7940,64,16};
-
-    m_platforms[70] = {896,-8070,80,32};
-    m_platforms[71] = {288,-8200,112,32};
-    m_platforms[72] = {1280,-8330,64,16};
-    m_platforms[73] = {1760,-8460,96,32};
-    m_platforms[74] = {736,-8590,64,16};
-    m_platforms[75] = {384,-8720,160,48};
-    m_platforms[76] = {1120,-8850,80,32};
-    m_platforms[77] = {1536,-8980,64,16};
-    m_platforms[78] = {640,-9110,96,32};
-    m_platforms[79] = {224,-9240,64,16};
-
-    m_platforms[80] = {928,-9370,112,32};
-    m_platforms[81] = {1728,-9500,64,16};
-    m_platforms[82] = {1216,-9630,80,32};
-    m_platforms[83] = {512,-9760,96,32};
-    m_platforms[84] = {160,-9890,64,16};
-    m_platforms[85] = {1408,-10020,128,32};
-    m_platforms[86] = {992,-10150,64,16};
-    m_platforms[87] = {320,-10280,80,32};
-    m_platforms[88] = {1184,-10410,96,32};
-    m_platforms[89] = {1760,-10540,64,16};
-
-    m_platforms[90] = {832,-10670,80,32};
-    m_platforms[91] = {416,-10800,96,32};
-    m_platforms[92] = {1472,-10930,64,16};
-    m_platforms[93] = {640,-11060,112,32};
-    m_platforms[94] = {224,-11190,80,32};
-    m_platforms[95] = {1024,-11320,192,48};   // Final recovery platform
-    m_platforms[96] = {1600,-11450,64,16};
-    m_platforms[97] = {768,-11580,80,32};
-    m_platforms[98] = {384,-11710,64,16};
-    m_platforms[99] = {960,-11840,224,48};
+    m_platforms[0]  = {0,600,128,16};
+    m_platforms[1]  = {320,520,160,32};
+    m_platforms[2]  = {640,440,192,48};
+    m_platforms[3]  = {960,360,224,16};
+    m_platforms[4]  = {1280,280,128,32};
+    m_platforms[5]  = {1600,200,160,48};
+    m_platforms[6]  = {1920,120,192,16};
+    m_platforms[7]  = {2240,40,224,32};
+    m_platforms[8]  = {2560,-40,128,48};
+    m_platforms[9]  = {2880,-120,160,16};
+    m_platforms[10] = {3200,-200,192,32};
+    m_platforms[11] = {3520,-280,224,48};
+    m_platforms[12] = {3840,-360,128,16};
+    m_platforms[13] = {4160,-440,160,32};
+    m_platforms[14] = {4480,-520,192,48};
+    m_platforms[15] = {4800,-600,224,16};
+    m_platforms[16] = {5120,-680,128,32};
+    m_platforms[17] = {5440,-760,160,48};
+    m_platforms[18] = {5760,-840,192,16};
+    m_platforms[19] = {6080,-920,224,32};
+    m_platforms[20] = {6400,-1000,128,48};
+    m_platforms[21] = {6720,-1080,160,16};
+    m_platforms[22] = {7040,-1160,192,32};
+    m_platforms[23] = {7360,-1240,224,48};
+    m_platforms[24] = {7680,-1320,128,16};
+    m_platforms[25] = {8000,-1400,160,32};
+    m_platforms[26] = {8320,-1480,192,48};
+    m_platforms[27] = {8640,-1560,224,16};
+    m_platforms[28] = {8960,-1640,128,32};
+    m_platforms[29] = {9280,-1720,160,48};
+    m_platforms[30] = {9600,-1800,192,16};
+    m_platforms[31] = {9920,-1880,224,32};
+    m_platforms[32] = {10240,-1960,128,48};
+    m_platforms[33] = {10560,-2040,160,16};
+    m_platforms[34] = {10880,-2120,192,32};
+    m_platforms[35] = {11200,-2200,224,48};
+    m_platforms[36] = {11520,-2280,128,16};
+    m_platforms[37] = {11840,-2360,160,32};
+    m_platforms[38] = {12160,-2440,192,48};
+    m_platforms[39] = {12480,-2520,224,16};
+    m_platforms[40] = {12800,-2600,128,32};
+    m_platforms[41] = {13120,-2680,160,48};
+    m_platforms[42] = {13440,-2760,192,16};
+    m_platforms[43] = {13760,-2840,224,32};
+    m_platforms[44] = {14080,-2920,128,48};
+    m_platforms[45] = {14400,-3000,160,16};
+    m_platforms[46] = {14720,-3080,192,32};
+    m_platforms[47] = {15040,-3160,224,48};
+    m_platforms[48] = {15360,-3240,128,16};
+    m_platforms[49] = {15680,-3320,160,32};
+    m_platforms[50] = {16000,-3400,192,48};
+    m_platforms[51] = {16320,-3480,224,16};
+    m_platforms[52] = {16640,-3560,128,32};
+    m_platforms[53] = {16960,-3640,160,48};
+    m_platforms[54] = {17280,-3720,192,16};
+    m_platforms[55] = {17600,-3800,224,32};
+    m_platforms[56] = {17920,-3880,128,48};
+    m_platforms[57] = {18240,-3960,160,16};
+    m_platforms[58] = {18560,-4040,192,32};
+    m_platforms[59] = {18880,-4120,224,48};
+    m_platforms[60] = {19200,-4200,128,16};
+    m_platforms[61] = {19520,-4280,160,32};
+    m_platforms[62] = {19840,-4360,192,48};
+    m_platforms[63] = {20160,-4440,224,16};
+    m_platforms[64] = {20480,-4520,128,32};
+    m_platforms[65] = {20800,-4600,160,48};
+    m_platforms[66] = {21120,-4680,192,16};
+    m_platforms[67] = {21440,-4760,224,32};
+    m_platforms[68] = {21760,-4840,128,48};
+    m_platforms[69] = {22080,-4920,160,16};
+    m_platforms[70] = {22400,-5000,192,32};
+    m_platforms[71] = {22720,-5080,224,48};
+    m_platforms[72] = {23040,-5160,128,16};
+    m_platforms[73] = {23360,-5240,160,32};
+    m_platforms[74] = {23680,-5320,192,48};
+    m_platforms[75] = {24000,-5400,224,16};
+    m_platforms[76] = {24320,-5480,128,32};
+    m_platforms[77] = {24640,-5560,160,48};
+    m_platforms[78] = {24960,-5640,192,16};
+    m_platforms[79] = {25280,-5720,224,32};
+    m_platforms[80] = {25600,-5800,128,48};
+    m_platforms[81] = {25920,-5880,160,16};
+    m_platforms[82] = {26240,-5960,192,32};
+    m_platforms[83] = {26560,-6040,224,48};
+    m_platforms[84] = {26880,-6120,128,16};
+    m_platforms[85] = {27200,-6200,160,32};
+    m_platforms[86] = {27520,-6280,192,48};
+    m_platforms[87] = {27840,-6360,224,16};
+    m_platforms[88] = {28160,-6440,128,32};
+    m_platforms[89] = {28480,-6520,160,48};
+    m_platforms[90] = {28800,-6600,192,16};
+    m_platforms[91] = {29120,-6680,224,32};
+    m_platforms[92] = {29440,-6760,128,48};
+    m_platforms[93] = {29760,-6840,160,16};
+    m_platforms[94] = {30080,-6920,192,32};
+    m_platforms[95] = {30400,-7000,224,48};
+    m_platforms[96] = {30720,-7080,128,16};
+    m_platforms[97] = {31040,-7160,160,32};
+    m_platforms[98] = {31360,-7240,192,48};
+    m_platforms[99] = {31680,-7320,224,16};
 }
 
 
