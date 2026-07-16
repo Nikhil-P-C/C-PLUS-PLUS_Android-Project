@@ -46,9 +46,9 @@ struct SpriteCollection{
                                                   48.00f,56.0f,32.00f,32.00f};
 
     static constexpr SpriteValue mossWalls{SpriteType::MOSS_WALLS,
-                                           0.00f,112.0f,48.00f,48.00f};
+                                           0.00f,128.0f,48.00f,48.00f};
     static constexpr SpriteValue mossWallsEdges{SpriteType::MOSS_WALLS,
-                                                48.00f,112.0f,32.00f,32.00f};
+                                                48.00f,128.0f,32.00f,32.00f};
 
     static constexpr SpriteValue greenGrassGround{SpriteType::GREEN_GRASS_GROUND,
                                                   96.00f,0.00f,48.00f,48.00f};

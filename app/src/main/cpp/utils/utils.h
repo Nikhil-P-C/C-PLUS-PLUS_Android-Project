@@ -5,6 +5,7 @@
 #ifndef MY_APP_UTILS_H
 #define MY_APP_UTILS_H
 #include "Player.h"
+#include "platform.h"
 #include "Button.h"
 #include "Camera.h"
 #include "GameData.h"

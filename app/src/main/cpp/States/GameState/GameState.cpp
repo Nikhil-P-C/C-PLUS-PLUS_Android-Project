@@ -53,13 +53,99 @@ GameState::GameState(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);
 
 
-    setPlatform();
+    setLevel(0);
 }
 
 void GameState::render(SDL_Renderer* renderer)  {
-    SDL_FRect backgroundDst{0, 0, 1600, 720};
+    int camX = (int)std::round(Camera::getInstance().getCamera().x);
+    int camY = (int)std::round(Camera::getInstance().getCamera().y);
+    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 1600, 720};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
-    for(int i=0;i<50;i++){
+
+    {
+        int tileSize = 80;
+        const int platformWidth = (int)m_levelWalls.w;
+        const int platformHeight = (int)m_levelWalls.h;
+        int widthTiles = platformWidth / tileSize;
+        int heightTiles = platformHeight / tileSize;
+        for (int y = 0; y < heightTiles; y++) {
+            for (int x = 0; x < widthTiles; x++) {
+                SDL_FRect src;
+
+                bool left = (x == 0);
+                bool right = (x == widthTiles - 1);
+                bool top = (y == 0);
+                bool bottom = (y == heightTiles - 1);
+                bool edge =false;
+                if (top) {
+                    if (left) {
+                        src = {SpriteCollection::mossWallsEdges.x,
+                               0, 16.00f, 16.00f};
+                        edge =true;
+                        }
+                    else if (right) {
+                        src = {SpriteCollection::mossWallsEdges.x + 16.00f,
+                               0, 16.00f, 16.00f};
+                        edge =true;
+                    }
+                    else {
+                        src = {SpriteCollection::mossWalls.x + 16.00f,
+                               0, 16.00f, 16.00f};
+                        edge = false;
+                    }
+                }
+                else if (bottom) {
+                    if (left) {
+                        src = {SpriteCollection::mossWallsEdges.x,
+                               0+16.00f, 16.00f, 16.00f};
+                        edge =true;
+                    }
+                    else if (right) {
+                        src = {SpriteCollection::mossWallsEdges.x + 16.00f,
+                               0+16.00f, 16.00f, 16.00f};
+                        edge= true;
+                    }
+                    else {
+                        src = {SpriteCollection::mossWalls.x + 16.00f,
+                               0+32.00f, 16.00f, 16.00f};
+                        edge =false;
+                    }
+                } else {
+                    edge =false;
+                    if (left) src = {SpriteCollection::mossWalls.x,
+                                     0+ 16.00f, 16.00f, 16.00f};
+                    else if (right)
+                        src = {SpriteCollection::mossWalls.x + 32.00f,
+                               0+16.00f, 16.00f, 16.00f};
+                    else src = {SpriteCollection::mossWalls.x + 16.00f,
+                                0+16.00f, 16.00f, 16.00f};
+                }
+
+//          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
+//                LOGI("TOP:%d,BOTTOM:%d,LEFT:%d,RIGHT:%d,Edge:%d",top,bottom,left,right,edge);
+
+                if ((top || bottom || left || right )&& !edge) {
+                    SDL_FRect dst = {
+                            (m_levelWalls.x + x * (16 * 5)) - camX,
+                            (m_levelWalls.y + y * (16 * 5)) - camY,
+                            16 * 5, 16 * 5};
+                    SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f,NULL,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
+                }
+                else if(((top || bottom) && (left || right) && edge)){
+                    SDL_FRect dst = {
+                            (m_levelWalls.x + x * (16 * 5)) - camX,
+                            (m_levelWalls.y + y * (16 * 5)) - camY,
+                            16 * 5, 16 * 5};
+                    LOGI("edge dst: x:%f , y:%f ,w:%f ,h:%f ",dst.x,dst.y,dst.w,dst.h );
+                    LOGI("edge src: x:%f , y:%f ,w:%f ,h:%f ",src.x,src.y,src.w,src.h );
+                    SDL_RenderTexture(renderer, m_tileset, &src, &dst);
+                }
+                LOGI("cam : x:%f ,y:%f :",camX,camY);
+
+            }
+        }
+    }
+    for(int i=0;i<2;i++){
         int tileSize = 16;
         const int platformWidth = (int)m_platforms[i].w;
         const int platformHeight = (int)m_platforms[i].h;
@@ -74,89 +160,28 @@ void GameState::render(SDL_Renderer* renderer)  {
                 bool top = (y == 0);
                 bool bottom = (y == heightTiles - 1);
 
-                if (top) {
-                    if (left) src = {96.00f, 0.00f, 16.00f, 16.00f};
-                    else if (right) src = {96.00f + 32.00f, 0.00f, 16.00f, 16.00f};
-                    else src = {96.00f + 16.00f, 0.00f, 16.00f, 16.00f};
-                } else if (bottom) {
-                    if (left) src = {96.00f, 32.00f, 16.00f, 16.00f};
-                    else if (right) src = {96.00f + 32.00f, 32.00f, 16.00f, 16.00f};
-                    else src = {96.00f + 16.00f, 32.00f, 16.00f, 16.00f};
-                } else {
-                    if (left) src = {96.00f, 16.00f, 16.00f, 16.00f};
-                    else if (right) src = {96.00f + 32.00f, 16.00f, 16.00f, 16.00f};
-                    else src = {96.00f + 16.00f, 16.00f, 16.00f, 16.00f};
-                }
                 if(heightTiles ==1){
-                    if(left) src = {96.00f+96.00, 0.00f, 16.00f, 16.00f};
-                    else if (right) src = {96.00f +96.00+ 32.00f, 0.00f, 16.00f, 16.00f};
-                    else src = {96.00f +96.00f+ 16.00f, 0.00f, 16.00f, 16.00f};
+                    if(left) src = {SpriteCollection::goldPlatform.x, 0.00f, 16.00f, 16.00f};
+                    else if (right) src = {SpriteCollection::goldPlatform.x + 32.00f, 0.00f, 16.00f, 16.00f};
+                    else src = {SpriteCollection::goldPlatform.x + 16.00f, 0.00f, 16.00f, 16.00f};
                 }
 
 //          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
-                SDL_FRect dst = {(m_platforms[i].x+x* (16 * 5)) - Camera::getInstance().getCamera().x,
-                                 ( m_platforms[i].y+y * (16 * 5)) - Camera::getInstance().getCamera().y,
+                SDL_FRect dst = {(m_platforms[i].x+x* (16 * 5)) - camX,
+                                 ( m_platforms[i].y+y * (16 * 5)) - camY,
                                  16 * 5, 16 * 5};
                 SDL_RenderTexture(renderer, m_tileset, &src, &dst);
             }
 
         }
 
-
-        SDL_FRect tileDst = {m_platforms[i].x-Camera::getInstance().getCamera().x,
-                                 m_platforms[i].y-Camera::getInstance().getCamera().y,
-                                 m_platforms[i].w * 5, m_platforms[i].h * 5};
-
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        SDL_RenderRect(renderer, &tileDst);
     }
-    int tileSize = 16;
-    const int platformWidth = 1600;
-    const int platformHeight = 160;
-    int widthTiles = platformWidth / tileSize;
-    int heightTiles = platformHeight / tileSize;
-    for (int y = 0; y < heightTiles; y++)
-    {
-        for (int x = 0; x < widthTiles; x++)
-        {
-            SDL_FRect src;
 
-            bool left   = (x == 0);
-            bool right  = (x == widthTiles - 1);
-            bool top    = (y == 0);
-            bool bottom = (y == heightTiles - 1);
-
-            if (top)
-            {
-                if (left)      src = {96.00f,0.00f,16.00f,16.00f};
-                else if (right) src = {96.00f+32.00f,0.00f,16.00f,16.00f};
-                else            src = {96.00f+16.00f,0.00f,16.00f,16.00f};
-            }
-            else if (bottom)
-            {
-                if (left)      src = {96.00f,32.00f,16.00f,16.00f};
-                else if (right) src = {96.00f+32.00f,32.00f,16.00f,16.00f};
-                else            src = {96.00f+16.00f,32.00f,16.00f,16.00f};
-            }
-            else
-            {
-                if (left)      src = {96.00f,16.00f,16.00f,16.00f};
-                else if (right) src = {96.00f+32.00f,16.00f,16.00f,16.00f};
-                else            src = {96.00f+16.00f,16.00f,16.00f,16.00f};
-            }
-
-
-//          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
-            SDL_FRect dst = {(-2000.00f + x * (16*5))-Camera::getInstance().getCamera().x
-                         ,(720.00f+y*(16*5))-Camera::getInstance().getCamera().y, 16*5, 16*5};
-            SDL_RenderTexture(renderer, m_tileset, &src, &dst);
-        }
-    }
-    SDL_FRect playerBorder{m_player.x-Camera::getInstance().getCamera().x,
-                           m_player.y-Camera::getInstance().getCamera().y,
+    SDL_FRect playerBorder{m_player.x-camX,
+                           m_player.y-camY,
                            m_player.w, m_player.h};
-    SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-Camera::getInstance().getCamera().x,
-                     m_player.y+m_player.spriteOffsetY-Camera::getInstance().getCamera().y,
+    SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-camX,
+                     m_player.y+m_player.spriteOffsetY-camY,
                      m_player.spriteW,m_player.spriteH};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
@@ -169,58 +194,79 @@ void GameState::render(SDL_Renderer* renderer)  {
 }
 
 void GameState::update(float dt){
-    m_isGrounded =false;
-    //ground check
-    LOGI("velocity y :%f",m_velocityY);
-    gameMath::collisionSide currentSide = gameMath::checkcollision(m_player.x,m_player.y,-2000.00,720.00f,
-                                                                   m_player.h,m_player.w,160.00f,9600.00f);
-    if(currentSide == gameMath::collisionSide::TOP){
-        m_isGrounded =true;
-        m_velocityY =0.0f;
-    }
-    if(currentSide == gameMath::collisionSide::BOTTOM){
-        m_velocityY =0.0f;
-    }
 
+    m_isGrounded =true;
 
-    for(int i=0;i<50;i++){
-        gameMath::collisionSide side = gameMath::checkcollision(m_player.x,m_player.y,m_platforms[i].x,m_platforms[i].y,
-                                                                m_player.h,m_player.w,m_platforms[i].h*5,m_platforms[i].w*5);
-        if(side == gameMath::collisionSide::TOP){
+    handleCollision();
 
-            m_velocityY =0.0f;
-            m_isGrounded =true;
-        }
-        if(side == gameMath::collisionSide::BOTTOM){
-            m_velocityY =0.0f;
-        }
-
-    }
+    handlePhysicAndInput(dt);
 
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-    if(!InputDispatcher::getInstance().movingLeft&&!InputDispatcher::getInstance().movingRight){
-        m_playerAction=PlayerAction::IDLE;
+
+    updateAnimation();
+
+}
+
+bool GameState::handleEvents(SDL_Event& event) {
+//    if (m_transitioning)return true;
+    if(event.type == SDL_EVENT_KEY_DOWN)
+    {
+        if(event.key.key == SDLK_AC_BACK){
+        m_transitioning = true;
+        LOGI("game state transitions to menu state");
+        Engine::Get().popOverlayState();
+        if(GameData::getInstance().isDebugEnabled())
+            Engine::Get().popOverlayState();
+        Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
+        return true;
+        }
     }
-    if(InputDispatcher::getInstance().movingLeft){
-        m_isPlayerfacingRight =false;
-        m_playerAction=PlayerAction::MOVINGLEFT;
-        m_player.x -= 250.00f* dt;
+
+    return false;
+}
+
+void GameState::handleCollision() {
+    gameMath::collisionSide wallCollisionSide = gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
+                                                                         m_player.h,m_player.w,80.00f,m_levelWalls.w);
+    if(wallCollisionSide ==  gameMath::collisionSide::BOTTOM)
+        m_velocityY =0.0f;
+    wallCollisionSide= gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
+                                                m_player.h,m_player.w,m_levelWalls.h,80.00f);
+    wallCollisionSide= gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x+m_levelWalls.w-80,m_levelWalls.y,
+                                                m_player.h,m_player.w,m_levelWalls.h,80.00f);
+    wallCollisionSide =gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y+m_levelWalls.h-80.00f,
+                                                m_player.h,m_player.w,80.00f,m_levelWalls.w);
+    if(wallCollisionSide == gameMath::collisionSide::TOP){
+        m_isGrounded = true;
+        m_velocityY =0.0f;
+    }
+
+
+
+    for(int i=0;i<2;i++){
+        if(m_platforms[i].colliderType == CollisionType::SOLID)
+        {
+            gameMath::collisionSide side = gameMath::checkcollision(m_player.x, m_player.y,
+                                                                    m_platforms[i].x,
+                                                                    m_platforms[i].y,
+                                                                    m_player.h, m_player.w,
+                                                                    m_platforms[i].h * 5,
+                                                                    m_platforms[i].w * 5);
+            if (side == gameMath::collisionSide::TOP) {
+
+                m_velocityY = 0.0f;
+//          m_isGrounded =true;
+            }
+            if (side == gameMath::collisionSide::BOTTOM) {
+                m_velocityY = 0.0f;
+            }
+        }
+        else if(m_platforms[0].)
 
     }
-    if(InputDispatcher::getInstance().movingRight){
-        m_isPlayerfacingRight =true;
-        m_playerAction=PlayerAction::MOVINGRIGHT;
-        m_player.x +=250.00f * dt;
-    }
-    if(InputDispatcher::getInstance().jump && m_isGrounded){
+}
 
-        m_playerAction=PlayerAction::JUMP;
-        m_velocityY =-m_jumpVelocity;
-    }
-
-    m_velocityY+=m_gravity*dt;
-    m_player.y +=m_velocityY*dt;
-
+void GameState::updateAnimation() {
     switch(m_playerAction){
         case IDLE:
             m_Animation.startIndex=0;
@@ -255,128 +301,48 @@ void GameState::update(float dt){
             m_currentFrame = m_Animation.startIndex;
         m_aniLastTime = m_aniNowTime;
     }
-
 }
 
-bool GameState::handleEvents(SDL_Event& event) {
-//    if (m_transitioning)return true;
-    if(event.type == SDL_EVENT_KEY_DOWN)
-    {
-        if(event.key.key == SDLK_AC_BACK){
-        m_transitioning = true;
-        LOGI("game state transitions to menu state");
-        Engine::Get().popOverlayState();
-        if(GameData::getInstance().isDebugEnabled())
-            Engine::Get().popOverlayState();
-        Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
-        return true;
-        }
+void GameState::handlePhysicAndInput(float dt) {
+
+    if(!InputDispatcher::getInstance().movingLeft&&!InputDispatcher::getInstance().movingRight){
+        m_playerAction=PlayerAction::IDLE;
+    }
+    if(InputDispatcher::getInstance().movingLeft){
+        m_isPlayerfacingRight =false;
+        m_playerAction=PlayerAction::MOVINGLEFT;
+        m_player.x -= 250.00f* dt;
+
+    }
+    if(InputDispatcher::getInstance().movingRight){
+        m_isPlayerfacingRight =true;
+        m_playerAction=PlayerAction::MOVINGRIGHT;
+        m_player.x +=250.00f * dt;
+    }
+    if(InputDispatcher::getInstance().jump && m_isGrounded){
+
+        m_playerAction=PlayerAction::JUMP;
+        m_velocityY =-m_jumpVelocity;
     }
 
-    return false;
+    m_velocityY+=m_gravity*dt;
+    m_player.y +=m_velocityY*dt;
 }
 
-void GameState::setPlatform() {
-    m_platforms[0]  = {0,600,128,16};
-    m_platforms[1]  = {320,520,160,32};
-    m_platforms[2]  = {640,440,192,48};
-    m_platforms[3]  = {960,360,224,16};
-    m_platforms[4]  = {1280,280,128,32};
-    m_platforms[5]  = {1600,200,160,48};
-    m_platforms[6]  = {1920,120,192,16};
-    m_platforms[7]  = {2240,40,224,32};
-    m_platforms[8]  = {2560,-40,128,48};
-    m_platforms[9]  = {2880,-120,160,16};
-    m_platforms[10] = {3200,-200,192,32};
-    m_platforms[11] = {3520,-280,224,48};
-    m_platforms[12] = {3840,-360,128,16};
-    m_platforms[13] = {4160,-440,160,32};
-    m_platforms[14] = {4480,-520,192,48};
-    m_platforms[15] = {4800,-600,224,16};
-    m_platforms[16] = {5120,-680,128,32};
-    m_platforms[17] = {5440,-760,160,48};
-    m_platforms[18] = {5760,-840,192,16};
-    m_platforms[19] = {6080,-920,224,32};
-    m_platforms[20] = {6400,-1000,128,48};
-    m_platforms[21] = {6720,-1080,160,16};
-    m_platforms[22] = {7040,-1160,192,32};
-    m_platforms[23] = {7360,-1240,224,48};
-    m_platforms[24] = {7680,-1320,128,16};
-    m_platforms[25] = {8000,-1400,160,32};
-    m_platforms[26] = {8320,-1480,192,48};
-    m_platforms[27] = {8640,-1560,224,16};
-    m_platforms[28] = {8960,-1640,128,32};
-    m_platforms[29] = {9280,-1720,160,48};
-    m_platforms[30] = {9600,-1800,192,16};
-    m_platforms[31] = {9920,-1880,224,32};
-    m_platforms[32] = {10240,-1960,128,48};
-    m_platforms[33] = {10560,-2040,160,16};
-    m_platforms[34] = {10880,-2120,192,32};
-    m_platforms[35] = {11200,-2200,224,48};
-    m_platforms[36] = {11520,-2280,128,16};
-    m_platforms[37] = {11840,-2360,160,32};
-    m_platforms[38] = {12160,-2440,192,48};
-    m_platforms[39] = {12480,-2520,224,16};
-    m_platforms[40] = {12800,-2600,128,32};
-    m_platforms[41] = {13120,-2680,160,48};
-    m_platforms[42] = {13440,-2760,192,16};
-    m_platforms[43] = {13760,-2840,224,32};
-    m_platforms[44] = {14080,-2920,128,48};
-    m_platforms[45] = {14400,-3000,160,16};
-    m_platforms[46] = {14720,-3080,192,32};
-    m_platforms[47] = {15040,-3160,224,48};
-    m_platforms[48] = {15360,-3240,128,16};
-    m_platforms[49] = {15680,-3320,160,32};
-    m_platforms[50] = {16000,-3400,192,48};
-    m_platforms[51] = {16320,-3480,224,16};
-    m_platforms[52] = {16640,-3560,128,32};
-    m_platforms[53] = {16960,-3640,160,48};
-    m_platforms[54] = {17280,-3720,192,16};
-    m_platforms[55] = {17600,-3800,224,32};
-    m_platforms[56] = {17920,-3880,128,48};
-    m_platforms[57] = {18240,-3960,160,16};
-    m_platforms[58] = {18560,-4040,192,32};
-    m_platforms[59] = {18880,-4120,224,48};
-    m_platforms[60] = {19200,-4200,128,16};
-    m_platforms[61] = {19520,-4280,160,32};
-    m_platforms[62] = {19840,-4360,192,48};
-    m_platforms[63] = {20160,-4440,224,16};
-    m_platforms[64] = {20480,-4520,128,32};
-    m_platforms[65] = {20800,-4600,160,48};
-    m_platforms[66] = {21120,-4680,192,16};
-    m_platforms[67] = {21440,-4760,224,32};
-    m_platforms[68] = {21760,-4840,128,48};
-    m_platforms[69] = {22080,-4920,160,16};
-    m_platforms[70] = {22400,-5000,192,32};
-    m_platforms[71] = {22720,-5080,224,48};
-    m_platforms[72] = {23040,-5160,128,16};
-    m_platforms[73] = {23360,-5240,160,32};
-    m_platforms[74] = {23680,-5320,192,48};
-    m_platforms[75] = {24000,-5400,224,16};
-    m_platforms[76] = {24320,-5480,128,32};
-    m_platforms[77] = {24640,-5560,160,48};
-    m_platforms[78] = {24960,-5640,192,16};
-    m_platforms[79] = {25280,-5720,224,32};
-    m_platforms[80] = {25600,-5800,128,48};
-    m_platforms[81] = {25920,-5880,160,16};
-    m_platforms[82] = {26240,-5960,192,32};
-    m_platforms[83] = {26560,-6040,224,48};
-    m_platforms[84] = {26880,-6120,128,16};
-    m_platforms[85] = {27200,-6200,160,32};
-    m_platforms[86] = {27520,-6280,192,48};
-    m_platforms[87] = {27840,-6360,224,16};
-    m_platforms[88] = {28160,-6440,128,32};
-    m_platforms[89] = {28480,-6520,160,48};
-    m_platforms[90] = {28800,-6600,192,16};
-    m_platforms[91] = {29120,-6680,224,32};
-    m_platforms[92] = {29440,-6760,128,48};
-    m_platforms[93] = {29760,-6840,160,16};
-    m_platforms[94] = {30080,-6920,192,32};
-    m_platforms[95] = {30400,-7000,224,48};
-    m_platforms[96] = {30720,-7080,128,16};
-    m_platforms[97] = {31040,-7160,160,32};
-    m_platforms[98] = {31360,-7240,192,48};
-    m_platforms[99] = {31680,-7320,224,16};
+void GameState::setLevel(int level) {
+    m_levelWalls ={0.00f,0.00f,1600.00f,720.00f};
+    m_platforms[0]  = {0,600,128,16,ColliderType::ONE_WAY};
+    m_platforms[1]  = {320,520,160,32,ColliderType::ONE_WAY};
+    m_platforms[2]  = {640,440,192,48,ColliderType::ONE_WAY};
+    m_platforms[3]  = {960,360,224,16,ColliderType::ONE_WAY};
+    m_platforms[4]  = {1280,280,128,32,ColliderType::ONE_WAY};
+    m_platforms[5]  = {1600,200,160,48,ColliderType::ONE_WAY};
+    m_platforms[6]  = {1920,120,192,16,ColliderType::ONE_WAY};
+    m_platforms[7]  = {2240,40,224,32,ColliderType::ONE_WAY};
+    m_platforms[8]  = {2560,-40,128,48,ColliderType::ONE_WAY};
+    m_platforms[9]  = {2880,-120,160,16,ColliderType::ONE_WAY};
+    m_platforms[10] = {3200,-200,192,32,ColliderType::ONE_WAY};
+
 }
 
 

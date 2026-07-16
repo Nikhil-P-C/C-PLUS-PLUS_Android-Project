@@ -10,7 +10,6 @@
 
 #include "State/State.h"
 #include "Player.h"
-#include "platform.h"
 #include "engine/Engine.h"
 #include "utils/utils.h"
 
@@ -47,8 +46,11 @@ public:
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
     }
-    void setPlatform();
+    void setLevel(int level);
 
+    void handleCollision();
+    void handlePhysicAndInput(float dt);
+    void updateAnimation();
     void render(SDL_Renderer* renderer) override;
 
     void update(float dt) override;
@@ -87,6 +89,7 @@ private:
     //player and platform
     bool m_isPlayerfacingRight =true;
     Platform m_platforms[100];
+    SDL_FRect m_levelWalls;
     Player   m_player;
 
     //scaling and window
