@@ -2,6 +2,7 @@
 // Created by LENOVO on 15-07-2026.
 //
 #pragma once
+
 enum SpriteType{
     STONE_BRICK =0,
     WOODEN_SHAFT =1,
@@ -107,10 +108,10 @@ struct SpriteCollection{
                                            304.00f,128.00f,32.00f,32.00f};
 
     static constexpr SpriteValue goldPlatform{SpriteType::GOLD_PLATFORM,
-                                              288.00f,0.0f,16.00f,48.00f};
+                                              272.00f,0.0f,16.00f,48.00f};
     static constexpr SpriteValue woodenPlatform{SpriteType::WOODEN_PLATFORM,
-                                                288.00f,16.00f,16.00f,48.00f};
+                                                272.00f,16.00f,16.00f,48.00f};
     static constexpr SpriteValue stonePlatform{SpriteType::STONE_PLATFORM,
-                                               288.00f,32.00f,16.00f,48.00f};
+                                               272.00f,32.00f,16.00f,48.00f};
 
 };

@@ -136,16 +136,14 @@ void GameState::render(SDL_Renderer* renderer)  {
                             (m_levelWalls.x + x * (16 * 5)) - camX,
                             (m_levelWalls.y + y * (16 * 5)) - camY,
                             16 * 5, 16 * 5};
-                    LOGI("edge dst: x:%f , y:%f ,w:%f ,h:%f ",dst.x,dst.y,dst.w,dst.h );
-                    LOGI("edge src: x:%f , y:%f ,w:%f ,h:%f ",src.x,src.y,src.w,src.h );
+
                     SDL_RenderTexture(renderer, m_tileset, &src, &dst);
                 }
-                LOGI("cam : x:%f ,y:%f :",camX,camY);
 
             }
         }
     }
-    for(int i=0;i<2;i++){
+    for(int i=0;i<10;i++){
         int tileSize = 16;
         const int platformWidth = (int)m_platforms[i].w;
         const int platformHeight = (int)m_platforms[i].h;
@@ -161,9 +159,38 @@ void GameState::render(SDL_Renderer* renderer)  {
                 bool bottom = (y == heightTiles - 1);
 
                 if(heightTiles ==1){
-                    if(left) src = {SpriteCollection::goldPlatform.x, 0.00f, 16.00f, 16.00f};
-                    else if (right) src = {SpriteCollection::goldPlatform.x + 32.00f, 0.00f, 16.00f, 16.00f};
-                    else src = {SpriteCollection::goldPlatform.x + 16.00f, 0.00f, 16.00f, 16.00f};
+                    if(m_platforms[i].platformType == SpriteType::GOLD_PLATFORM){
+                        if (left) src = {SpriteCollection::goldPlatform.x, 0.00f, 16.00f, 16.00f};
+                        else if (right)
+                            src = {SpriteCollection::goldPlatform.x + 32.00f, 0.00f, 16.00f,
+                                   16.00f};
+                        else
+                            src = {SpriteCollection::goldPlatform.x + 16.00f, 0.00f, 16.00f,
+                                   16.00f};
+                    }
+                    else if(m_platforms[i].platformType == SpriteType::WOODEN_PLATFORM){
+                        if (left) src = {SpriteCollection::woodenPlatform.x,
+                                         SpriteCollection::woodenPlatform.y, 16.00f, 16.00f};
+                        else if (right)
+                            src = {SpriteCollection::woodenPlatform.x + 32.00f,
+                                   SpriteCollection::woodenPlatform.y, 16.00f,16.00f};
+                        else
+                            src = {SpriteCollection::woodenPlatform.x + 16.00f,
+                                   SpriteCollection::woodenPlatform.y, 16.00f,
+                                   16.00f};
+
+                    }
+                    else if(m_platforms[i].platformType == SpriteType::STONE_PLATFORM) {
+                        if (left) src = {SpriteCollection::stonePlatform.x,
+                                         SpriteCollection::stonePlatform.y, 16.00f, 16.00f};
+                        else if (right)
+                            src = {SpriteCollection::stonePlatform.x + 32.00f,
+                                   SpriteCollection::stonePlatform.y, 16.00f,16.00f};
+                        else
+                            src = {SpriteCollection::stonePlatform.x + 16.00f,
+                                   SpriteCollection::stonePlatform.y, 16.00f,
+                                   16.00f};
+                    }
                 }
 
 //          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
@@ -190,16 +217,18 @@ void GameState::render(SDL_Renderer* renderer)  {
                              SDL_FLIP_HORIZONTAL);
     else
         SDL_RenderTexture(renderer,m_playerTexture,&src,&dst);
+    SDL_SetRenderDrawColor(renderer,33,31,48,255);
     SDL_RenderRect(renderer, &playerBorder);
+
 }
 
 void GameState::update(float dt){
 
     m_isGrounded =true;
+    m_previousY =m_player.y;
+    handlePhysicAndInput(dt);
 
     handleCollision();
-
-    handlePhysicAndInput(dt);
 
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
@@ -226,15 +255,15 @@ bool GameState::handleEvents(SDL_Event& event) {
 }
 
 void GameState::handleCollision() {
-    gameMath::collisionSide wallCollisionSide = gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
+    gameMath::collisionSide wallCollisionSide = gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
                                                                          m_player.h,m_player.w,80.00f,m_levelWalls.w);
     if(wallCollisionSide ==  gameMath::collisionSide::BOTTOM)
         m_velocityY =0.0f;
-    wallCollisionSide= gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
+    wallCollisionSide= gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
                                                 m_player.h,m_player.w,m_levelWalls.h,80.00f);
-    wallCollisionSide= gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x+m_levelWalls.w-80,m_levelWalls.y,
+    wallCollisionSide= gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x+m_levelWalls.w-80,m_levelWalls.y,
                                                 m_player.h,m_player.w,m_levelWalls.h,80.00f);
-    wallCollisionSide =gameMath::checkcollision(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y+m_levelWalls.h-80.00f,
+    wallCollisionSide =gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y+m_levelWalls.h-80.00f,
                                                 m_player.h,m_player.w,80.00f,m_levelWalls.w);
     if(wallCollisionSide == gameMath::collisionSide::TOP){
         m_isGrounded = true;
@@ -243,10 +272,11 @@ void GameState::handleCollision() {
 
 
 
-    for(int i=0;i<2;i++){
-        if(m_platforms[i].colliderType == CollisionType::SOLID)
+    for(int i=0;i<10;i++){
+        if(m_platforms[i].colliderType == ColliderType::SOLID)
         {
-            gameMath::collisionSide side = gameMath::checkcollision(m_player.x, m_player.y,
+
+            gameMath::collisionSide side = gameMath::checkcollisionXY(m_player.x, m_player.y,
                                                                     m_platforms[i].x,
                                                                     m_platforms[i].y,
                                                                     m_player.h, m_player.w,
@@ -261,7 +291,22 @@ void GameState::handleCollision() {
                 m_velocityY = 0.0f;
             }
         }
-        else if(m_platforms[0].)
+        else if(m_platforms[0].colliderType == ColliderType::ONE_WAY){
+            float previousBottom = m_previousY + m_player.h;
+            float currentBottom = m_player.y + m_player.h;
+            float platformTop = m_platforms[i].y;
+
+            if(m_velocityY >0 &&previousBottom <= platformTop
+                && currentBottom>=platformTop
+                &&gameMath::checkcollisionX(m_player.x, m_player.y,m_platforms[i].x,m_platforms[i].y,
+                                            m_player.h, m_player.w,m_platforms[i].h * 5,m_platforms[i].w * 5))
+            {
+
+                m_player.y = platformTop - m_player.h;
+                m_velocityY = 0.0f;
+                m_isGrounded = true;
+            }
+        }
 
     }
 }
@@ -331,17 +376,19 @@ void GameState::handlePhysicAndInput(float dt) {
 
 void GameState::setLevel(int level) {
     m_levelWalls ={0.00f,0.00f,1600.00f,720.00f};
-    m_platforms[0]  = {0,600,128,16,ColliderType::ONE_WAY};
-    m_platforms[1]  = {320,520,160,32,ColliderType::ONE_WAY};
-    m_platforms[2]  = {640,440,192,48,ColliderType::ONE_WAY};
-    m_platforms[3]  = {960,360,224,16,ColliderType::ONE_WAY};
-    m_platforms[4]  = {1280,280,128,32,ColliderType::ONE_WAY};
-    m_platforms[5]  = {1600,200,160,48,ColliderType::ONE_WAY};
-    m_platforms[6]  = {1920,120,192,16,ColliderType::ONE_WAY};
-    m_platforms[7]  = {2240,40,224,32,ColliderType::ONE_WAY};
-    m_platforms[8]  = {2560,-40,128,48,ColliderType::ONE_WAY};
-    m_platforms[9]  = {2880,-120,160,16,ColliderType::ONE_WAY};
-    m_platforms[10] = {3200,-200,192,32,ColliderType::ONE_WAY};
+    m_platforms[0]  = {0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
+    m_platforms[1]  = {320,520,207,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM};
+    m_platforms[2]  = {640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
+    m_platforms[3]  = {960,360,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
+    m_platforms[4]  = {1280,280,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
+    m_platforms[5]  = {1600,200,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
+    m_platforms[6]  = {1920,120,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
+    m_platforms[7]  = {2240,40,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
+    m_platforms[8]  = {2560,-40,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
+    m_platforms[9]  = {2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
+    m_platforms[10] = {3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
+
+
 
 }
 

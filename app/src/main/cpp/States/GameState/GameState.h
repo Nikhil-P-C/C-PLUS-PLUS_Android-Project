@@ -103,10 +103,12 @@ private:
     bool m_isCompleted=false;
     bool m_transitioning=false;
     //physics
+    float m_previousY = 0.0f;
     float m_velocityY =0.0f;
     float m_gravity =1800.00f;
     float m_jumpVelocity =1000.00f;
     bool  m_isGrounded =true;
+
     //input
     Button m_JumpButton;
     Button m_LeftButton;
