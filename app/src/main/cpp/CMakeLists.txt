@@ -48,6 +48,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_ttf EXCLUDE_FROM_ALL)
 
 #---- SDL_mixer ----
 set(SDLMIXER_WAV ON CACHE BOOL "" FORCE)
+set(WAVPACK_BUILD_ASM OFF CACHE BOOL "" FORCE)
+
 set(SDLMIXER_FLAC OFF CACHE BOOL "" FORCE)
 set(SDLMIXER_MP3 ON CACHE BOOL "" FORCE)
 set(SDLMIXER_OGG OFF CACHE BOOL "" FORCE)
@@ -83,6 +85,7 @@ add_library(main SHARED
         engine/Engine.cpp
         utils/Camera.cpp
         utils/gameMath.cpp
+        level/WallShapeBuilder.cpp
 
 )
 

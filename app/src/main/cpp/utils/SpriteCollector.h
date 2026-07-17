@@ -2,7 +2,17 @@
 // Created by LENOVO on 15-07-2026.
 //
 #pragma once
-
+enum SpriteVariant{
+    CENTER=0,
+    TOP=1,
+    BOTTOM=2,
+    LEFT=3,
+    RIGHT=4,
+    TOP_LEFT=5,
+    TOP_RIGHT=6,
+    BOTTOM_LEFT=7,
+    BOTTOM_RIGHT=8
+};
 enum SpriteType{
     STONE_BRICK_WALL =0,
     WOODEN_SHAFT_WALL =1,
@@ -26,13 +36,8 @@ struct SpriteValue{
     float y=0.0f;
     float height =0.0f;
     float width =0.0f;
-    constexpr SpriteValue(SpriteType t,
-                          float x,
-                          float y,
-                          float w,
-                          float h)
-            : type(t), x(x), y(y), width(w), height(h)
-    {}
+    constexpr SpriteValue(SpriteType t,float x,float y,float w,float h):
+                          type(t), x(x), y(y), width(w), height(h){}
     SpriteValue() =default;
 };
 struct SpriteCollection{

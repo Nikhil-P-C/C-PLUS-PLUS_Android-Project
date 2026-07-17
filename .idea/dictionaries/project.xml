@@ -20,6 +20,7 @@
       <w>framestart</w>
       <w>frametime</w>
       <w>gamemeta</w>
+      <w>gamestate</w>
       <w>gameutils</w>
       <w>groundlevel</w>
       <w>isgrounded</w>
