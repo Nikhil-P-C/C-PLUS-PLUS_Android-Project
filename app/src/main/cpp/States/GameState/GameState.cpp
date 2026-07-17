@@ -70,15 +70,15 @@ void GameState::render(SDL_Renderer* renderer)  {
         int widthTiles = static_cast<int>(std::ceil(platformWidth  / (float)tileSize));
         int heightTiles = static_cast<int>(std::ceil(platformHeight / (float)tileSize));
         LOGI("Total  height tile:%d , total Width tile: %d ",heightTiles,widthTiles);
-        for (int y = 0; y < heightTiles; y++) {
-            for (int x = 0; x < widthTiles; x++) {
+        for (int i = 0; i < heightTiles; i++) {
+            for (int j = 0; j < widthTiles; j++) {
                 SDL_FRect src;
-
-                bool left = (x == 0);
-                bool right = (x == widthTiles - 1);
-                bool top = (y == 0);
-                bool bottom = (y == heightTiles - 1);
-
+                float x =level.x + j * (TILE_SIZE * SCALE);
+                float y =level.y + i* (TILE_SIZE * SCALE);
+                bool left = (j == 0);
+                bool right = (j == widthTiles - 1);
+                bool top = (i == 0);
+                bool bottom = (i == heightTiles - 1);
                 bool edge =false;
                 SpriteValue CurrentSpriteValue;
                 SpriteValue CurrentEdgeSpriteValue;
@@ -90,7 +90,12 @@ void GameState::render(SDL_Renderer* renderer)  {
                     CurrentSpriteValue =SpriteCollection::mossWall;
                     CurrentEdgeSpriteValue =SpriteCollection::mossWallEdges;
                 }
-
+                if(hasWallAbove(x,y)){
+                    top =false;
+                }
+                if(hasWallBelow(x,y)){
+                    bottom =false;
+                }
                 if (top) {
                     if (left) {
                         src = {CurrentEdgeSpriteValue.x,
@@ -135,24 +140,15 @@ void GameState::render(SDL_Renderer* renderer)  {
                                 CurrentSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
                 }
 
-//          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
-//                LOGI("TOP:%d,BOTTOM:%d,LEFT:%d,RIGHT:%d,Edge:%d",top,bottom,left,right,edge);
-
+                SDL_FRect dst = {
+                        x - camX,
+                        y - camY,
+                        TILE_SIZE * SCALE, TILE_SIZE * SCALE};
                 if ((top || bottom || left || right )&& !edge) {
-                    SDL_FRect dst = {
-                            (level.x + x * (TILE_SIZE * SCALE)) - camX,
-                            (level.y + y * (TILE_SIZE * SCALE)) - camY,
-                            TILE_SIZE * SCALE, TILE_SIZE * SCALE};
-                    SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f,NULL,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
+                    SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f, nullptr,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
                 }
                 else if(((top || bottom) && (left || right) && edge)){
-                    SDL_FRect dst = {
-                            (level.x + x * (TILE_SIZE * SCALE)) - camX,
-                            (level.y + y * (TILE_SIZE * SCALE)) - camY,
-                            TILE_SIZE * SCALE, TILE_SIZE * SCALE};
-
                     SDL_RenderTexture(renderer, m_tileset, &src, &dst);
-
                 }
 
             }
@@ -425,6 +421,51 @@ void GameState::setLevel(int level) {
     m_platforms.emplace_back(3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
 
 }
+
+bool GameState::hasWallAbove(float x, float y) {
+    float checkX = x;
+    float checkY = y - (TILE_SIZE * SCALE);
+    for(const auto& wall : m_levelWalls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+            checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
+bool GameState::hasWallBelow(float x, float y) {
+    float checkX = x;
+    float checkY = y + (TILE_SIZE * SCALE);
+    for(const auto& wall : m_levelWalls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
+bool GameState::hasWallRight(float x, float y) {
+    float checkX = x+ (TILE_SIZE * SCALE);
+    float checkY = y;
+    for(const auto& wall : m_levelWalls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
+bool GameState::hasWallLeft(float x, float y) {
+    float checkX = x- (TILE_SIZE * SCALE);
+    float checkY = y;
+    for(const auto& wall : m_levelWalls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
 
 
 

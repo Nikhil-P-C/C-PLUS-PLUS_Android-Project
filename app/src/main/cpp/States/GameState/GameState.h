@@ -49,6 +49,10 @@ public:
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
     }
+    bool hasWallAbove(float x,float y);
+    bool hasWallBelow(float x,float y);
+    bool hasWallRight(float x,float y);
+    bool hasWallLeft(float x,float y);
     void setLevel(int level);
 
     void handleCollision();
@@ -119,6 +123,7 @@ private:
     Button m_LeftButton;
     Button m_RightButton;
     Button m_CrouchButton;
+
 
 };
 
