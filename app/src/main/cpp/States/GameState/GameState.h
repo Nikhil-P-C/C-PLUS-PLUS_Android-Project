@@ -17,6 +17,9 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+const int SCALE = 3;
+const int TILE_SIZE =16;
+
 struct Animation{
     int startIndex=0;
     int lastIndex=0;
