@@ -4,9 +4,9 @@
 #pragma once
 
 enum SpriteType{
-    STONE_BRICK =0,
-    WOODEN_SHAFT =1,
-    MOSS_WALLS =2,
+    STONE_BRICK_WALL =0,
+    WOODEN_SHAFT_WALL =1,
+    MOSS_WALL =2,
     GREEN_GRASS_GROUND =3,
     ORANGE_GRASS_GROUND =4,
     PINK_GRASS_GROUND =5,
@@ -33,22 +33,23 @@ struct SpriteValue{
                           float h)
             : type(t), x(x), y(y), width(w), height(h)
     {}
+    SpriteValue() =default;
 };
 struct SpriteCollection{
 
-    static constexpr SpriteValue stoneBrick{SpriteType::STONE_BRICK,
+    static constexpr SpriteValue stoneBrickWall{SpriteType::STONE_BRICK_WALL,
                                             0.0f,0.0f,48.00f,48.00f};
-    static constexpr SpriteValue stoneBrickEdges{SpriteType::STONE_BRICK,
+    static constexpr SpriteValue stoneBrickWallEdges{SpriteType::STONE_BRICK_WALL,
                                                  48.00,0.0f,32.00f,32.00f};
 
-    static constexpr SpriteValue woodenShaft{SpriteType::WOODEN_SHAFT,
+    static constexpr SpriteValue woodenShaftWall{SpriteType::WOODEN_SHAFT_WALL,
                                              0.00f,56.0f,48.00f,48.00f};
-    static constexpr SpriteValue woodenShaftEdges{SpriteType::WOODEN_SHAFT,
+    static constexpr SpriteValue woodenShaftWallEdges{SpriteType::WOODEN_SHAFT_WALL,
                                                   48.00f,56.0f,32.00f,32.00f};
 
-    static constexpr SpriteValue mossWalls{SpriteType::MOSS_WALLS,
+    static constexpr SpriteValue mossWall{SpriteType::MOSS_WALL,
                                            0.00f,128.0f,48.00f,48.00f};
-    static constexpr SpriteValue mossWallsEdges{SpriteType::MOSS_WALLS,
+    static constexpr SpriteValue mossWallEdges{SpriteType::MOSS_WALL,
                                                 48.00f,128.0f,32.00f,32.00f};
 
     static constexpr SpriteValue greenGrassGround{SpriteType::GREEN_GRASS_GROUND,

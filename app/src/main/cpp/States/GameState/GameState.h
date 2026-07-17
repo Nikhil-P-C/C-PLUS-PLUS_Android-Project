@@ -17,7 +17,7 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-const int SCALE = 3;
+const int SCALE = 4;
 const int TILE_SIZE =16;
 
 struct Animation{
@@ -91,8 +91,10 @@ private:
     SpriteCollection m_sprite;
     //player and platform
     bool m_isPlayerfacingRight =true;
-    Platform m_platforms[100];
-    SDL_FRect m_levelWalls;
+    std::vector<Platform> m_platforms;
+    std::vector<Platform> m_levelWalls;
+    //    Platform m_platforms[100];
+//    SDL_FRect m_levelWalls;
     Player   m_player;
 
     //scaling and window

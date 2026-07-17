@@ -62,11 +62,11 @@ void GameState::render(SDL_Renderer* renderer)  {
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 1600, 720};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
-
+    for(const auto& level :m_levelWalls)
     {
         int tileSize =(TILE_SIZE*SCALE);
-        const int platformWidth = (int)m_levelWalls.w;
-        const int platformHeight = (int)m_levelWalls.h;
+        const int platformWidth = (int)level.w;
+        const int platformHeight = (int)level.h;
         int widthTiles = static_cast<int>(std::ceil(platformWidth  / (float)tileSize));
         int heightTiles = static_cast<int>(std::ceil(platformHeight / (float)tileSize));
         LOGI("Total  height tile:%d , total Width tile: %d ",heightTiles,widthTiles);
@@ -80,48 +80,59 @@ void GameState::render(SDL_Renderer* renderer)  {
                 bool bottom = (y == heightTiles - 1);
 
                 bool edge =false;
+                SpriteValue CurrentSpriteValue;
+                SpriteValue CurrentEdgeSpriteValue;
+                if(level.platformType == SpriteType::STONE_BRICK_WALL) {
+                    CurrentSpriteValue =SpriteCollection::stoneBrickWall;
+                    CurrentEdgeSpriteValue =SpriteCollection::stoneBrickWallEdges;
+                }
+                else if(level.platformType == SpriteType::MOSS_WALL) {
+                    CurrentSpriteValue =SpriteCollection::mossWall;
+                    CurrentEdgeSpriteValue =SpriteCollection::mossWallEdges;
+                }
+
                 if (top) {
                     if (left) {
-                        src = {SpriteCollection::mossWallsEdges.x,
-                               0, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentEdgeSpriteValue.x,
+                               CurrentEdgeSpriteValue.y, TILE_SIZE, TILE_SIZE};
                         edge =true;
                         }
                     else if (right) {
-                        src = {SpriteCollection::mossWallsEdges.x + TILE_SIZE,
-                               0, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentEdgeSpriteValue.x + TILE_SIZE,
+                                CurrentEdgeSpriteValue.y, TILE_SIZE, TILE_SIZE};
                         edge =true;
                     }
                     else {
-                        src = {SpriteCollection::mossWalls.x + TILE_SIZE,
-                               0, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentSpriteValue.x + TILE_SIZE,
+                               CurrentSpriteValue.y, TILE_SIZE, TILE_SIZE};
                         edge = false;
                     }
                 }
                 else if (bottom) {
                     if (left) {
-                        src = {SpriteCollection::mossWallsEdges.x,
-                               0+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentEdgeSpriteValue.x,
+                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
                         edge =true;
                     }
                     else if (right) {
-                        src = {SpriteCollection::mossWallsEdges.x + TILE_SIZE,
-                               0+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentEdgeSpriteValue.x + TILE_SIZE,
+                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
                         edge= true;
                     }
                     else {
-                        src = {SpriteCollection::mossWalls.x + TILE_SIZE,
-                               0+32.00f, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentSpriteValue.x + TILE_SIZE,
+                               CurrentSpriteValue.y+32.00f, TILE_SIZE, TILE_SIZE};
                         edge =false;
                     }
                 } else {
                     edge =false;
-                    if (left) src = {SpriteCollection::mossWalls.x,
-                                     0+ TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                    if (left) src = {CurrentSpriteValue.x,
+                                     CurrentEdgeSpriteValue.y+ TILE_SIZE, TILE_SIZE, TILE_SIZE};
                     else if (right)
-                        src = {SpriteCollection::mossWalls.x + 32.00f,
-                               0+TILE_SIZE, TILE_SIZE, TILE_SIZE};
-                    else src = {SpriteCollection::mossWalls.x + TILE_SIZE,
-                                0+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                        src = {CurrentSpriteValue.x + 32.00f,
+                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                    else src = {CurrentSpriteValue.x + TILE_SIZE,
+                                CurrentSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
                 }
 
 //          SDL_FRect dst = {m_platforms[j].x + j * (48*5), m_platforms[j].y, 48*5, 48*5};
@@ -129,15 +140,15 @@ void GameState::render(SDL_Renderer* renderer)  {
 
                 if ((top || bottom || left || right )&& !edge) {
                     SDL_FRect dst = {
-                            (m_levelWalls.x + x * (TILE_SIZE * SCALE)) - camX,
-                            (m_levelWalls.y + y * (TILE_SIZE * SCALE)) - camY,
+                            (level.x + x * (TILE_SIZE * SCALE)) - camX,
+                            (level.y + y * (TILE_SIZE * SCALE)) - camY,
                             TILE_SIZE * SCALE, TILE_SIZE * SCALE};
                     SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f,NULL,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
                 }
                 else if(((top || bottom) && (left || right) && edge)){
                     SDL_FRect dst = {
-                            (m_levelWalls.x + x * (TILE_SIZE * SCALE)) - camX,
-                            (m_levelWalls.y + y * (TILE_SIZE * SCALE)) - camY,
+                            (level.x + x * (TILE_SIZE * SCALE)) - camX,
+                            (level.y + y * (TILE_SIZE * SCALE)) - camY,
                             TILE_SIZE * SCALE, TILE_SIZE * SCALE};
 
                     SDL_RenderTexture(renderer, m_tileset, &src, &dst);
@@ -261,23 +272,39 @@ bool GameState::handleEvents(SDL_Event& event) {
 }
 
 void GameState::handleCollision() {
-    const float renderedHeight = (std::ceil(m_levelWalls.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
-    LOGI("rendered height :%f",renderedHeight);
-    gameMath::collisionSide wallCollisionSide = gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
-                                                                         m_player.h,m_player.w,TILE_SIZE*SCALE,m_levelWalls.w);
-    if(wallCollisionSide ==  gameMath::collisionSide::BOTTOM)
-        m_velocityY =0.0f;
-    wallCollisionSide= gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y,
-                                                m_player.h,m_player.w,renderedHeight,TILE_SIZE*SCALE);
-    wallCollisionSide= gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x+m_levelWalls.w-TILE_SIZE*SCALE,m_levelWalls.y,
-                                                m_player.h,m_player.w,renderedHeight,TILE_SIZE*SCALE);
-    wallCollisionSide =gameMath::checkcollisionXY(m_player.x,m_player.y,m_levelWalls.x,m_levelWalls.y+renderedHeight-TILE_SIZE*SCALE,
-                                                m_player.h,m_player.w,TILE_SIZE*SCALE,m_levelWalls.w);
-    if(wallCollisionSide == gameMath::collisionSide::TOP){
-        m_isGrounded = true;
-        m_velocityY =0.0f;
+    for(const auto& level : m_levelWalls)
+    {
+        const float renderedHeight = (std::ceil(level.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
+        LOGI("rendered height :%f",renderedHeight);
+        gameMath::collisionSide wallCollisionSide = gameMath::checkcollisionXY(m_player.x,
+                                                                               m_player.y,
+                                                                               level.x,
+                                                                               level.y,
+                                                                               m_player.h,
+                                                                               m_player.w,
+                                                                               TILE_SIZE * SCALE,
+                                                                               level.w);
+        if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
+            m_velocityY = 0.0f;
+        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
+                                                       level.y,
+                                                       m_player.h, m_player.w, renderedHeight,
+                                                       TILE_SIZE * SCALE);
+        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y,
+                                                       level.x + level.w -
+                                                       TILE_SIZE * SCALE, level.y,
+                                                       m_player.h, m_player.w, renderedHeight,
+                                                       TILE_SIZE * SCALE);
+        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
+                                                       level.y + renderedHeight -
+                                                       TILE_SIZE * SCALE,
+                                                       m_player.h, m_player.w, TILE_SIZE * SCALE,
+                                                       level.w);
+        if (wallCollisionSide == gameMath::collisionSide::TOP) {
+            m_isGrounded = true;
+            m_velocityY = 0.0f;
+        }
     }
-
 
 
     for(int i=0;i<10;i++){
@@ -383,18 +410,19 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
-    m_levelWalls ={0.00f,0.00f,1600.00f,720.00f};
-    m_platforms[0]  = {0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
-    m_platforms[1]  = {320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM};
-    m_platforms[2]  = {640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
-    m_platforms[3]  = {960,360,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
-    m_platforms[4]  = {1280,280,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
-    m_platforms[5]  = {1600,200,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
-    m_platforms[6]  = {1920,120,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
-    m_platforms[7]  = {2240,40,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
-    m_platforms[8]  = {2560,-40,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
-    m_platforms[9]  = {2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM};
-    m_platforms[10] = {3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM};
+    m_levelWalls.emplace_back(0.00f,0.00f,1600.00f,360.00,ColliderType::SOLID,SpriteType::STONE_BRICK_WALL);
+    m_levelWalls.emplace_back(0.00f,360.00f,1600.00f,360.00,ColliderType::SOLID,SpriteType::MOSS_WALL);
+    m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+    m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
+    m_platforms.emplace_back(640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+    m_platforms.emplace_back(960,360,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+    m_platforms.emplace_back(1280,280,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+    m_platforms.emplace_back(1600,200,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+    m_platforms.emplace_back(1920,120,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+    m_platforms.emplace_back(2240,40,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+    m_platforms.emplace_back(2560,-40,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+    m_platforms.emplace_back(2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+    m_platforms.emplace_back(3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
 
 }
 
