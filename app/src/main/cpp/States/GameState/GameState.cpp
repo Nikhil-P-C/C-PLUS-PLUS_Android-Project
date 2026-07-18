@@ -19,7 +19,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-55.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(1000.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
+    m_player.setPosition(400.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
     m_player.setSpriteOffset(-35.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
@@ -156,8 +156,8 @@ void GameState::render(SDL_Renderer* renderer)  {
                 else if(((top || bottom) && (left || right) && edge)){
                     SDL_RenderTexture(renderer, m_tileset, &src, &dst);
                 }
-                SDL_SetRenderDrawColor(renderer,255,0,0,255);
-                SDL_RenderRect(renderer,&dst);
+//                SDL_SetRenderDrawColor(renderer,255,0,0,255);
+//                SDL_RenderRect(renderer,&dst);
             }
         }
     }
@@ -168,12 +168,9 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
         SDL_RenderTexture(renderer,m_tileset,&src,&dst);
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        SDL_RenderRect(renderer, &dst);
+//        SDL_RenderRect(renderer, &dst);
     }
-    for(const auto& level :m_levelWalls){
-        SDL_FRect dst{level.x-camX,level.y-camY,level.w,level.h};
-        SDL_RenderRect(renderer,&dst);
-    }
+
     for(int i=0;i<10;i++){
         int tileSize =TILE_SIZE;
         const int platformWidth = (int)m_platforms[i].w;
@@ -230,7 +227,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                                  ( m_platforms[i].y+y * (TILE_SIZE * SCALE)) - camY,
                                  TILE_SIZE * SCALE, TILE_SIZE * SCALE};
                 SDL_RenderTexture(renderer, m_tileset, &src, &dst);
-                SDL_RenderRect(renderer,&dst);
+//                SDL_RenderRect(renderer,&dst);
             }
 
         }
@@ -257,16 +254,11 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 void GameState::update(float dt){
 
-    LOGI("grounded:%d,velocityY:%f",m_isGrounded,m_velocityY);
-
-
-
     m_previousY =m_player.y;
     handlePhysicAndInput(dt);
 
     m_isGrounded =false;
     handleCollision();
-
 
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
@@ -455,17 +447,10 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
-    m_levelWalls.emplace_back(
-            0,0,1600,360,
-            SpriteType::STONE_BRICK_WALL,
-            ColliderType::SOLID
-    );
-    m_levelWalls.emplace_back(
-            0,384,1600,360,
-            SpriteType::MOSS_WALL,
-            ColliderType::SOLID
-    );
+    m_levelWalls.emplace_back(0,0,1600,384,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
+    m_levelWalls.emplace_back(0,384,1600,384,SpriteType::MOSS_WALL,ColliderType::SOLID);
     m_wallCollisionRect={0.00f,0.00f,1600.00f,768};
+
     m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
     m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
     m_platforms.emplace_back(640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
@@ -478,8 +463,10 @@ void GameState::setLevel(int level) {
     m_platforms.emplace_back(2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
     m_platforms.emplace_back(3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
 
-    m_grounds.emplace_back(64.0f,320.00f,64.00f,64.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
-    m_grounds.emplace_back(64.0f,512.00f,48.00f,48.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+    m_grounds.emplace_back(64.0f,384.00f,48.00f,16.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+    m_grounds.emplace_back(64.0f,448.00f,64.00f,64.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+    m_grounds.emplace_back(704.0f,320.00f,48.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
+    m_grounds.emplace_back(640.0f,512.00f,160.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
 
 
     GroundShapeBuilder builder;

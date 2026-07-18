@@ -67,9 +67,9 @@ public:
                                                  48.00,0.0f,32.00f,32.00f};
 
     static constexpr SpriteValue woodenShaftWall{SpriteType::WOODEN_SHAFT_WALL,
-                                             0.00f,56.0f,48.00f,48.00f};
+                                             0.00f,64.0f,48.00f,48.00f};
     static constexpr SpriteValue woodenShaftWallEdges{SpriteType::WOODEN_SHAFT_WALL,
-                                                  48.00f,56.0f,32.00f,32.00f};
+                                                  48.00f,64.0f,32.00f,32.00f};
 
     static constexpr SpriteValue mossWall{SpriteType::MOSS_WALL,
                                            0.00f,128.0f,48.00f,48.00f};
@@ -82,19 +82,19 @@ public:
                                                        144.00f,0.00f,32.00f,32.00f};
 
     static constexpr SpriteValue orangeGrassGround{SpriteType::ORANGE_GRASS_GROUND,
-                                                   96.00f,56.00f,48.00f,48.00f};
+                                                   96.00f,64.00f,48.00f,48.00f};
     static constexpr SpriteValue orangeGrassGroundEdges{SpriteType::ORANGE_GRASS_GROUND,
-                                                        144.00f,56.00f,32.00f,32.00f};
+                                                        144.00f,64.00f,32.00f,32.00f};
 
     static constexpr SpriteValue pinkGrassGround{SpriteType::PINK_GRASS_GROUND,
-                                                 96.00f,112.00f,48.00f,48.00f};
+                                                 96.00f,128.00f,48.00f,48.00f};
     static constexpr SpriteValue pinkGrassGroundEdges{SpriteType::PINK_GRASS_GROUND,
-                                                      144.00f,112.00f,32.00f,32.00f};
+                                                      144.00f,128.00f,32.00f,32.00f};
 
     static constexpr SpriteValue brickGround{SpriteType::BRICK_GROUND,
-                                             288.00f,56.00f,48.00f,48.00f};
+                                             288.00f,64.00f,48.00f,48.00f};
     static constexpr SpriteValue brickGroundEdges{SpriteType::BRICK_GROUND,
-                                                  336.00f,56.00f,32.00f,32.00f};
+                                                  336.00f,64.00f,32.00f,32.00f};
 
     static constexpr SpriteValue horizontalClayBlock{SpriteType::CLAY_BLOCK,
                                                      192.00f,0.00f,16.00f,48.00f};
@@ -106,27 +106,27 @@ public:
                                            208.00f,16.00f,32.00f,32.00f};
 
     static constexpr SpriteValue horizontalStoneBlock{SpriteType::STONE_BLOCK,
-                                                      192.00f,56.00f,16.00f,48.00f};
+                                                      192.00f,64.00f,16.00f,48.00f};
     static constexpr SpriteValue verticalStoneBlock{SpriteType::STONE_BLOCK,
-                                                    240.00f,56.00f,48.00f,16.00f};
+                                                    240.00f,64.00f,48.00f,16.00f};
     static constexpr SpriteValue singleStoneBlock{SpriteType::STONE_BLOCK,
                                                   192.00f,72.00f,16.00f,16.00f};
     static constexpr SpriteValue stoneBlock{SpriteType::STONE_BLOCK,
                                             208.00f,72.00f,32.00f,32.00f};
 
     static constexpr SpriteValue horizontalWaxBlock{SpriteType::WAX_BLOCK,
-                                                    192.00f,112.00f,16.00f,48.00f};
+                                                    192.00f,128.00f,16.00f,48.00f};
     static constexpr SpriteValue verticalWaxBlock{SpriteType::WAX_BLOCK,
-                                                  240.00f,112.00f,48.00f,16.00f};
+                                                  240.00f,128.00f,48.00f,16.00f};
     static constexpr SpriteValue singleWaxBlock{SpriteType::WAX_BLOCK,
                                                 192.00f,128.00f,16.00f,16.00f};
     static constexpr SpriteValue waxBlock{SpriteType::WAX_BLOCK,
                                           208.00f,128.00f,32.00f,32.00f};
 
     static constexpr SpriteValue horizontalGoldBlock{SpriteType::GOLD_BLOCK,
-                                                     288.00f,112.00f,16.00f,48.00f};
+                                                     288.00f,128.00f,16.00f,48.00f};
     static constexpr SpriteValue verticalGoldBlock{SpriteType::GOLD_BLOCK,
-                                                   336.00f,112.00f,48.00f,16.00f};
+                                                   336.00f,128.00f,48.00f,16.00f};
     static constexpr SpriteValue singleGoldBlock{SpriteType::GOLD_BLOCK,
                                                  288.00f,128.00f,16.00f,16.00f};
     static constexpr SpriteValue goldBlock{SpriteType::GOLD_BLOCK,

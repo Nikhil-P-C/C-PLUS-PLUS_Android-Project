@@ -16,7 +16,6 @@ SDL_FRect SpriteCollection::getSrcRect(SpriteType type, SpriteVariant variant,fl
         if(variant == SpriteVariant::TOP_RIGHT){
             src = {value.x+(tileSize*2), value.y, tileSize, tileSize};
         }
-
         if(variant == SpriteVariant::LEFT){
             src = {value.x, value.y+tileSize, tileSize, tileSize};
         }

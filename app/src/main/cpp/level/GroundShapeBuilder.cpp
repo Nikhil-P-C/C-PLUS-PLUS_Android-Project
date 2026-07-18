@@ -7,6 +7,7 @@
 
 
 GroundShape GroundShapeBuilder::build(const std::vector<LevelGround> &walls, int tileSize, int scale) {
+
     for(const auto& wall : walls){
         const int platformWidth = (int)wall.w;
         const int platformHeight = (int)wall.h;
@@ -18,7 +19,7 @@ GroundShape GroundShapeBuilder::build(const std::vector<LevelGround> &walls, int
                 float y =wall.y + i* (tileSize * scale);
                 float w =tileSize*scale;
                 float h =tileSize*scale;
-                SpriteVariant variant;
+                SpriteVariant variant =SpriteVariant::NONE;
                 SDL_FRect src;
                 m_wallShape.tiles.emplace_back(x,y,w,h,wall.spriteType,variant,src);
             }
