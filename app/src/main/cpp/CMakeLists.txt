@@ -86,7 +86,7 @@ add_library(main SHARED
         utils/Camera.cpp
         utils/gameMath.cpp
         utils/SpriteCollector.cpp
-        level/WallShapeBuilder.cpp
+        level/GroundShapeBuilder.cpp
 
 )
 

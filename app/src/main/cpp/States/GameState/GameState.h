@@ -12,7 +12,7 @@
 #include "Player.h"
 #include "engine/Engine.h"
 #include "utils/utils.h"
-#include "level/WallShapeBuilder.h"
+#include "level/GroundShapeBuilder.h"
 
 #define LOG_TAG "GameState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -97,8 +97,11 @@ private:
     //player and platform
     bool m_isPlayerfacingRight =true;
     std::vector<Platform> m_platforms;
-    std::vector<LevelWall> m_levelWalls;
-    WallShape m_wallShape;
+    std::vector<LevelGround> m_grounds;
+    std::vector<LevelGround> m_levelWalls;
+    SDL_FRect  m_wallCollisionRect;
+
+    GroundShape m_wallShape;
     //    Platform m_platforms[100];
 //    SDL_FRect m_levelWalls;
     Player   m_player;

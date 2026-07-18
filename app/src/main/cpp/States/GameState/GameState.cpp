@@ -19,7 +19,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-55.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(100,0,m_windowH,SPRITE_HEIGHT,P_scale);
+    m_player.setPosition(800.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
     m_player.setSpriteOffset(-35.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
@@ -69,7 +69,6 @@ void GameState::render(SDL_Renderer* renderer)  {
         const int platformHeight = (int)level.h;
         int widthTiles = static_cast<int>(std::ceil(platformWidth  / (float)tileSize));
         int heightTiles = static_cast<int>(std::ceil(platformHeight / (float)tileSize));
-        LOGI("Total  height tile:%d , total Width tile: %d ",heightTiles,widthTiles);
         for (int i = 0; i < heightTiles; i++) {
             for (int j = 0; j < widthTiles; j++) {
                 SDL_FRect src;
@@ -150,30 +149,31 @@ void GameState::render(SDL_Renderer* renderer)  {
                         x - camX,
                         y - camY,
                         TILE_SIZE * SCALE, TILE_SIZE * SCALE};
+
                 if ((top || bottom || left || right )&& !edge) {
                     SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f, nullptr,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
                 }
                 else if(((top || bottom) && (left || right) && edge)){
                     SDL_RenderTexture(renderer, m_tileset, &src, &dst);
                 }
-
+                SDL_SetRenderDrawColor(renderer,255,0,0,255);
+                SDL_RenderRect(renderer,&dst);
             }
         }
     }
-//    LOGI("tile wall count:%d",m_wallShape.tiles.size());
-//    for(auto const& tile:m_wallShape.tiles){
-//        float  srcX,srcY,srcW,srcH;
-//
-//        if(tile.variant == SpriteVariant::CENTER)continue;
-//        if(tile.variant == SpriteVariant::NONE)continue;
-//        SDL_FRect src = tile.src;
-////        LOGI("wallshapetile x:%f,y:%f,w:%f,h:%f",tile.x,tile.y,tile.w,tile.h);
-//        LOGI("src = %f %f %f %f",tile.src.x,tile.src.y,tile.src.w,tile.src.h);
-//        SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
-//        SDL_RenderTextureRotated(renderer,m_tileset,&src,&dst,0.00f, nullptr,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
-//        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-//        SDL_RenderRect(renderer, &dst);
-//    }
+    for(auto const& tile:m_wallShape.tiles){
+        float  srcX,srcY,srcW,srcH;
+
+        SDL_FRect src = tile.src;
+        SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
+        SDL_RenderTexture(renderer,m_tileset,&src,&dst);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_RenderRect(renderer, &dst);
+    }
+    for(const auto& level :m_levelWalls){
+        SDL_FRect dst{level.x-camX,level.y-camY,level.w,level.h};
+        SDL_RenderRect(renderer,&dst);
+    }
     for(int i=0;i<10;i++){
         int tileSize =TILE_SIZE;
         const int platformWidth = (int)m_platforms[i].w;
@@ -257,11 +257,16 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 void GameState::update(float dt){
 
-    m_isGrounded =true;
+    LOGI("grounded:%d,velocityY:%f",m_isGrounded,m_velocityY);
+
+
+
     m_previousY =m_player.y;
     handlePhysicAndInput(dt);
 
+    m_isGrounded =false;
     handleCollision();
+
 
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
@@ -288,70 +293,75 @@ bool GameState::handleEvents(SDL_Event& event) {
 }
 
 void GameState::handleCollision() {
-//    for(const auto& level : m_levelWalls)
-//    {
-//        const float renderedHeight = (std::ceil(level.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
-//        LOGI("rendered height :%f",renderedHeight);
-//        gameMath::collisionSide wallCollisionSide = gameMath::checkcollisionXY(m_player.x,
-//                                                                               m_player.y,
-//                                                                               level.x,
-//                                                                               level.y,
-//                                                                               m_player.h,
-//                                                                               m_player.w,
-//                                                                               TILE_SIZE * SCALE,
-//                                                                               level.w);
-//        if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
-//            m_velocityY = 0.0f;
-//        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
-//                                                       level.y,
-//                                                       m_player.h, m_player.w, renderedHeight,
-//                                                       TILE_SIZE * SCALE);
-//        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y,
-//                                                       level.x + level.w -
-//                                                       TILE_SIZE * SCALE, level.y,
-//                                                       m_player.h, m_player.w, renderedHeight,
-//                                                       TILE_SIZE * SCALE);
-//        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
-//                                                       level.y + renderedHeight -
-//                                                       TILE_SIZE * SCALE,
-//                                                       m_player.h, m_player.w, TILE_SIZE * SCALE,
-//                                                       level.w);
-//        if (wallCollisionSide == gameMath::collisionSide::TOP) {
-//            m_isGrounded = true;
-//            m_velocityY = 0.0f;
-//        }
-//    }
+    //Walls
 
+    for(int i = 0;i<1;i++)
+    {
+        const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
+        LOGI("rendered height:%f",renderedHeight);
+        gameMath::collisionSide wallCollisionSide;
 
-    for(int i=0;i<10;i++){
-        if(m_platforms[i].colliderType == ColliderType::SOLID)
-        {
+        wallCollisionSide = gameMath::checkcollisionXY(m_player.x,m_player.y,m_wallCollisionRect.x,
+                                                       m_wallCollisionRect.y,
+                                                       m_player.h,m_player.w,
+                                                       TILE_SIZE * SCALE,m_wallCollisionRect.w);
+        if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
+            m_velocityY =0.0f;
+        wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y, m_wallCollisionRect.x,
+                                                       m_wallCollisionRect.y,
+                                                       m_player.h, m_player.w, renderedHeight,
+                                                       TILE_SIZE * SCALE);
+        if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
+            m_velocityY =0.0f;
+        wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y,
+                                                       m_wallCollisionRect.x + m_wallCollisionRect.w -
+                                                       TILE_SIZE * SCALE, m_wallCollisionRect.y,
+                                                       m_player.h, m_player.w, renderedHeight,
+                                                       TILE_SIZE * SCALE);
+        if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
+            m_velocityY =0.0f;
+        wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y, m_wallCollisionRect.x,
+                                                       m_wallCollisionRect.y + renderedHeight -
+                                                       TILE_SIZE * SCALE,
+                                                       m_player.h, m_player.w, TILE_SIZE * SCALE,
+                                                       m_wallCollisionRect.w);
+        if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
+            m_velocityY = 0.0f;
+        if (wallCollisionSide == gameMath::collisionSide::TOP) {
+            m_isGrounded = true;
+            m_velocityY = 0.0f;
+        }
+    }
+
+//platforms
+    for(int i=0;i<10;i++) {
+        if (m_platforms[i].colliderType == ColliderType::SOLID) {
 
             gameMath::collisionSide side = gameMath::checkcollisionXY(m_player.x, m_player.y,
-                                                                    m_platforms[i].x,
-                                                                    m_platforms[i].y,
-                                                                    m_player.h, m_player.w,
-                                                                    m_platforms[i].h * SCALE,
-                                                                    m_platforms[i].w * SCALE);
+                                                                      m_platforms[i].x,
+                                                                      m_platforms[i].y,
+                                                                      m_player.h, m_player.w,
+                                                                      m_platforms[i].h * SCALE,
+                                                                      m_platforms[i].w * SCALE);
             if (side == gameMath::collisionSide::TOP) {
 
                 m_velocityY = 0.0f;
-//          m_isGrounded =true;
+                m_isGrounded =true;
             }
             if (side == gameMath::collisionSide::BOTTOM) {
                 m_velocityY = 0.0f;
             }
-        }
-        else if(m_platforms[i].colliderType == ColliderType::ONE_WAY){
+        } else if (m_platforms[i].colliderType == ColliderType::ONE_WAY) {
             float previousBottom = m_previousY + m_player.h;
             float currentBottom = m_player.y + m_player.h;
             float platformTop = m_platforms[i].y;
 
-            if(m_velocityY >0 &&previousBottom <= platformTop
-                && currentBottom>=platformTop
-                &&gameMath::checkcollisionX(m_player.x, m_player.y,m_platforms[i].x,m_platforms[i].y,
-                                            m_player.h, m_player.w,m_platforms[i].h * SCALE,m_platforms[i].w * SCALE))
-            {
+            if (m_velocityY > 0 && previousBottom <= platformTop
+                && currentBottom >= platformTop
+                && gameMath::checkcollisionX(m_player.x, m_player.y, m_platforms[i].x,
+                                             m_platforms[i].y,
+                                             m_player.h, m_player.w, m_platforms[i].h * SCALE,
+                                             m_platforms[i].w * SCALE)) {
 
                 m_player.y = platformTop - m_player.h;
                 m_velocityY = 0.0f;
@@ -359,6 +369,26 @@ void GameState::handleCollision() {
             }
         }
 
+    }
+    //ground
+
+    for(const auto& ground : m_grounds){
+        gameMath::collisionSide groundCollisionSide = gameMath::checkcollisionXY(m_player.x,
+                                                                               m_player.y,
+                                                                               ground.x,
+                                                                               ground.y,
+                                                                               m_player.h,
+                                                                               m_player.w,
+                                                                               ground.h,
+                                                                               ground.w);
+
+        if (groundCollisionSide == gameMath::collisionSide::TOP) {
+            m_isGrounded = true;
+            m_velocityY = 0.0f;
+        }
+        if(groundCollisionSide == gameMath::collisionSide::BOTTOM){
+            m_velocityY =0.0f;
+        }
     }
 }
 
@@ -416,7 +446,6 @@ void GameState::handlePhysicAndInput(float dt) {
         m_player.x +=250.00f * dt;
     }
     if(InputDispatcher::getInstance().jump && m_isGrounded){
-
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
     }
@@ -432,15 +461,11 @@ void GameState::setLevel(int level) {
             ColliderType::SOLID
     );
     m_levelWalls.emplace_back(
-            0,360,1600,360,
+            0,384,1600,360,
             SpriteType::MOSS_WALL,
             ColliderType::SOLID
     );
-    m_levelWalls.emplace_back(
-            1600-64,200,1600,360,
-            SpriteType::MOSS_WALL,
-            ColliderType::SOLID
-    );
+    m_wallCollisionRect={0.00f,0.00f,1600.00f,768};
     m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
     m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
     m_platforms.emplace_back(640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
@@ -452,8 +477,13 @@ void GameState::setLevel(int level) {
     m_platforms.emplace_back(2560,-40,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
     m_platforms.emplace_back(2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
     m_platforms.emplace_back(3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
-    WallShapeBuilder builder;
-    m_wallShape = builder.build(m_levelWalls,TILE_SIZE,SCALE);
+
+    m_grounds.emplace_back(64.0f,320.00f,64.00f,64.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+    m_grounds.emplace_back(64.0f,512.00f,48.00f,48.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+
+
+    GroundShapeBuilder builder;
+    m_wallShape = builder.build(m_grounds,TILE_SIZE,SCALE);
 }
 
 bool GameState::hasWallAbove(float x, float y) {

@@ -2,11 +2,11 @@
 // Created by LENOVO on 17-07-2026.
 //
 
-#include "WallShapeBuilder.h"
+#include "GroundShapeBuilder.h"
 
 
 
-WallShape WallShapeBuilder::build(const std::vector<LevelWall> &walls, int tileSize, int scale) {
+GroundShape GroundShapeBuilder::build(const std::vector<LevelGround> &walls, int tileSize, int scale) {
     for(const auto& wall : walls){
         const int platformWidth = (int)wall.w;
         const int platformHeight = (int)wall.h;
@@ -14,7 +14,6 @@ WallShape WallShapeBuilder::build(const std::vector<LevelWall> &walls, int tileS
         int heightTiles = platformHeight / tileSize;
         for(int i = 0; i< heightTiles; i++){
             for(int j = 0; j< widthTiles;j++){
-
                 float x =wall.x + j * (tileSize * scale);
                 float y =wall.y + i* (tileSize * scale);
                 float w =tileSize*scale;
@@ -36,16 +35,15 @@ WallShape WallShapeBuilder::build(const std::vector<LevelWall> &walls, int tileS
     return m_wallShape;
 }
 
-bool WallShapeBuilder::tileExists(float x, float y,const std::vector<LevelWall>& walls) {
+bool GroundShapeBuilder::tileExists(float x, float y, const std::vector<LevelGround>& walls) {
+
 
     constexpr float epsilon = 0.01f;
 
-    for(const auto& wall : walls)
+    for(const auto& tile : m_wallShape.tiles)
     {
-        if(x >= wall.x &&
-           x < wall.x + wall.w &&
-           y >= wall.y &&
-           y < wall.y + wall.h)
+        if(std::abs(tile.x - x) < epsilon &&
+           std::abs(tile.y - y) < epsilon)
         {
             return true;
         }
@@ -54,13 +52,13 @@ bool WallShapeBuilder::tileExists(float x, float y,const std::vector<LevelWall>&
     return false;
 }
 
-SpriteVariant WallShapeBuilder::getVariant(const WallTile & tile,const std::vector<LevelWall>& walls){
+SpriteVariant GroundShapeBuilder::getVariant(const GroundTile & tile, const std::vector<LevelGround>& grounds){
 
     SpriteVariant variant;
-    bool hasTop    = hasWallAbove(tile.x,tile.y,walls);
-    bool hasBottom = hasWallBelow(tile.x,tile.y,walls);
-    bool hasLeft   = hasWallLeft(tile.x,tile.y,walls);
-    bool hasRight  = hasWallRight(tile.x,tile.y,walls);
+    bool hasTop    = tileExists(tile.x, tile.y -tile.h, grounds);
+    bool hasBottom = tileExists(tile.x, tile.y + tile.h,grounds);
+    bool hasLeft   = tileExists(tile.x - tile.w, tile.y,grounds);
+    bool hasRight  = tileExists(tile.x + tile.w, tile.y,grounds);
 
     // Decide SpriteVariant
     if(!hasTop && hasBottom && hasLeft && !hasRight) variant = SpriteVariant::TOP_RIGHT;
@@ -82,17 +80,13 @@ SpriteVariant WallShapeBuilder::getVariant(const WallTile & tile,const std::vect
     else if(!hasTop && hasBottom && !hasLeft && !hasRight)variant = SpriteVariant::CENTER;
     else if(!hasTop && !hasBottom && hasLeft && !hasRight)variant = SpriteVariant::CENTER;
     else if(!hasTop && !hasBottom && !hasLeft && hasRight)variant = SpriteVariant::CENTER;
-    else
-    {
-        LOGI("Unhandled wall tile neighbor combination");
-        variant = SpriteVariant::CENTER;
+    else{
+        variant = SpriteVariant::NONE;
     }
-    if(hasTop)variant =SpriteVariant::NONE;
-    if(hasBottom)variant =SpriteVariant::NONE;
     return variant;
 }
 
-bool WallShapeBuilder::hasWallAbove(float x, float y,const std::vector<LevelWall>& walls) {
+bool GroundShapeBuilder::hasWallAbove(float x, float y, const std::vector<LevelGround>& walls) {
     float checkX = x;
     float checkY = y - (16 * 4);
     for(const auto& wall : walls){
@@ -103,7 +97,7 @@ bool WallShapeBuilder::hasWallAbove(float x, float y,const std::vector<LevelWall
     return false;
 }
 
-bool WallShapeBuilder::hasWallBelow(float x, float y,const std::vector<LevelWall>& walls) {
+bool GroundShapeBuilder::hasWallBelow(float x, float y, const std::vector<LevelGround>& walls) {
     float checkX = x;
     float checkY = y + (16 * 4);
     for(const auto& wall : walls){
@@ -114,7 +108,7 @@ bool WallShapeBuilder::hasWallBelow(float x, float y,const std::vector<LevelWall
     return false;
 }
 
-bool WallShapeBuilder::hasWallRight(float x, float y,const std::vector<LevelWall>& walls) {
+bool GroundShapeBuilder::hasWallRight(float x, float y, const std::vector<LevelGround>& walls) {
     float checkX = x+ (16 * 4);
     float checkY = y;
     for(const auto& wall : walls){
@@ -125,7 +119,7 @@ bool WallShapeBuilder::hasWallRight(float x, float y,const std::vector<LevelWall
     return false;
 }
 
-bool WallShapeBuilder::hasWallLeft(float x, float y,const std::vector<LevelWall>& walls) {
+bool GroundShapeBuilder::hasWallLeft(float x, float y, const std::vector<LevelGround>& walls) {
     float checkX = x- (16 * 4);
     float checkY = y;
     for(const auto& wall : walls){
