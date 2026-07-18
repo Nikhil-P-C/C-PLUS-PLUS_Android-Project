@@ -19,7 +19,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-55.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(800.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
+    m_player.setPosition(1000.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
     m_player.setSpriteOffset(-35.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
@@ -379,8 +379,8 @@ void GameState::handleCollision() {
                                                                                ground.y,
                                                                                m_player.h,
                                                                                m_player.w,
-                                                                               ground.h,
-                                                                               ground.w);
+                                                                               ground.h*SCALE,
+                                                                               ground.w*SCALE);
 
         if (groundCollisionSide == gameMath::collisionSide::TOP) {
             m_isGrounded = true;

@@ -30,7 +30,7 @@ public:
     }
 
     void setPosition(float px, float py, int windowH,int SPRITE_HEIGHT, int P_scale) {
-        x = (float) 100.00f;
+        x = (float) px;
         y = (float) (windowH - SPRITE_HEIGHT * P_scale);
     }
 };
