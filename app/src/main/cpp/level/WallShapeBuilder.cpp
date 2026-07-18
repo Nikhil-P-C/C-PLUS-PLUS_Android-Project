@@ -20,47 +20,32 @@ WallShape WallShapeBuilder::build(const std::vector<LevelWall> &walls, int tileS
                 float w =tileSize*scale;
                 float h =tileSize*scale;
                 SpriteVariant variant;
-//                bool left = (j == 0);
-//                bool right = (j == widthTiles - 1);
-//                bool top = (i == 0);
-//                bool bottom = (i == heightTiles - 1);
-//                if (top) {
-//                    if (left) variant = SpriteVariant::TOP_LEFT;
-//                    else if (right) variant =SpriteVariant::TOP_RIGHT;
-//                    else variant =SpriteVariant::TOP;
-//                }
-//                else if (bottom) {
-//                    if (left) variant = SpriteVariant::BOTTOM_LEFT;
-//                    else if (right) variant =SpriteVariant::BOTTOM_RIGHT;
-//                    else variant = SpriteVariant::BOTTOM;
-//                }
-//                else {
-//                    if (left) variant = SpriteVariant::LEFT;
-//                    else if (right) variant =SpriteVariant::RIGHT;
-//                    else variant =SpriteVariant::CENTER;
-//                }
-
-                m_wallShape.tiles.emplace_back(x,y,w,h,wall.spriteType,variant);
+                SDL_FRect src;
+                m_wallShape.tiles.emplace_back(x,y,w,h,wall.spriteType,variant,src);
             }
 
         }
     }
     for (auto& tile : m_wallShape.tiles)
     {
-        tile.variant = getVariant(tile);
+        tile.variant = getVariant(tile,walls);
+        SDL_FRect src = SpriteCollection::getSrcRect(tile.spriteType,tile.variant,tileSize,scale);
+        tile.src =src;
     }
 
     return m_wallShape;
 }
 
-bool WallShapeBuilder::tileExists(float x, float y) {
+bool WallShapeBuilder::tileExists(float x, float y,const std::vector<LevelWall>& walls) {
 
     constexpr float epsilon = 0.01f;
 
-    for(const auto& tile : m_wallShape.tiles)
+    for(const auto& wall : walls)
     {
-        if(std::abs(tile.x - x) < epsilon &&
-           std::abs(tile.y - y) < epsilon)
+        if(x >= wall.x &&
+           x < wall.x + wall.w &&
+           y >= wall.y &&
+           y < wall.y + wall.h)
         {
             return true;
         }
@@ -69,13 +54,13 @@ bool WallShapeBuilder::tileExists(float x, float y) {
     return false;
 }
 
-SpriteVariant WallShapeBuilder::getVariant(const WallTile & tile){
+SpriteVariant WallShapeBuilder::getVariant(const WallTile & tile,const std::vector<LevelWall>& walls){
 
     SpriteVariant variant;
-    bool hasTop    = tileExists(tile.x, tile.y -tile.h);
-    bool hasBottom = tileExists(tile.x, tile.y + tile.h);
-    bool hasLeft   = tileExists(tile.x - tile.w, tile.y);
-    bool hasRight  = tileExists(tile.x + tile.w, tile.y);
+    bool hasTop    = hasWallAbove(tile.x,tile.y,walls);
+    bool hasBottom = hasWallBelow(tile.x,tile.y,walls);
+    bool hasLeft   = hasWallLeft(tile.x,tile.y,walls);
+    bool hasRight  = hasWallRight(tile.x,tile.y,walls);
 
     // Decide SpriteVariant
     if(!hasTop && hasBottom && hasLeft && !hasRight) variant = SpriteVariant::TOP_RIGHT;
@@ -89,10 +74,64 @@ SpriteVariant WallShapeBuilder::getVariant(const WallTile & tile){
     else if(hasTop && !hasBottom && !hasLeft && hasRight) variant = SpriteVariant::BOTTOM_LEFT;
     else if(hasTop && !hasBottom && hasLeft && hasRight) variant = SpriteVariant::BOTTOM;
     else if(hasTop && !hasBottom && hasLeft && !hasRight) variant = SpriteVariant::BOTTOM_RIGHT;
+        // Completely surrounded
+    else if(hasTop && hasBottom && hasLeft && hasRight)variant = SpriteVariant::CENTER;
+    else if(hasTop && hasBottom && !hasLeft && !hasRight)variant = SpriteVariant::CENTER;
+    else if(!hasTop && !hasBottom && hasLeft && hasRight)variant = SpriteVariant::CENTER;
+    else if(hasTop && !hasBottom && !hasLeft && !hasRight)variant = SpriteVariant::CENTER;
+    else if(!hasTop && hasBottom && !hasLeft && !hasRight)variant = SpriteVariant::CENTER;
+    else if(!hasTop && !hasBottom && hasLeft && !hasRight)variant = SpriteVariant::CENTER;
+    else if(!hasTop && !hasBottom && !hasLeft && hasRight)variant = SpriteVariant::CENTER;
     else
     {
         LOGI("Unhandled wall tile neighbor combination");
         variant = SpriteVariant::CENTER;
     }
+    if(hasTop)variant =SpriteVariant::NONE;
+    if(hasBottom)variant =SpriteVariant::NONE;
     return variant;
+}
+
+bool WallShapeBuilder::hasWallAbove(float x, float y,const std::vector<LevelWall>& walls) {
+    float checkX = x;
+    float checkY = y - (16 * 4);
+    for(const auto& wall : walls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
+bool WallShapeBuilder::hasWallBelow(float x, float y,const std::vector<LevelWall>& walls) {
+    float checkX = x;
+    float checkY = y + (16 * 4);
+    for(const auto& wall : walls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
+bool WallShapeBuilder::hasWallRight(float x, float y,const std::vector<LevelWall>& walls) {
+    float checkX = x+ (16 * 4);
+    float checkY = y;
+    for(const auto& wall : walls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
+}
+
+bool WallShapeBuilder::hasWallLeft(float x, float y,const std::vector<LevelWall>& walls) {
+    float checkX = x- (16 * 4);
+    float checkY = y;
+    for(const auto& wall : walls){
+        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
+           checkY >=wall.y&& checkY<wall.y+wall.h)
+            return true;
+    }
+    return false;
 }

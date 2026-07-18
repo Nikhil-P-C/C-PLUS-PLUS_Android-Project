@@ -26,8 +26,9 @@ struct WallTile{
     float h;
     SpriteType spriteType;
     SpriteVariant variant;
-    WallTile(float x,float y,float w,float h,SpriteType sprite,SpriteVariant variant):
-    x(x),y(y),w(w),h(h),spriteType(sprite),variant(variant){
+    SDL_FRect src;
+    WallTile(float x,float y,float w,float h,SpriteType sprite,SpriteVariant variant, SDL_FRect src):
+    x(x),y(y),w(w),h(h),spriteType(sprite),variant(variant),src(src){
     }
 };
 enum class EdgeType{
@@ -49,9 +50,13 @@ struct WallShape{
 };
 class WallShapeBuilder {
 public:
+    bool hasWallAbove(float x,float y,const std::vector<LevelWall>& walls);
+    bool hasWallBelow(float x,float y,const std::vector<LevelWall>& walls);
+    bool hasWallRight(float x,float y,const std::vector<LevelWall>& walls);
+    bool hasWallLeft(float x,float y,const std::vector<LevelWall>& walls);
     WallShape build(const std::vector<LevelWall>& walls,int tileSize,int scale);
-    bool tileExists(float x, float y);
-    SpriteVariant getVariant(const WallTile &tile);
+    bool tileExists(float x, float y,const std::vector<LevelWall>& walls);
+    SpriteVariant getVariant(const WallTile &tile,const std::vector<LevelWall>& walls);
     WallShapeBuilder(){
 
     }

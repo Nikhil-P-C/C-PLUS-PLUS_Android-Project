@@ -62,104 +62,118 @@ void GameState::render(SDL_Renderer* renderer)  {
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 1600, 720};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
-//    for(const auto& level :m_levelWalls)
-//    {
-//        int tileSize =(TILE_SIZE*SCALE);
-//        const int platformWidth = (int)level.w;
-//        const int platformHeight = (int)level.h;
-//        int widthTiles = static_cast<int>(std::ceil(platformWidth  / (float)tileSize));
-//        int heightTiles = static_cast<int>(std::ceil(platformHeight / (float)tileSize));
-//        LOGI("Total  height tile:%d , total Width tile: %d ",heightTiles,widthTiles);
-//        for (int i = 0; i < heightTiles; i++) {
-//            for (int j = 0; j < widthTiles; j++) {
-//                SDL_FRect src;
-//                float x =level.x + j * (TILE_SIZE * SCALE);
-//                float y =level.y + i* (TILE_SIZE * SCALE);
-//                bool left = (j == 0);
-//                bool right = (j == widthTiles - 1);
-//                bool top = (i == 0);
-//                bool bottom = (i == heightTiles - 1);
-//                bool edge =false;
-//                SpriteValue CurrentSpriteValue;
-//                SpriteValue CurrentEdgeSpriteValue;
-//                if(level.spriteType == SpriteType::STONE_BRICK_WALL) {
-//                    CurrentSpriteValue =SpriteCollection::stoneBrickWall;
-//                    CurrentEdgeSpriteValue =SpriteCollection::stoneBrickWallEdges;
-//                }
-//                else if(level.spriteType == SpriteType::MOSS_WALL) {
-//                    CurrentSpriteValue =SpriteCollection::mossWall;
-//                    CurrentEdgeSpriteValue =SpriteCollection::mossWallEdges;
-//                }
-//                if(hasWallAbove(x,y)){
-//                    top =false;
-//                }
-//                if(hasWallBelow(x,y)){
-//                    bottom =false;
-//                }
-//                if (top) {
-//                    if (left) {
-//                        src = {CurrentEdgeSpriteValue.x,
-//                               CurrentEdgeSpriteValue.y, TILE_SIZE, TILE_SIZE};
-//                        edge =true;
-//                        }
-//                    else if (right) {
-//                        src = {CurrentEdgeSpriteValue.x + TILE_SIZE,
-//                                CurrentEdgeSpriteValue.y, TILE_SIZE, TILE_SIZE};
-//                        edge =true;
-//                    }
-//                    else {
-//                        src = {CurrentSpriteValue.x + TILE_SIZE,
-//                               CurrentSpriteValue.y, TILE_SIZE, TILE_SIZE};
-//                        edge = false;
-//                    }
-//                }
-//                else if (bottom) {
-//                    if (left) {
-//                        src = {CurrentEdgeSpriteValue.x,
-//                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
-//                        edge =true;
-//                    }
-//                    else if (right) {
-//                        src = {CurrentEdgeSpriteValue.x + TILE_SIZE,
-//                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
-//                        edge= true;
-//                    }
-//                    else {
-//                        src = {CurrentSpriteValue.x + TILE_SIZE,
-//                               CurrentSpriteValue.y+32.00f, TILE_SIZE, TILE_SIZE};
-//                        edge =false;
-//                    }
-//                } else {
-//                    edge =false;
-//                    if (left) src = {CurrentSpriteValue.x,
-//                                     CurrentEdgeSpriteValue.y+ TILE_SIZE, TILE_SIZE, TILE_SIZE};
-//                    else if (right)
-//                        src = {CurrentSpriteValue.x + 32.00f,
-//                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
-//                    else src = {CurrentSpriteValue.x + TILE_SIZE,
-//                                CurrentSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
-//                }
-//
-//                SDL_FRect dst = {
-//                        x - camX,
-//                        y - camY,
-//                        TILE_SIZE * SCALE, TILE_SIZE * SCALE};
-//                if ((top || bottom || left || right )&& !edge) {
-//                    SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f, nullptr,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
-//                }
-//                else if(((top || bottom) && (left || right) && edge)){
-//                    SDL_RenderTexture(renderer, m_tileset, &src, &dst);
-//                }
-//
-//            }
-//        }
-//    }
-    for(auto const& tile:m_wallShape.tiles){
-        SDL_FRect src{0,0,16,16};
-        LOGI("wallshapetile x:%f,y:%f,w:%f,h:%f",tile.x,tile.y,tile.w,tile.h);
-        SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
-        SDL_RenderTexture(renderer,m_tileset,&src,&dst);
+    for(const auto& level :m_levelWalls)
+    {
+        int tileSize =(TILE_SIZE*SCALE);
+        const int platformWidth = (int)level.w;
+        const int platformHeight = (int)level.h;
+        int widthTiles = static_cast<int>(std::ceil(platformWidth  / (float)tileSize));
+        int heightTiles = static_cast<int>(std::ceil(platformHeight / (float)tileSize));
+        LOGI("Total  height tile:%d , total Width tile: %d ",heightTiles,widthTiles);
+        for (int i = 0; i < heightTiles; i++) {
+            for (int j = 0; j < widthTiles; j++) {
+                SDL_FRect src;
+                float x =level.x + j * (TILE_SIZE * SCALE);
+                float y =level.y + i* (TILE_SIZE * SCALE);
+                bool left = (j == 0);
+                bool right = (j == widthTiles - 1);
+                bool top = (i == 0);
+                bool bottom = (i == heightTiles - 1);
+                bool edge =false;
+                SpriteValue CurrentSpriteValue;
+                SpriteValue CurrentEdgeSpriteValue;
+                if(level.spriteType == SpriteType::STONE_BRICK_WALL) {
+                    CurrentSpriteValue =SpriteCollection::stoneBrickWall;
+                    CurrentEdgeSpriteValue =SpriteCollection::stoneBrickWallEdges;
+                }
+                else if(level.spriteType == SpriteType::MOSS_WALL) {
+                    CurrentSpriteValue =SpriteCollection::mossWall;
+                    CurrentEdgeSpriteValue =SpriteCollection::mossWallEdges;
+                }
+                if(hasWallAbove(x,y)){
+                    top =false;
+                }
+                if(hasWallBelow(x,y)){
+                    bottom =false;
+                }
+                if(hasWallRight(x,y)){
+                    right =false;
+                }
+                if(hasWallLeft(x,y)){
+                    left =false;
+                }
+                if (top) {
+                    if (left) {
+                        src = {CurrentEdgeSpriteValue.x,
+                               CurrentEdgeSpriteValue.y, TILE_SIZE, TILE_SIZE};
+                        edge =true;
+                        }
+                    else if (right) {
+                        src = {CurrentEdgeSpriteValue.x + TILE_SIZE,
+                                CurrentEdgeSpriteValue.y, TILE_SIZE, TILE_SIZE};
+                        edge =true;
+                    }
+                    else {
+                        src = {CurrentSpriteValue.x + TILE_SIZE,
+                               CurrentSpriteValue.y, TILE_SIZE, TILE_SIZE};
+                        edge = false;
+                    }
+                }
+                else if (bottom) {
+                    if (left) {
+                        src = {CurrentEdgeSpriteValue.x,
+                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                        edge =true;
+                    }
+                    else if (right) {
+                        src = {CurrentEdgeSpriteValue.x + TILE_SIZE,
+                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                        edge= true;
+                    }
+                    else {
+                        src = {CurrentSpriteValue.x + TILE_SIZE,
+                               CurrentSpriteValue.y+32.00f, TILE_SIZE, TILE_SIZE};
+                        edge =false;
+                    }
+                } else {
+                    edge =false;
+                    if (left) src = {CurrentSpriteValue.x,
+                                     CurrentEdgeSpriteValue.y+ TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                    else if (right)
+                        src = {CurrentSpriteValue.x + 32.00f,
+                               CurrentEdgeSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                    else src = {CurrentSpriteValue.x + TILE_SIZE,
+                                CurrentSpriteValue.y+TILE_SIZE, TILE_SIZE, TILE_SIZE};
+                }
+
+                SDL_FRect dst = {
+                        x - camX,
+                        y - camY,
+                        TILE_SIZE * SCALE, TILE_SIZE * SCALE};
+                if ((top || bottom || left || right )&& !edge) {
+                    SDL_RenderTextureRotated(renderer, m_tileset, &src, &dst,0.0f, nullptr,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
+                }
+                else if(((top || bottom) && (left || right) && edge)){
+                    SDL_RenderTexture(renderer, m_tileset, &src, &dst);
+                }
+
+            }
+        }
     }
+//    LOGI("tile wall count:%d",m_wallShape.tiles.size());
+//    for(auto const& tile:m_wallShape.tiles){
+//        float  srcX,srcY,srcW,srcH;
+//
+//        if(tile.variant == SpriteVariant::CENTER)continue;
+//        if(tile.variant == SpriteVariant::NONE)continue;
+//        SDL_FRect src = tile.src;
+////        LOGI("wallshapetile x:%f,y:%f,w:%f,h:%f",tile.x,tile.y,tile.w,tile.h);
+//        LOGI("src = %f %f %f %f",tile.src.x,tile.src.y,tile.src.w,tile.src.h);
+//        SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
+//        SDL_RenderTextureRotated(renderer,m_tileset,&src,&dst,0.00f, nullptr,SDL_FLIP_HORIZONTAL_AND_VERTICAL);
+//        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+//        SDL_RenderRect(renderer, &dst);
+//    }
     for(int i=0;i<10;i++){
         int tileSize =TILE_SIZE;
         const int platformWidth = (int)m_platforms[i].w;
@@ -274,39 +288,39 @@ bool GameState::handleEvents(SDL_Event& event) {
 }
 
 void GameState::handleCollision() {
-    for(const auto& level : m_levelWalls)
-    {
-        const float renderedHeight = (std::ceil(level.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
-        LOGI("rendered height :%f",renderedHeight);
-        gameMath::collisionSide wallCollisionSide = gameMath::checkcollisionXY(m_player.x,
-                                                                               m_player.y,
-                                                                               level.x,
-                                                                               level.y,
-                                                                               m_player.h,
-                                                                               m_player.w,
-                                                                               TILE_SIZE * SCALE,
-                                                                               level.w);
-        if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
-            m_velocityY = 0.0f;
-        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
-                                                       level.y,
-                                                       m_player.h, m_player.w, renderedHeight,
-                                                       TILE_SIZE * SCALE);
-        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y,
-                                                       level.x + level.w -
-                                                       TILE_SIZE * SCALE, level.y,
-                                                       m_player.h, m_player.w, renderedHeight,
-                                                       TILE_SIZE * SCALE);
-        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
-                                                       level.y + renderedHeight -
-                                                       TILE_SIZE * SCALE,
-                                                       m_player.h, m_player.w, TILE_SIZE * SCALE,
-                                                       level.w);
-        if (wallCollisionSide == gameMath::collisionSide::TOP) {
-            m_isGrounded = true;
-            m_velocityY = 0.0f;
-        }
-    }
+//    for(const auto& level : m_levelWalls)
+//    {
+//        const float renderedHeight = (std::ceil(level.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
+//        LOGI("rendered height :%f",renderedHeight);
+//        gameMath::collisionSide wallCollisionSide = gameMath::checkcollisionXY(m_player.x,
+//                                                                               m_player.y,
+//                                                                               level.x,
+//                                                                               level.y,
+//                                                                               m_player.h,
+//                                                                               m_player.w,
+//                                                                               TILE_SIZE * SCALE,
+//                                                                               level.w);
+//        if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
+//            m_velocityY = 0.0f;
+//        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
+//                                                       level.y,
+//                                                       m_player.h, m_player.w, renderedHeight,
+//                                                       TILE_SIZE * SCALE);
+//        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y,
+//                                                       level.x + level.w -
+//                                                       TILE_SIZE * SCALE, level.y,
+//                                                       m_player.h, m_player.w, renderedHeight,
+//                                                       TILE_SIZE * SCALE);
+//        wallCollisionSide = gameMath::checkcollisionXY(m_player.x, m_player.y, level.x,
+//                                                       level.y + renderedHeight -
+//                                                       TILE_SIZE * SCALE,
+//                                                       m_player.h, m_player.w, TILE_SIZE * SCALE,
+//                                                       level.w);
+//        if (wallCollisionSide == gameMath::collisionSide::TOP) {
+//            m_isGrounded = true;
+//            m_velocityY = 0.0f;
+//        }
+//    }
 
 
     for(int i=0;i<10;i++){
@@ -328,7 +342,7 @@ void GameState::handleCollision() {
                 m_velocityY = 0.0f;
             }
         }
-        else if(m_platforms[0].colliderType == ColliderType::ONE_WAY){
+        else if(m_platforms[i].colliderType == ColliderType::ONE_WAY){
             float previousBottom = m_previousY + m_player.h;
             float currentBottom = m_player.y + m_player.h;
             float platformTop = m_platforms[i].y;
@@ -413,17 +427,17 @@ void GameState::handlePhysicAndInput(float dt) {
 
 void GameState::setLevel(int level) {
     m_levelWalls.emplace_back(
-            0,0,160,160,
+            0,0,1600,360,
+            SpriteType::STONE_BRICK_WALL,
+            ColliderType::SOLID
+    );
+    m_levelWalls.emplace_back(
+            0,360,1600,360,
             SpriteType::MOSS_WALL,
             ColliderType::SOLID
     );
     m_levelWalls.emplace_back(
-            160,64,160,160,
-            SpriteType::MOSS_WALL,
-            ColliderType::SOLID
-    );
-    m_levelWalls.emplace_back(
-            320,0,160,160,
+            1600-64,200,1600,360,
             SpriteType::MOSS_WALL,
             ColliderType::SOLID
     );

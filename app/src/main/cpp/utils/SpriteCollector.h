@@ -1,7 +1,10 @@
 //
 // Created by LENOVO on 15-07-2026.
 //
+
 #pragma once
+#include <array>
+#include <SDL3/SDL.h>
 enum SpriteVariant{
     CENTER=0,
     TOP=1,
@@ -11,7 +14,8 @@ enum SpriteVariant{
     TOP_LEFT=5,
     TOP_RIGHT=6,
     BOTTOM_LEFT=7,
-    BOTTOM_RIGHT=8
+    BOTTOM_RIGHT=8,
+    NONE=9,
 };
 enum SpriteType{
     STONE_BRICK_WALL =0,
@@ -20,15 +24,26 @@ enum SpriteType{
     GREEN_GRASS_GROUND =3,
     ORANGE_GRASS_GROUND =4,
     PINK_GRASS_GROUND =5,
-
     BRICK_GROUND =6,
     CLAY_BLOCK =7,
-    STONE_BLOCK =8,
-    WAX_BLOCK =9,
-    GOLD_BLOCK =10,
-    GOLD_PLATFORM =11,
-    WOODEN_PLATFORM =12,
-    STONE_PLATFORM =13,
+    CLAY_BLOCK_HORIZONTAL =8,
+    CLAY_BLOCK_VERTICAL =9,
+    CLAY_BLOCK_SINGLE =10,
+    STONE_BLOCK =11,
+    STONE_BLOCK_HORIZONTAL =12,
+    STONE_BLOCK_VERTICAL =13,
+    STONE_BLOCK_SINGLE =14,
+    WAX_BLOCK =15,
+    WAX_BLOCK_HORIZONTAL =16,
+    WAX_BLOCK_VERTICAL =17,
+    WAX_BLOCK_SINGLE =18,
+    GOLD_BLOCK =19,
+    GOLD_BLOCK_HORIZONTAL =20,
+    GOLD_BLOCK_VERTICAL =21,
+    GOLD_BLOCK_SINGLE =22,
+    GOLD_PLATFORM =23,
+    WOODEN_PLATFORM =24,
+    STONE_PLATFORM =25,
 };
 struct SpriteValue{
     SpriteType type;
@@ -41,7 +56,11 @@ struct SpriteValue{
     SpriteValue() =default;
 };
 struct SpriteCollection{
-
+public:
+    static SDL_FRect getSrcRect(SpriteType type, SpriteVariant variant, float tileSize, float scale);
+private:
+    static bool isSpriteTypeGroundAndWall(SpriteType type);
+public:
     static constexpr SpriteValue stoneBrickWall{SpriteType::STONE_BRICK_WALL,
                                             0.0f,0.0f,48.00f,48.00f};
     static constexpr SpriteValue stoneBrickWallEdges{SpriteType::STONE_BRICK_WALL,
@@ -119,5 +138,64 @@ struct SpriteCollection{
                                                 272.00f,16.00f,16.00f,48.00f};
     static constexpr SpriteValue stonePlatform{SpriteType::STONE_PLATFORM,
                                                272.00f,32.00f,16.00f,48.00f};
+    static constexpr std::array<SpriteValue,26> spriteValueTable{
+            stoneBrickWall,
+            woodenShaftWall,
+            mossWall,
 
+            greenGrassGround,
+            orangeGrassGround,
+            pinkGrassGround,
+            brickGround,
+
+            clayBlock,
+            horizontalClayBlock,
+            verticalClayBlock,
+            singleClayBlock,
+            stoneBlock,
+            horizontalStoneBlock,
+             verticalStoneBlock,
+            singleStoneBlock,
+            waxBlock,
+            horizontalWaxBlock,
+            verticalWaxBlock,
+            singleWaxBlock,
+            goldBlock,
+            horizontalGoldBlock,
+            verticalGoldBlock,
+            singleGoldBlock,
+            goldPlatform,
+            woodenPlatform,
+            stonePlatform
+    };
+//    static std::unordered_map<SpriteType,SpriteValue> spriteValueTable={
+//            {STONE_BRICK_WALL,stoneBrickWall},
+//            {WOODEN_SHAFT_WALL,woodenShaftWall},
+//            {MOSS_WALL,mossWall},
+//
+//            {GREEN_GRASS_GROUND,greenGrassGround},
+//            {ORANGE_GRASS_GROUND,orangeGrassGround},
+//            {PINK_GRASS_GROUND,pinkGrassGround},
+//            {BRICK_GROUND,brickGround},
+//
+//            {CLAY_BLOCK,clayBlock},
+//            {CLAY_BLOCK_HORIZONTAL,horizontalClayBlock},
+//            {CLAY_BLOCK_VERTICAL,verticalClayBlock},
+//            {CLAY_BLOCK_SINGLE,singleClayBlock},
+//            {STONE_BLOCK,stoneBlock},
+//            {STONE_BLOCK_HORIZONTAL,horizontalStoneBlock},
+//            {STONE_BLOCK_VERTICAL, verticalStoneBlock},
+//            {STONE_BLOCK_SINGLE, singleStoneBlock},
+//            {WAX_BLOCK,waxBlock},
+//            {WAX_BLOCK_HORIZONTAL,horizontalWaxBlock},
+//            {WAX_BLOCK_VERTICAL,verticalWaxBlock},
+//            {WAX_BLOCK_SINGLE,singleWaxBlock},
+//            {GOLD_BLOCK,goldBlock},
+//            {GOLD_BLOCK_HORIZONTAL,horizontalGoldBlock},
+//            {GOLD_BLOCK_VERTICAL,verticalGoldBlock},
+//            {GOLD_BLOCK_SINGLE,singleGoldBlock},
+//            {GOLD_PLATFORM, goldPlatform},
+//            {WOODEN_PLATFORM,woodenPlatform},
+//            {STONE_PLATFORM, stonePlatform}
+//    };
 };
