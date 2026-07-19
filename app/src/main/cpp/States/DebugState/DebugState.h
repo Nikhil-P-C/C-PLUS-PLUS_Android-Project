@@ -4,18 +4,25 @@
 #pragma once
 
 #include "State/State.h"
+#include "States/GameState/GameState.h"
+
 #define LOG_TAG "DebugState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 class DebugState : public State{
 public:
-    DebugState(SDL_Renderer* renderer);
+    DebugState(SDL_Renderer* renderer, GameState *gameState);
     ~DebugState() override;
     void render(SDL_Renderer* renderer) override;
     void update(float dt) override;
     bool handleEvents(SDL_Event& event) override;
 private:
+    GameState* m_gameState;
+    std::vector<Platform> m_platforms;
+    SDL_FRect m_walls;
+    std::vector<LevelGround> m_grounds;
+    Player m_player;
     SDL_Texture*  m_fpsTexture       = nullptr;
     TTF_Font*     m_font             = nullptr;
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");

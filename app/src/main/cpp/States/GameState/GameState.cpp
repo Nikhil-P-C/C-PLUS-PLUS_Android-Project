@@ -167,7 +167,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_FRect src = tile.src;
         SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
         SDL_RenderTexture(renderer,m_tileset,&src,&dst);
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+//        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 //        SDL_RenderRect(renderer, &dst);
     }
 
@@ -248,7 +248,6 @@ void GameState::render(SDL_Renderer* renderer)  {
     else
         SDL_RenderTexture(renderer,m_playerTexture,&src,&dst);
     SDL_SetRenderDrawColor(renderer,33,31,48,255);
-    SDL_RenderRect(renderer, &playerBorder);
 
 }
 
@@ -276,7 +275,7 @@ bool GameState::handleEvents(SDL_Event& event) {
         Engine::Get().popOverlayState();
         if(GameData::getInstance().isDebugEnabled())
             Engine::Get().popOverlayState();
-        Engine::Get().pushState(std::make_unique<PauseState>(m_renderer));
+        Engine::Get().pushState(std::make_unique<PauseState>(m_renderer,this));
         return true;
         }
     }
@@ -290,7 +289,6 @@ void GameState::handleCollision() {
     for(int i = 0;i<1;i++)
     {
         const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
-        LOGI("rendered height:%f",renderedHeight);
         gameMath::collisionSide wallCollisionSide;
 
         wallCollisionSide = gameMath::checkcollisionXY(m_player.x,m_player.y,m_wallCollisionRect.x,
@@ -471,6 +469,9 @@ void GameState::setLevel(int level) {
 
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,SCALE);
+    if(GameData::getInstance().isDebugEnabled()){
+        Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,this));
+    }
 }
 
 bool GameState::hasWallAbove(float x, float y) {

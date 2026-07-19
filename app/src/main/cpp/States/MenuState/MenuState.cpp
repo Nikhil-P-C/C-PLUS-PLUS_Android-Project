@@ -140,9 +140,7 @@ bool MenuState::handleEvents(SDL_Event &event) {
                 m_transitioning =true;
                 LOGI("menu starts transitioning to game state");
                 Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
-                if(GameData::getInstance().isDebugEnabled()){
-                    Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer));
-                }
+
                 if(GameData::getInstance().getControlType() == JOYSTICK) {
                     Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
                 }

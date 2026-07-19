@@ -6,13 +6,14 @@
 #include <android/log.h>
 #include "SDL3/SDL.h"
 #include "State/State.h"
+#include "States/GameState/GameState.h"
 
 #define LOG_TAG "PauseState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 class PauseState : public State{
 public:
-    PauseState(SDL_Renderer* renderer);
+    PauseState(SDL_Renderer* renderer, GameState* gameState);
     void init(SDL_Renderer* renderer);
     bool shouldClose(float x ,float y) const;
     void render(SDL_Renderer* renderer)override;
@@ -33,4 +34,5 @@ private:
     SDL_Renderer* m_renderer = nullptr;
 
     bool m_transitioning =false;
+    GameState* m_gameState;
 };

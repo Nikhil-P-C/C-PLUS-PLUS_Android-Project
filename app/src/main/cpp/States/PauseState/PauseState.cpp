@@ -16,8 +16,9 @@
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/DebugState/DebugState.h"
 
-PauseState::PauseState(SDL_Renderer *renderer) {
+PauseState::PauseState(SDL_Renderer *renderer, GameState* gameState) {
     LOGI("Pause construct:%p",this);
+    m_gameState = gameState;
     init(renderer);
 }
 
@@ -88,7 +89,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
         LOGI("back to game state");
         Engine::Get().popState();
         if(GameData::getInstance().isDebugEnabled())
-            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer));
+            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
         if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
             Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
         if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)

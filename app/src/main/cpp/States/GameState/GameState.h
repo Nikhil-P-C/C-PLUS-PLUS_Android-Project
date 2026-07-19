@@ -65,7 +65,18 @@ public:
 
     bool handleEvents(SDL_Event& event) override;
 
-
+    Player getPlayer(){
+        return m_player;
+    }
+    std::vector<Platform> getPlatforms(){
+        return m_platforms;
+    }
+    SDL_FRect getLevelWalls(){
+        return m_wallCollisionRect;
+    }
+    std::vector<LevelGround> getLevelGrounds(){
+        return m_grounds;
+    }
 private:
 
     //animation and texture
