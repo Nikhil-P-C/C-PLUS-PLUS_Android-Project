@@ -43,10 +43,8 @@ private:
     SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
 
     TTF_Font* m_font               = nullptr;
-    TTF_Font* m_fontShadow         = nullptr;
 
     SDL_Texture* m_fontTexture       = nullptr;
-    SDL_Texture* m_fontShadowTexture = nullptr;
     SDL_Texture* m_menuTexture        = nullptr;
     SDL_Texture* m_optionBlockTexture = nullptr;
     SDL_Texture* m_slidebarTexture    = nullptr;

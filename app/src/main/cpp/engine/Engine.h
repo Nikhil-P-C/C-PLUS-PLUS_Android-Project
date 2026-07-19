@@ -83,7 +83,7 @@ public:
 
     void run();
 
-
+    static bool SDLCALL HandleBackgroundEvents(void *userdata, SDL_Event *event);
 
 private:
     std::vector<Command> m_CommandQueue;

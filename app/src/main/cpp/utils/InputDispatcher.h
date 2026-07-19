@@ -30,6 +30,7 @@ public:
     void setMovingRight(bool shouldMoveRight){
         movingRight=shouldMoveRight;
     }
+
     bool getJump(){
         return jump;
     }

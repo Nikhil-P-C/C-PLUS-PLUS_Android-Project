@@ -29,26 +29,10 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_RenderRect(renderer,&wallBorder);
     SDL_RenderRect(renderer,&innerWallBorder);
     //platform
-
-    for (int i = 0; i < 10; i++) {
-        int tileSize = TILE_SIZE;
-        const int platformWidth = (int) m_platforms[i].w;
-        const int platformHeight = (int) m_platforms[i].h;
-        int widthTiles = platformWidth / tileSize;
-        int heightTiles = platformHeight / tileSize;
-
-        for (int y = 0; y < heightTiles; y++) {
-            for (int x = 0; x < widthTiles; x++) {
-
-//          SDL_FRect dst = {m_platforms[j].x + j * (48*SCALE), m_platforms[j].y, 48*SCALE, 48*SCALE};
-                SDL_FRect dst = {(m_platforms[i].x + x * (TILE_SIZE * SCALE)) - camX,
-                                 (m_platforms[i].y + y * (TILE_SIZE * SCALE)) - camY,
-                                 TILE_SIZE * SCALE, TILE_SIZE * SCALE};
-                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-                SDL_RenderRect(renderer, &dst);
-            }
-
-        }
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    for(const auto& platform : m_platforms){
+        SDL_FRect dst{platform.x-camX,platform.y-camY,platform.w*SCALE,platform.h};
+        SDL_RenderRect(renderer,&dst);
     }
     //ground
     SDL_SetRenderDrawColor(renderer,255,128,0,255);

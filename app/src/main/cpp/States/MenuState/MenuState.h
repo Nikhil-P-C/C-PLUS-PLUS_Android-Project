@@ -26,9 +26,7 @@ private:
 
     SDL_Texture* m_background = nullptr;
     SDL_Texture* m_playButtonTexture = nullptr;
-    SDL_Texture* m_settingsButtonTexture = nullptr;
-    SDL_Texture* m_quitButtonTexture = nullptr;
-    SDL_Texture* m_customizeButtonTexture = nullptr;
+
     SDL_Texture* m_playText = nullptr;
     SDL_Texture* m_playTextShadow = nullptr;
 

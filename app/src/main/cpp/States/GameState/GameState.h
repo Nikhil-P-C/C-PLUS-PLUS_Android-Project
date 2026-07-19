@@ -64,6 +64,7 @@ public:
     void update(float dt) override;
 
     bool handleEvents(SDL_Event& event) override;
+    static bool HandleBackgroundEvents(void *userdata, SDL_Event *event);
 
     Player getPlayer(){
         return m_player;
@@ -139,6 +140,7 @@ private:
     Button m_LeftButton;
     Button m_RightButton;
     Button m_CrouchButton;
+
 
 
 };

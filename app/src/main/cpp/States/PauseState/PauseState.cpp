@@ -84,7 +84,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
             return true;
         }
     }
-    if(event.type == SDL_EVENT_FINGER_DOWN){
+    if(event.type == SDL_EVENT_FINGER_DOWN &&!shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)){
         m_transitioning =true;
         LOGI("back to game state");
         Engine::Get().popState();

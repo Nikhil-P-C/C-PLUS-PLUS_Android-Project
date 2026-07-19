@@ -14,6 +14,7 @@ public:
     bool handleEvents(SDL_Event& event)override;
 
     ControlMenuState(SDL_Renderer* renderer);
+    ~ControlMenuState()override;
 private:
     SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("menu/optionMenu.png","rb");
     SDL_IOStream* m_optionBlockFile= SDL_IOFromFile("menu/menutile.png","rb");

@@ -164,4 +164,7 @@ ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
 }
 
+ControlMenuState::~ControlMenuState() {
+}
+
 

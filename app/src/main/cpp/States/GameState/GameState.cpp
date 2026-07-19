@@ -12,7 +12,7 @@
 //
 GameState::GameState(SDL_Renderer *renderer) {
 
-
+    SDL_AddEventWatch(HandleBackgroundEvents,this);
     m_renderer = renderer;
     LOGI("gamestate constructor:%p",this);
     m_windowH =GameData::getInstance().getWinHeight();
@@ -278,6 +278,7 @@ bool GameState::handleEvents(SDL_Event& event) {
         Engine::Get().pushState(std::make_unique<PauseState>(m_renderer,this));
         return true;
         }
+
     }
 
     return false;
@@ -516,6 +517,30 @@ bool GameState::hasWallLeft(float x, float y) {
             return true;
     }
     return false;
+}
+
+bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
+    GameState* gameState = static_cast<GameState*>(userdata);
+    if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND) {
+        // Stop audio, save progress, or free temporary assets here
+        LOGI("Application going in background");
+        gameState->m_transitioning = true;
+        LOGI("game state transitions to menu state by entering background");
+        Engine::Get().popOverlayState();
+        if(GameData::getInstance().isDebugEnabled())
+            Engine::Get().popOverlayState();
+        Engine::Get().pushState(std::make_unique<PauseState>(gameState->m_renderer,gameState));
+        return true;
+
+    }
+    else if (event->type == SDL_EVENT_DID_ENTER_BACKGROUND) {
+
+        SDL_Log("Application is now in the background.");
+    }
+    else if (event->type == SDL_EVENT_WILL_ENTER_FOREGROUND){
+
+    }
+    return true; // Return true to keep the event in the queue for other systems
 }
 
 

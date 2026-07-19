@@ -45,7 +45,7 @@ void Engine::initEngine(){
 void Engine::run(){
     unsigned int lastTime = SDL_GetTicks();
     unsigned int currentTime;
-    int framedelay = 1000/60;
+    int framedelay = 1000/120;
     const SDL_DisplayMode* mode =SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
     if(mode)
     {
@@ -144,4 +144,5 @@ void Engine::exitEngine(){
     if(m_audio)MIX_DestroyAudio(m_audio);
     if(m_musicfile)SDL_CloseIO(m_musicfile);
 }
+
 

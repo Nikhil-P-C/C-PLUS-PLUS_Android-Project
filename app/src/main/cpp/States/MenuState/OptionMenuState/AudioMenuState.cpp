@@ -196,6 +196,5 @@ AudioMenuState::~AudioMenuState(){
     SDL_DestroyTexture(m_sliderTexture);
     SDL_DestroyTexture(m_fontTexture);
     TTF_CloseFont(m_font);
-
     SDL_CloseIO(m_fontfile);
 }
