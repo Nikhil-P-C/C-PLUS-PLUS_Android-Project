@@ -49,6 +49,7 @@ public:
         if (m_playerSprite)    SDL_CloseIO(m_playerSprite);
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
+        SDL_RemoveEventWatch(HandleBackgroundEvents, this);
     }
     bool hasWallAbove(float x,float y);
     bool hasWallBelow(float x,float y);
