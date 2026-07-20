@@ -207,6 +207,8 @@ AudioMenuState::~AudioMenuState(){
     SDL_DestroyTexture(m_optionBlockTexture);
     SDL_DestroyTexture(m_slidebarTexture);
     SDL_DestroyTexture(m_sliderTexture);
+    SDL_DestroyTexture(m_musicFontTexture);
+    SDL_DestroyTexture(m_masterFontTexture);
     SDL_DestroyTexture(m_sfxFontTexture);
     TTF_CloseFont(m_font);
     SDL_CloseIO(m_fontfile);

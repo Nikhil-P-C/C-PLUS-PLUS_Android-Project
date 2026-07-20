@@ -28,17 +28,11 @@ struct Event{
 class Engine{
 
 public:
-    Engine(){
-        LOGI("engine constructor");
-        initEngine();
-    }
-    ~Engine(){
-        LOGI("engine destructor");
-        if(m_window)SDL_DestroyWindow(m_window);
-        if(m_renderer)SDL_DestroyRenderer(m_renderer);
+    Engine();
+    ~Engine();
+    void run();
+    void exitEngine();
 
-        SDL_Quit();
-    }
     static Engine& Get(){
         static Engine instance;
         return instance;
@@ -77,13 +71,6 @@ public:
     size_t getStateCount(){
         return m_States.size();
     }
-    void initEngine();
-
-    void exitEngine();
-
-    void run();
-
-    static bool SDLCALL HandleBackgroundEvents(void *userdata, SDL_Event *event);
 
 private:
     std::vector<Command> m_CommandQueue;
@@ -103,4 +90,6 @@ private:
     MIX_Track* m_track = nullptr;
 
     bool m_running =true;
+
+
 };

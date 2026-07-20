@@ -135,3 +135,9 @@ ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
     SDL_DestroySurface(leftButtonSurface);
     SDL_DestroySurface(rightButtonSurface);
 }
+
+ButtonOverlay::~ButtonOverlay(){
+    SDL_DestroyTexture(m_jumpButtonTexture);
+    SDL_DestroyTexture(m_leftButtonTexture);
+    SDL_DestroyTexture(m_rightButtonTexture);
+}

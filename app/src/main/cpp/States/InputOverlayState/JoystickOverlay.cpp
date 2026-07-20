@@ -119,12 +119,15 @@ JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
     SDL_Surface* joystickSurface = IMG_Load_IO(m_joystickFile, false);
     m_joystickTexture =SDL_CreateTextureFromSurface(renderer, joystickSurface);
     SDL_DestroySurface(joystickSurface);
-
+    SDL_CloseIO(m_joystickFile);
     SDL_Surface* joystickHandleSurface = IMG_Load_IO(m_joystickHandleFile, false);
     m_joystickHandleTexture =SDL_CreateTextureFromSurface(renderer, joystickHandleSurface);
     SDL_DestroySurface(joystickHandleSurface);
+    SDL_CloseIO(m_joystickHandleFile);
     LOGI("joystick overlay constructor:%p",this);
 }
 JoystickOverlay::~JoystickOverlay() {
+    SDL_DestroyTexture(m_joystickTexture);
+    SDL_DestroyTexture(m_joystickHandleTexture);
     LOGI("joystick overlay destructor:%p",this);
 }

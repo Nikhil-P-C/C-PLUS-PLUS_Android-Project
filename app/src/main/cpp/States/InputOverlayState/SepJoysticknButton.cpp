@@ -145,7 +145,9 @@ SepJoysticknButton::SepJoysticknButton(SDL_Renderer *renderer) {
 
     LOGI("SepJoysticknButton overlay constructor:%p",this);
 }
-
 SepJoysticknButton::~SepJoysticknButton() {
+    SDL_DestroyTexture(m_joystickTexture);
+    SDL_DestroyTexture(m_joystickHandleTexture);
+    SDL_DestroyTexture(m_jumpButtonTexture);
     LOGI("SepJoysticknButton overlay destructor:%p",this);
 }

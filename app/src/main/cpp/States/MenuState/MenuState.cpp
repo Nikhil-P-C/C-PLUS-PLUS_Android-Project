@@ -52,7 +52,7 @@ MenuState::MenuState(SDL_Renderer *renderer) {
     m_optionText = SDL_CreateTextureFromSurface(renderer, optionFontSurface);
     m_optionTextShadow = SDL_CreateTextureFromSurface(renderer, optionFontShadowSurface);
     SDL_DestroySurface(optionFontSurface);
-    SDL_DestroySurface(optionFontSurface);
+    SDL_DestroySurface(optionFontShadowSurface);
 
     //quit text
     SDL_Surface *quitFontSurface = TTF_RenderText_Solid(m_font, "Quit",

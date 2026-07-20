@@ -14,6 +14,7 @@ public:
 
     bool handleEvents(SDL_Event& event) override;
     ButtonOverlay(SDL_Renderer* renderer);
+    ~ButtonOverlay()override;
 private:
     Button m_JumpButton{1400,400,100,100};
     Button m_LeftButton{200 ,400,100,100};
@@ -28,8 +29,8 @@ private:
     SDL_Texture* m_leftButtonTexture = nullptr;
     SDL_Texture* m_rightButtonTexture = nullptr;
 
-    SDL_FingerID m_jumpFingerID;
-    SDL_FingerID m_dFingerID;
+    SDL_FingerID m_jumpFingerID=0;
+    SDL_FingerID m_dFingerID=0;
     bool m_jumpFingerActive = false;
     bool m_dFingerActive = false;
     float m_TouchX =0;

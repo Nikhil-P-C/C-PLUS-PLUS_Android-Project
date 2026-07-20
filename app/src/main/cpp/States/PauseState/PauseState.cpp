@@ -44,8 +44,8 @@ void PauseState::init(SDL_Renderer *renderer) {
                                                           4,SDL_Color{0,0,0,255});
     m_exitTexture = SDL_CreateTextureFromSurface(renderer,exitSurface);
     m_exitShadowTexture = SDL_CreateTextureFromSurface(renderer,exitShadowSurface);
-    SDL_DestroySurface(fontSurface);
-    SDL_DestroySurface(fontShadowSurface);
+    SDL_DestroySurface(exitSurface);
+    SDL_DestroySurface(exitShadowSurface);
 
     SDL_SetTextureScaleMode(m_pauseTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_pauseShadowTexture,SDL_SCALEMODE_NEAREST);
