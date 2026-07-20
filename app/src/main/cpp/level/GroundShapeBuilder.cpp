@@ -6,42 +6,42 @@
 
 
 
-GroundShape GroundShapeBuilder::build(const std::vector<LevelGround> &walls, int tileSize, int scale) {
+GroundShape GroundShapeBuilder::build(const std::vector<LevelGround> &grounds, int tileSize, int scale) {
 
-    for(const auto& wall : walls){
-        const int platformWidth = (int)wall.w;
-        const int platformHeight = (int)wall.h;
+    for(const auto& ground : grounds){
+        const int platformWidth = (int)ground.w;
+        const int platformHeight = (int)ground.h;
         int widthTiles = platformWidth / tileSize;
         int heightTiles = platformHeight / tileSize;
         for(int i = 0; i< heightTiles; i++){
             for(int j = 0; j< widthTiles;j++){
-                float x =wall.x + j * (tileSize * scale);
-                float y =wall.y + i* (tileSize * scale);
+                float x =ground.x + j * (tileSize * scale);
+                float y =ground.y + i* (tileSize * scale);
                 float w =tileSize*scale;
                 float h =tileSize*scale;
                 SpriteVariant variant =SpriteVariant::NONE;
                 SDL_FRect src;
-                m_wallShape.tiles.emplace_back(x,y,w,h,wall.spriteType,variant,src);
+                m_groundShape.tiles.emplace_back(x,y,w,h,ground.spriteType,variant,src);
             }
 
         }
     }
-    for (auto& tile : m_wallShape.tiles)
+    for (auto& tile : m_groundShape.tiles)
     {
-        tile.variant = getVariant(tile,walls);
+        tile.variant = getVariant(tile,grounds);
         SDL_FRect src = SpriteCollection::getSrcRect(tile.spriteType,tile.variant,tileSize,scale);
         tile.src =src;
     }
 
-    return m_wallShape;
+    return m_groundShape;
 }
 
-bool GroundShapeBuilder::tileExists(float x, float y, const std::vector<LevelGround>& walls) {
+bool GroundShapeBuilder::tileExists(float x, float y, const std::vector<LevelGround>& grounds) {
 
 
     constexpr float epsilon = 0.01f;
 
-    for(const auto& tile : m_wallShape.tiles)
+    for(const auto& tile : m_groundShape.tiles)
     {
         if(std::abs(tile.x - x) < epsilon &&
            std::abs(tile.y - y) < epsilon)
@@ -87,45 +87,45 @@ SpriteVariant GroundShapeBuilder::getVariant(const GroundTile & tile, const std:
     return variant;
 }
 
-bool GroundShapeBuilder::hasWallAbove(float x, float y, const std::vector<LevelGround>& walls) {
+bool GroundShapeBuilder::hasWallAbove(float x, float y, const std::vector<LevelGround>& grounds,int tileSize,int scale) {
     float checkX = x;
-    float checkY = y - (16 * 4);
-    for(const auto& wall : walls){
-        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
-           checkY >=wall.y&& checkY<wall.y+wall.h)
+    float checkY = y - (tileSize * scale);
+    for(const auto& ground : grounds){
+        if(checkX >= ground.x&& checkX < ground.x + ground.w &&
+           checkY >=ground.y&& checkY<ground.y+ground.h)
             return true;
     }
     return false;
 }
 
-bool GroundShapeBuilder::hasWallBelow(float x, float y, const std::vector<LevelGround>& walls) {
+bool GroundShapeBuilder::hasWallBelow(float x, float y, const std::vector<LevelGround>& grounds,int tileSize,int scale) {
     float checkX = x;
-    float checkY = y + (16 * 4);
-    for(const auto& wall : walls){
-        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
-           checkY >=wall.y&& checkY<wall.y+wall.h)
+    float checkY = y + (tileSize * scale);
+    for(const auto& ground : grounds){
+        if(checkX >= ground.x&& checkX < ground.x + ground.w &&
+           checkY >=ground.y&& checkY<ground.y+ground.h)
             return true;
     }
     return false;
 }
 
-bool GroundShapeBuilder::hasWallRight(float x, float y, const std::vector<LevelGround>& walls) {
-    float checkX = x+ (16 * 4);
+bool GroundShapeBuilder::hasWallRight(float x, float y, const std::vector<LevelGround>& grounds,int tileSize,int scale) {
+    float checkX = x+ (tileSize * scale);
     float checkY = y;
-    for(const auto& wall : walls){
-        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
-           checkY >=wall.y&& checkY<wall.y+wall.h)
+    for(const auto& ground : grounds){
+        if(checkX >= ground.x&& checkX < ground.x + ground.w &&
+           checkY >=ground.y&& checkY<ground.y+ground.h)
             return true;
     }
     return false;
 }
 
-bool GroundShapeBuilder::hasWallLeft(float x, float y, const std::vector<LevelGround>& walls) {
-    float checkX = x- (16 * 4);
+bool GroundShapeBuilder::hasWallLeft(float x, float y, const std::vector<LevelGround>& grounds,int tileSize,int scale) {
+    float checkX = x- (tileSize * scale);
     float checkY = y;
-    for(const auto& wall : walls){
-        if(checkX >= wall.x&& checkX < wall.x + wall.w &&
-           checkY >=wall.y&& checkY<wall.y+wall.h)
+    for(const auto& ground : grounds){
+        if(checkX >= ground.x&& checkX < ground.x + ground.w &&
+           checkY >=ground.y&& checkY<ground.y+ground.h)
             return true;
     }
     return false;

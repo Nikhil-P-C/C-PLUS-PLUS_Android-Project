@@ -31,8 +31,14 @@ public:
     float getSFXAudioScale()const{
         return m_sfxAudioScale;
     }
+    bool isPaused() const{
+        return m_paused;
+    }
     void setControlType(ControlType type){
         m_controlType= type;
+    }
+    void setPaused(bool pause){
+        m_paused =pause;
     }
     void toggleDebug(){
         m_debug=!m_debug;
@@ -74,6 +80,7 @@ private:
     int m_winWidth;
     int m_winHeight;
     bool m_debug=true;
+    bool m_paused=false;
     float m_masterAudioScale= 1.0f;
     float m_musicAudioScale= 1.0f;
     float m_sfxAudioScale= 1.0f;

@@ -50,16 +50,16 @@ struct GroundShape{
 };
 class GroundShapeBuilder {
 public:
-    bool hasWallAbove(float x,float y,const std::vector<LevelGround>& walls);
-    bool hasWallBelow(float x,float y,const std::vector<LevelGround>& walls);
-    bool hasWallRight(float x,float y,const std::vector<LevelGround>& walls);
-    bool hasWallLeft(float x,float y,const std::vector<LevelGround>& walls);
+    bool hasWallAbove(float x,float y,const std::vector<LevelGround>& grounds,int tileSize,int scale);
+    bool hasWallBelow(float x,float y,const std::vector<LevelGround>& grounds,int tileSize,int scale);
+    bool hasWallRight(float x,float y,const std::vector<LevelGround>& grounds,int tileSize,int scale);
+    bool hasWallLeft(float x,float y,const std::vector<LevelGround>& grounds,int tileSize,int scale);
     GroundShape build(const std::vector<LevelGround>& walls, int tileSize, int scale);
-    bool tileExists(float x, float y,const std::vector<LevelGround>& walls);
+    bool tileExists(float x, float y,const std::vector<LevelGround>& grounds);
     SpriteVariant getVariant(const GroundTile &tile, const std::vector<LevelGround>& grounds);
     GroundShapeBuilder()= default;
 private:
-    GroundShape m_wallShape;
+    GroundShape m_groundShape;
 
 
 };

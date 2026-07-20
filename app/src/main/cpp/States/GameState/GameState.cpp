@@ -270,13 +270,14 @@ bool GameState::handleEvents(SDL_Event& event) {
     if(event.type == SDL_EVENT_KEY_DOWN)
     {
         if(event.key.key == SDLK_AC_BACK){
-        m_transitioning = true;
-        LOGI("game state transitions to menu state");
-        Engine::Get().popOverlayState();
-        if(GameData::getInstance().isDebugEnabled())
+            GameData::getInstance().setPaused(true);
+            m_transitioning = true;
+            LOGI("game state transitions to menu state");
             Engine::Get().popOverlayState();
-        Engine::Get().pushState(std::make_unique<PauseState>(m_renderer,this));
-        return true;
+            if(GameData::getInstance().isDebugEnabled())
+                Engine::Get().popOverlayState();
+            Engine::Get().pushState(std::make_unique<PauseState>(m_renderer,this));
+            return true;
         }
 
     }
@@ -521,13 +522,9 @@ bool GameState::hasWallLeft(float x, float y) {
 
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
     LOGI("Lifecycle event: %d", event->type);
-    LOGI("%s", SDL_GetKeyName(event->type));
-    GameState* gameState = static_cast<GameState*>(userdata);
-    if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND) {
-        // Stop audio, save progress, or free temporary assets here
-        LOGI("Application going in background");
+    auto* gameState = static_cast<GameState*>(userdata);
+    if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND && !GameData::getInstance().isPaused()) {
         gameState->m_transitioning = true;
-        LOGI("game state transitions to menu state by entering background");
         Engine::Get().popOverlayState();
         if(GameData::getInstance().isDebugEnabled())
             Engine::Get().popOverlayState();
@@ -537,7 +534,6 @@ bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event)
     }
     else if (event->type == SDL_EVENT_DID_ENTER_BACKGROUND) {
 
-        SDL_Log("Application is now in the background.");
     }
     else if (event->type == SDL_EVENT_WILL_ENTER_FOREGROUND){
 
