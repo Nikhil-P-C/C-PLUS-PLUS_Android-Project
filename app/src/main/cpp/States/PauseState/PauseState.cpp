@@ -27,41 +27,48 @@ void PauseState::init(SDL_Renderer *renderer) {
     LOGI("font:%d",(bool)m_font);
     m_fontShadow = TTF_OpenFontIO(m_fontShadowfile,false,24);
 
-    SDL_SetTextureScaleMode(m_fontShadowTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_fontTexture,SDL_SCALEMODE_NEAREST);
-    m_renderer = renderer;
 
+    m_renderer = renderer;
+    SDL_Surface* fontSurface = TTF_RenderText_Solid(m_font,"paused ",
+                                                    7,SDL_Color{255,255,255,255});
+    SDL_Surface* fontShadowSurface = TTF_RenderText_Solid(m_fontShadow,"paused ",
+                                                          7,SDL_Color{0,0,0,255});
+    m_pauseTexture = SDL_CreateTextureFromSurface(renderer,fontSurface);
+    m_pauseShadowTexture = SDL_CreateTextureFromSurface(renderer,fontShadowSurface);
+    SDL_DestroySurface(fontSurface);
+    SDL_DestroySurface(fontShadowSurface);
+
+    SDL_Surface* exitSurface = TTF_RenderText_Solid(m_font,"exit",
+                                                    4,SDL_Color{255,255,255,255});
+    SDL_Surface* exitShadowSurface = TTF_RenderText_Solid(m_fontShadow,"exit",
+                                                          4,SDL_Color{0,0,0,255});
+    m_exitTexture = SDL_CreateTextureFromSurface(renderer,exitSurface);
+    m_exitShadowTexture = SDL_CreateTextureFromSurface(renderer,exitShadowSurface);
+    SDL_DestroySurface(fontSurface);
+    SDL_DestroySurface(fontShadowSurface);
+
+    SDL_SetTextureScaleMode(m_pauseTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_pauseShadowTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_exitTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_exitShadowTexture,SDL_SCALEMODE_NEAREST);
     LOGI("Pause init completed");
 }
 
 void PauseState::render(SDL_Renderer *renderer) {
-    {
-        SDL_Surface* fontSurface = TTF_RenderText_Solid(m_font,"paused ",
-                                                        7,SDL_Color{255,255,255,255});
-        SDL_Surface* fontShadowSurface = TTF_RenderText_Solid(m_fontShadow,"paused ",
-                                                              7,SDL_Color{0,0,0,255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer,fontSurface);
-        m_fontShadowTexture = SDL_CreateTextureFromSurface(renderer,fontShadowSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_DestroySurface(fontShadowSurface);
 
-        SDL_FRect dst = {800 - 150, 320 - 50, 300, 100};
-        SDL_RenderTexture(renderer, m_fontShadowTexture, nullptr, &dst);
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &dst);
-    }
-    {
-        SDL_Surface* fontShadowSurface = TTF_RenderText_Solid(m_fontShadow,"exit",
-                                                        4,SDL_Color{0,0,0,255});
-        SDL_Surface* fontSurface = TTF_RenderText_Solid(m_font,"exit",
-                                                          4,SDL_Color{255,255,255,255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer,fontSurface);
-        m_fontShadowTexture = SDL_CreateTextureFromSurface(renderer,fontShadowSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_DestroySurface(fontShadowSurface);
-        SDL_FRect dst = {800-100, 600 - 50, 200, 100};
-        SDL_RenderTexture(renderer, m_fontShadowTexture, nullptr, &dst);
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &dst);
-    }
+
+
+    SDL_FRect pauseDst = {800 - 150, 320 - 50, 300, 100};
+    SDL_RenderTexture(renderer, m_pauseShadowTexture, nullptr, &pauseDst);
+    SDL_RenderTexture(renderer, m_pauseTexture, nullptr, &pauseDst);
+
+
+
+
+    SDL_FRect exitDst = {800-100, 600 - 50, 200, 100};
+    SDL_RenderTexture(renderer, m_exitShadowTexture, nullptr, &exitDst);
+    SDL_RenderTexture(renderer, m_exitTexture, nullptr, &exitDst);
+
 }
 
 void PauseState::update(float dt) {
@@ -115,7 +122,8 @@ PauseState::~PauseState() {
     if(m_fontfile)      SDL_CloseIO(m_fontfile);
     if(m_fontShadowfile)SDL_CloseIO(m_fontShadowfile);
 
-    if(m_fontTexture)      SDL_DestroyTexture(m_fontTexture);
-    if(m_fontShadowTexture)SDL_DestroyTexture(m_fontShadowTexture);
-
+    if(m_pauseTexture)      SDL_DestroyTexture(m_pauseTexture);
+    if(m_pauseShadowTexture)SDL_DestroyTexture(m_pauseShadowTexture);
+    if(m_exitTexture)       SDL_DestroyTexture(m_exitTexture);
+    if(m_exitShadowTexture) SDL_DestroyTexture(m_exitShadowTexture);
 }

@@ -15,7 +15,6 @@ void OptionMenuState::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_backGroundTexture, nullptr, &backgroundDst);
 
 
-
     SDL_FRect backButton ={m_backButton.x,m_backButton.y,m_backButton.w,m_backButton.h};
     SDL_SetRenderDrawColor(renderer,0,0,255,255);
     SDL_RenderFillRect(renderer,&backButton);
@@ -80,4 +79,8 @@ OptionMenuState::OptionMenuState(SDL_Renderer *renderer) {
     //push default optionstate
     Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));
 
+}
+
+OptionMenuState::~OptionMenuState() {
+    SDL_DestroyTexture(m_backGroundTexture);
 }

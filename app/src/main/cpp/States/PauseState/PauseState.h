@@ -28,8 +28,11 @@ private:
     TTF_Font* m_font       = nullptr;
     TTF_Font* m_fontShadow = nullptr;
 
-    SDL_Texture* m_fontTexture       = nullptr;
-    SDL_Texture* m_fontShadowTexture = nullptr;
+    SDL_Texture* m_pauseTexture       = nullptr;
+    SDL_Texture* m_pauseShadowTexture = nullptr;
+    SDL_Texture* m_exitTexture       = nullptr;
+    SDL_Texture* m_exitShadowTexture = nullptr;
+
 
     SDL_Renderer* m_renderer = nullptr;
 

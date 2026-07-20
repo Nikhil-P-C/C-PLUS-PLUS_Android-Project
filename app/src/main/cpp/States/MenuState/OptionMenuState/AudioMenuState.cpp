@@ -8,10 +8,6 @@
 
 
 void AudioMenuState::render(SDL_Renderer *renderer) {
-    SDL_SetTextureScaleMode(m_menuTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_slidebarTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_sliderTexture,SDL_SCALEMODE_NEAREST);
 
     SDL_FRect menuDst ={100.00f,25.00f,1400.00f,670.00f};
     SDL_FRect menuSrc ={0.00f,0.00f,401.00f,198.00f};
@@ -23,12 +19,8 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
         SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 34.00f};
         SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
 
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Master",
-                                                        6, SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
         SDL_FRect fontDst = {400.00f, m_masterSlidebar.y, 120.00f, 30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
+        SDL_RenderTexture(renderer, m_masterFontTexture, nullptr, &fontDst);
 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
         SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_masterSlidebar.y + 4,
@@ -49,12 +41,8 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
         SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 34.00f};
         SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
 
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Music",
-                                                        5, SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
         SDL_FRect fontDst = {400.00f, m_musicSlidebar.y, 100.00f, 30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
+        SDL_RenderTexture(renderer, m_musicFontTexture, nullptr, &fontDst);
 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
         SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_musicSlidebar.y +4,
@@ -75,12 +63,9 @@ void AudioMenuState::render(SDL_Renderer *renderer) {
         SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 34.00f};
         SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
 
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "SFX",
-                                                        3, SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
+
         SDL_FRect fontDst = {400.00f, m_sfxSlidebar.y, 60.00f, 30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
+        SDL_RenderTexture(renderer, m_sfxFontTexture, nullptr, &fontDst);
 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
         SDL_FRect scaleValueRect = {m_minimumSliderX + 5, m_sfxSlidebar.y + 4,
@@ -187,6 +172,34 @@ AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
     LOGI("Loaded font %p", m_font);
     if (!m_font)
         LOGI("%s", SDL_GetError());
+
+    //text texture
+
+    SDL_Surface *masterFontSurface = TTF_RenderText_Solid(m_font, "Master",
+                                                    6, SDL_Color{0, 0, 0, 255});
+    m_masterFontTexture = SDL_CreateTextureFromSurface(renderer, masterFontSurface);
+    SDL_DestroySurface(masterFontSurface);
+
+
+    SDL_Surface *musicFontSurface = TTF_RenderText_Solid(m_font, "Music",
+                                                    5, SDL_Color{0, 0, 0, 255});
+    m_musicFontTexture = SDL_CreateTextureFromSurface(renderer, musicFontSurface);
+    SDL_DestroySurface(musicFontSurface);
+
+    SDL_Surface *sfxFontSurface = TTF_RenderText_Solid(m_font, "SFX",
+                                                    3, SDL_Color{0, 0, 0, 255});
+    m_sfxFontTexture = SDL_CreateTextureFromSurface(renderer, sfxFontSurface);
+    SDL_DestroySurface(sfxFontSurface);
+
+
+    SDL_SetTextureScaleMode(m_masterFontTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_musicFontTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_sfxFontTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_menuTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_slidebarTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_sliderTexture,SDL_SCALEMODE_NEAREST);
+
 }
 AudioMenuState::~AudioMenuState(){
     LOGI("Audio menu state destructor:%p",this);
@@ -194,7 +207,7 @@ AudioMenuState::~AudioMenuState(){
     SDL_DestroyTexture(m_optionBlockTexture);
     SDL_DestroyTexture(m_slidebarTexture);
     SDL_DestroyTexture(m_sliderTexture);
-    SDL_DestroyTexture(m_fontTexture);
+    SDL_DestroyTexture(m_sfxFontTexture);
     TTF_CloseFont(m_font);
     SDL_CloseIO(m_fontfile);
 }

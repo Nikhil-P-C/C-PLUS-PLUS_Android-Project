@@ -29,12 +29,60 @@ MenuState::MenuState(SDL_Renderer *renderer) {
 
     SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backGroundSprite,false);
     SDL_Surface* playButtonSurface = IMG_Load_IO(m_buttonSprite,false);
-
     m_renderer = renderer;
     m_background = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
     m_playButtonTexture = SDL_CreateTextureFromSurface(renderer,playButtonSurface);
+
+    //text texture
+    //play text
+    SDL_Surface *playFontSurface = TTF_RenderText_Solid(m_font, "Play",
+                                                        4, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *playFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "Play",
+                                                              4, SDL_Color{0, 0, 0, 255});
+    m_playText = SDL_CreateTextureFromSurface(renderer, playFontSurface);
+    m_playTextShadow = SDL_CreateTextureFromSurface(renderer, playFontShadowSurface);
+    SDL_DestroySurface(playFontSurface);
+    SDL_DestroySurface(playFontShadowSurface);
+
+    //option text
+    SDL_Surface *optionFontSurface = TTF_RenderText_Solid(m_font, "option",
+                                                        6, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *optionFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "option",
+                                                              6, SDL_Color{0, 0, 0, 255});
+    m_optionText = SDL_CreateTextureFromSurface(renderer, optionFontSurface);
+    m_optionTextShadow = SDL_CreateTextureFromSurface(renderer, optionFontShadowSurface);
+    SDL_DestroySurface(optionFontSurface);
+    SDL_DestroySurface(optionFontSurface);
+
+    //quit text
+    SDL_Surface *quitFontSurface = TTF_RenderText_Solid(m_font, "Quit",
+                                                    4, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *quitFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "Quit",
+                                                          4, SDL_Color{0, 0, 0, 255});
+    m_quitText = SDL_CreateTextureFromSurface(renderer, quitFontSurface);
+    m_quitTextShadow = SDL_CreateTextureFromSurface(renderer, quitFontShadowSurface);
+    SDL_DestroySurface(quitFontSurface);
+    SDL_DestroySurface(quitFontShadowSurface);
+
+    //edit text
+    SDL_Surface *editFontSurface = TTF_RenderText_Solid(m_font, "Edit",
+                                                    4, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *editFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "Edit",
+                                                          4, SDL_Color{0, 0, 0, 255});
+    m_editText = SDL_CreateTextureFromSurface(renderer, editFontSurface);
+    m_editTextShadow = SDL_CreateTextureFromSurface(renderer, editFontShadowSurface);
+    SDL_DestroySurface(editFontSurface);
+    SDL_DestroySurface(editFontShadowSurface);
+
     SDL_SetTextureScaleMode(m_playText,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_playTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_optionText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_optionTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_quitText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_quitTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_editText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_editTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_playButtonTexture,SDL_SCALEMODE_NEAREST);
     SDL_DestroySurface(Backgroundsurface);
     SDL_DestroySurface(playButtonSurface);
     if(!m_background)return;
@@ -42,11 +90,26 @@ MenuState::MenuState(SDL_Renderer *renderer) {
 }
 
 MenuState::~MenuState() {
-    SDL_CloseIO(m_backGroundSprite);
-    SDL_CloseIO(m_buttonSprite);
+
     LOGI("menu destructor:%p",this);
     SDL_DestroyTexture(m_background);
     SDL_DestroyTexture(m_playButtonTexture);
+    SDL_DestroyTexture(m_playText);
+    SDL_DestroyTexture(m_playTextShadow);
+    SDL_DestroyTexture(m_optionText);
+    SDL_DestroyTexture(m_optionTextShadow);
+    SDL_DestroyTexture(m_quitText);
+    SDL_DestroyTexture(m_quitTextShadow);
+    SDL_DestroyTexture(m_editText);
+    SDL_DestroyTexture(m_editTextShadow);
+
+    TTF_CloseFont(m_font);
+    TTF_CloseFont(m_fontShadow);
+
+    SDL_CloseIO(m_backGroundSprite);
+    SDL_CloseIO(m_buttonSprite);
+    SDL_CloseIO(m_fontfile);
+    SDL_CloseIO(m_fontShadowfile);
 }
 
 void MenuState::render(SDL_Renderer* renderer) {
@@ -65,65 +128,31 @@ void MenuState::render(SDL_Renderer* renderer) {
     SDL_FRect quitButtonDst{m_quitButton.x,m_quitButton.y,m_quitButton.w,m_quitButton.h};
     SDL_RenderTexture(renderer, m_playButtonTexture, &quitButtonSrc, &quitButtonDst);
 
-    SDL_FRect customizeButtonSrc{0+(0*594),0,594,282};
-    SDL_FRect customizeButtonDst{m_customizeButton.x,m_customizeButton.y,m_customizeButton.w,m_customizeButton.h};
-    SDL_RenderTexture(renderer, m_playButtonTexture, &customizeButtonSrc, &customizeButtonDst);
+    SDL_FRect editButtonSrc{0+(0*594),0,594,282};
+    SDL_FRect editButtonDst{m_editButton.x,m_editButton.y,m_editButton.w,m_editButton.h};
+    SDL_RenderTexture(renderer, m_playButtonTexture, &editButtonSrc, &editButtonDst);
 
 
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Play",
-                                                        4, SDL_Color{255, 255, 255, 255});
-        SDL_Surface *fontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "Play",
-                                                              4, SDL_Color{0, 0, 0, 255});
-        m_playText = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        m_playTextShadow = SDL_CreateTextureFromSurface(renderer, fontShadowSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_DestroySurface(fontShadowSurface);
-        SDL_FRect dst = {m_playButton.x+90,m_playButton.y+30,m_playButton.w-180,m_playButton.h-40};
-        SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &dst);
-        SDL_RenderTexture(renderer, m_playText, nullptr, &dst);
-    }
+    SDL_FRect playTextDst = {m_playButton.x+90,m_playButton.y+30,m_playButton.w-180,m_playButton.h-40};
+    SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &playTextDst);
+    SDL_RenderTexture(renderer, m_playText, nullptr, &playTextDst);
 
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "option",
-                                                        6, SDL_Color{255, 255, 255, 255});
-        SDL_Surface *fontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "option",
-                                                              6, SDL_Color{0, 0, 0, 255});
-        m_playText = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        m_playTextShadow = SDL_CreateTextureFromSurface(renderer, fontShadowSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_DestroySurface(fontShadowSurface);
-        SDL_FRect dst = {m_optionButton.x+80,m_optionButton.y+30,m_optionButton.w-160,m_optionButton.h-40};
-        SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &dst);
-        SDL_RenderTexture(renderer, m_playText, nullptr, &dst);
-    }
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Quit",
-                                                        4, SDL_Color{255, 255, 255, 255});
-        SDL_Surface *fontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "Quit",
-                                                              4, SDL_Color{0, 0, 0, 255});
-        m_playText = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        m_playTextShadow = SDL_CreateTextureFromSurface(renderer, fontShadowSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_DestroySurface(fontShadowSurface);
-        SDL_FRect dst = {m_quitButton.x+90,m_quitButton.y+30,m_quitButton.w-180,m_quitButton.h-40};
-        SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &dst);
-        SDL_RenderTexture(renderer, m_playText, nullptr, &dst);
 
-    }
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Edit",
-                                                        4, SDL_Color{255, 255, 255, 255});
-        SDL_Surface *fontShadowSurface = TTF_RenderText_Solid(m_fontShadow, "Edit",
-                                                              4, SDL_Color{0, 0, 0, 255});
-        m_playText = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        m_playTextShadow = SDL_CreateTextureFromSurface(renderer, fontShadowSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_DestroySurface(fontShadowSurface);
-        SDL_FRect dst = {m_customizeButton.x+90,m_customizeButton.y+30,m_customizeButton.w-180,m_customizeButton.h-40};
-        SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &dst);
-        SDL_RenderTexture(renderer, m_playText, nullptr, &dst);
-    }
+    SDL_FRect optionTextDst = {m_optionButton.x+80,m_optionButton.y+30,m_optionButton.w-160,m_optionButton.h-40};
+    SDL_RenderTexture(renderer, m_optionTextShadow, nullptr, &optionTextDst);
+    SDL_RenderTexture(renderer, m_optionText, nullptr, &optionTextDst);
+
+
+    SDL_FRect quitTextDst = {m_quitButton.x+90,m_quitButton.y+30,m_quitButton.w-180,m_quitButton.h-40};
+    SDL_RenderTexture(renderer, m_quitTextShadow, nullptr, &quitTextDst);
+    SDL_RenderTexture(renderer, m_quitText, nullptr, &quitTextDst);
+
+
+
+    SDL_FRect dst = {m_editButton.x+90,m_editButton.y+30,m_editButton.w-180,m_editButton.h-40};
+    SDL_RenderTexture(renderer, m_editTextShadow, nullptr, &dst);
+    SDL_RenderTexture(renderer, m_editText, nullptr, &dst);
+
 
 }
 
@@ -159,6 +188,7 @@ bool MenuState::handleEvents(SDL_Event &event) {
             if(touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
                 m_transitioning =true;
                 Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
+                return true;
             }
         }
         if(touchX > m_quitButton.x && touchX < m_quitButton.x + m_quitButton.w){

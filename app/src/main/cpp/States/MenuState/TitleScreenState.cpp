@@ -39,9 +39,7 @@ bool TitleScreenState::handleEvents(SDL_Event &event){
 TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
     m_renderer = renderer;
     LOGI("TitleScreenState constructor:%p",this);
-//        if(backGroundSprite)LOGI("m_backGroundSprite:true");
-//        Backgroundsurface = IMG_Load_IO(backGroundSprite,false);
-//        if(!Backgroundsurface)return;
+
     SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backgroundSprite,false);
     if(!Backgroundsurface)return;
     m_background = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
@@ -51,7 +49,7 @@ TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
 }
 TitleScreenState::~TitleScreenState() {
         LOGI("TitleScreenState destructor:%p",this);
-//        if (backGround)      SDL_DestroyTexture(backGround);
-//        if (backGroundSprite)SDL_CloseIO(backGroundSprite);
+        if (m_background)      SDL_DestroyTexture(m_background);
+        if (m_backgroundSprite)SDL_CloseIO(m_backgroundSprite);
 }
 

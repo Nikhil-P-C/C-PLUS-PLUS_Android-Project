@@ -12,6 +12,7 @@
 class OptionMenuState : public State {
 public:
     OptionMenuState(SDL_Renderer* renderer);
+    ~OptionMenuState()override;
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
     bool handleEvents(SDL_Event& event)override;
@@ -21,16 +22,11 @@ private:
     Button m_controlButton{100.00f,275.00f,180.00f,155.00f};
     Button m_backButton{50.00f,600.00f,200.00f,100.00f};
 
-    SDL_IOStream* m_fontFile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
-    SDL_IOStream* m_fontShadowFile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
-    TTF_Font* m_font = nullptr;
-    TTF_Font* m_fontShadow = nullptr;
-    SDL_Texture* m_fontTexture = nullptr;
-    SDL_Texture* m_fontShadowTexture = nullptr;
-
     SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("misc/bg.png","rb");
 
+
     SDL_Texture* m_backGroundTexture = nullptr;
+
     SDL_Renderer* m_renderer= nullptr;
 };
 

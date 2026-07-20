@@ -38,13 +38,13 @@ private:
     SDL_IOStream* m_optionBlockFile= SDL_IOFromFile("menu/menutile.png","rb");
     SDL_IOStream* m_slidebarFile   = SDL_IOFromFile("menu/slidebar.png","rb");
     SDL_IOStream* m_sliderFile     = SDL_IOFromFile("menu/slider.png","rb");
-
     SDL_IOStream* m_fontfile       = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
-    SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
 
     TTF_Font* m_font               = nullptr;
 
-    SDL_Texture* m_fontTexture       = nullptr;
+    SDL_Texture* m_masterFontTexture  = nullptr;
+    SDL_Texture* m_musicFontTexture   = nullptr;
+    SDL_Texture* m_sfxFontTexture     = nullptr;
     SDL_Texture* m_menuTexture        = nullptr;
     SDL_Texture* m_optionBlockTexture = nullptr;
     SDL_Texture* m_slidebarTexture    = nullptr;

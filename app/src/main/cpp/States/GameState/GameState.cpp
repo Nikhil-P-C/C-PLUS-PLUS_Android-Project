@@ -521,6 +521,7 @@ bool GameState::hasWallLeft(float x, float y) {
 
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
     LOGI("Lifecycle event: %d", event->type);
+    LOGI("%s", SDL_GetKeyName(event->type));
     GameState* gameState = static_cast<GameState*>(userdata);
     if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND) {
         // Stop audio, save progress, or free temporary assets here

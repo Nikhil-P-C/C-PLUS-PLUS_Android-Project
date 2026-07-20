@@ -35,39 +35,25 @@ void ControlMenuState::render(SDL_Renderer *renderer) {
 //    SDL_RenderRect(renderer,&joystickWButton);
     //text rendering
     //joystick text
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Joystick",8,
-                                                        SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_joystickButton.y+(50.00f-15.00f), 160.00f, 30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
-    }
+
+    SDL_FRect joystickFontDst = {400.00f, m_joystickButton.y+(50.00f-15.00f), 160.00f, 30.00f};
+    SDL_RenderTexture(renderer, m_joystickFontTexture, nullptr, &joystickFontDst);
+
     //button text
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Buttons",7,
-                                                        SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_buttonButton.y+(50.00f-15.00f), 140.00f, 30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
-    }
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Joystick + Button",17,
-                                                        SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_joystickWButtons.y+(50.00f-15.00f), 340.00f,30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
-    }
-    {
-        SDL_Surface *fontSurface = TTF_RenderText_Solid(m_font, "Debug",5,
-                                                        SDL_Color{0, 0, 0, 255});
-        m_fontTexture = SDL_CreateTextureFromSurface(renderer, fontSurface);
-        SDL_DestroySurface(fontSurface);
-        SDL_FRect fontDst = {400.00f, m_debugButton.y+(50.00f-15.00f), 100.00f,30.00f};
-        SDL_RenderTexture(renderer, m_fontTexture, nullptr, &fontDst);
-    }
+
+
+    SDL_FRect buttonsFontDst = {400.00f, m_buttonButton.y+(50.00f-15.00f), 140.00f, 30.00f};
+    SDL_RenderTexture(renderer, m_buttonsFontTexture, nullptr, &buttonsFontDst);
+
+
+
+    SDL_FRect joystickWButtonsFontDst = {400.00f, m_joystickWButtons.y+(50.00f-15.00f), 340.00f,30.00f};
+    SDL_RenderTexture(renderer, m_joystickWButtonsFontTexture, nullptr, &joystickWButtonsFontDst);
+
+
+    SDL_FRect fontDst = {400.00f, m_debugButton.y+(50.00f-15.00f), 100.00f,30.00f};
+    SDL_RenderTexture(renderer, m_debugFontTexture, nullptr, &fontDst);
+
 
 
     //radio button rendering
@@ -157,14 +143,50 @@ ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
     LOGI("Loaded font %p", m_font);
     if (!m_font)
         LOGI("%s", SDL_GetError());
+    //text texture
+    SDL_Surface* jotstickFontSurface = TTF_RenderText_Solid(m_font, "Joystick",8,
+                                                    SDL_Color{0, 0, 0, 255});
+    m_joystickFontTexture = SDL_CreateTextureFromSurface(renderer, jotstickFontSurface);
+    SDL_DestroySurface(jotstickFontSurface);
 
-    SDL_SetTextureScaleMode(m_fontTexture,SDL_SCALEMODE_NEAREST);
+
+    SDL_Surface *buttonsFontSurface = TTF_RenderText_Solid(m_font, "Buttons",7,
+                                                    SDL_Color{0, 0, 0, 255});
+    m_buttonsFontTexture = SDL_CreateTextureFromSurface(renderer, buttonsFontSurface);
+    SDL_DestroySurface(buttonsFontSurface);
+
+
+    SDL_Surface* joystickWButtonsFontSurface = TTF_RenderText_Solid(m_font, "Joystick + Button",17,
+                                                    SDL_Color{0, 0, 0, 255});
+    m_joystickWButtonsFontTexture = SDL_CreateTextureFromSurface(renderer, joystickWButtonsFontSurface);
+    SDL_DestroySurface(joystickWButtonsFontSurface);
+
+
+    SDL_Surface* debugFontSurface = TTF_RenderText_Solid(m_font, "Debug",5,
+                                                    SDL_Color{0, 0, 0, 255});
+    m_debugFontTexture = SDL_CreateTextureFromSurface(renderer, debugFontSurface);
+    SDL_DestroySurface(debugFontSurface);
+
+    SDL_SetTextureScaleMode(m_joystickFontTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_buttonsFontTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_joystickWButtonsFontTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_debugFontTexture,SDL_SCALEMODE_NEAREST);
+
     SDL_SetTextureScaleMode(m_menuTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_radioButtonTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
 }
 
 ControlMenuState::~ControlMenuState() {
+    SDL_DestroyTexture(m_optionBlockTexture);
+    SDL_DestroyTexture(m_radioButtonTexture);
+    SDL_DestroyTexture(m_menuTexture);
+    SDL_DestroyTexture(m_joystickFontTexture);
+    SDL_DestroyTexture(m_buttonsFontTexture);
+    SDL_DestroyTexture(m_joystickWButtonsFontTexture);
+    SDL_DestroyTexture(m_debugFontTexture);
+    TTF_CloseFont(m_font);
+    SDL_CloseIO(m_fontfile);
 }
 
 

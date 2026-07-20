@@ -26,7 +26,10 @@ private:
     SDL_Texture* m_optionBlockTexture = nullptr;
     SDL_Texture* m_radioButtonTexture = nullptr;
     SDL_Texture* m_menuTexture = nullptr;
-    SDL_Texture* m_fontTexture = nullptr;
+    SDL_Texture* m_joystickFontTexture = nullptr;
+    SDL_Texture* m_buttonsFontTexture = nullptr;
+    SDL_Texture* m_joystickWButtonsFontTexture = nullptr;
+    SDL_Texture* m_debugFontTexture = nullptr;
 
     SDL_Renderer* m_renderer = nullptr;
 

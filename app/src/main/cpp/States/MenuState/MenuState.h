@@ -16,7 +16,7 @@ private:
     Button m_playButton{150,100,350,150};
     Button m_optionButton{150,270,350,150};
     Button m_quitButton{150,440,350,150};
-    Button m_customizeButton{1100,350,350,150};
+    Button m_editButton{1100,350,350,150};
     bool m_transitioning =false;
 
     SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("misc/bg.png","rb");
@@ -29,6 +29,12 @@ private:
 
     SDL_Texture* m_playText = nullptr;
     SDL_Texture* m_playTextShadow = nullptr;
+    SDL_Texture* m_optionText = nullptr;
+    SDL_Texture* m_optionTextShadow = nullptr;
+    SDL_Texture* m_quitText = nullptr;
+    SDL_Texture* m_quitTextShadow = nullptr;
+    SDL_Texture* m_editText = nullptr;
+    SDL_Texture* m_editTextShadow = nullptr;
 
     TTF_Font* m_font = nullptr;
     TTF_Font* m_fontShadow = nullptr;
