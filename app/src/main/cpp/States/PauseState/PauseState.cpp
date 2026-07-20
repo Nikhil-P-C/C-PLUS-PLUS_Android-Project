@@ -98,7 +98,11 @@ bool PauseState::handleEvents(SDL_Event &event) {
             Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
         return true;
     }
-
+    if(event.type == SDL_EVENT_KEY_DOWN){
+        if(event.key.key == SDLK_AC_BACK){
+            return true;
+        }
+    }
 
     return false;
 }
