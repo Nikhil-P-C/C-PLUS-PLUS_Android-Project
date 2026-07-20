@@ -521,7 +521,7 @@ bool GameState::hasWallLeft(float x, float y) {
 }
 
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
-    LOGI("Lifecycle event: %d", event->type);
+//    LOGI("Lifecycle event: 0x%X", event->type);
     auto* gameState = static_cast<GameState*>(userdata);
     if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND && !GameData::getInstance().isPaused()) {
         gameState->m_transitioning = true;

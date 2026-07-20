@@ -19,6 +19,7 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_FRect fpsrect{0, 0, 100, 100};
     SDL_RenderTexture(renderer, m_fpsTexture, nullptr, &fpsrect);
     SDL_DestroyTexture(m_fpsTexture);
+    m_fpsTexture = nullptr;
     SDL_DestroySurface(fpsSurface);
     int camX = (int) std::round(Camera::getInstance().getCamera().x);
     int camY = (int) std::round(Camera::getInstance().getCamera().y);
@@ -78,7 +79,8 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
 DebugState::~DebugState(){
     SDL_CloseIO(m_fontFile);
     TTF_CloseFont(m_font);
-    SDL_DestroyTexture(m_fpsTexture);
+    if(m_fpsTexture)
+        SDL_DestroyTexture(m_fpsTexture);
     LOGI("debug state destructor :%p",this);
 }
 
