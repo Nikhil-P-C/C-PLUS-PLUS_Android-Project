@@ -6,7 +6,8 @@
 #include "States/MenuState/MenuState.h"
 
 
-void EditMenuState::render(SDL_Renderer *renderer) {
+void EditMenuState::render(SDL_Renderer *renderer)
+{
     SDL_FRect backgroundDst {0.00f,0.00f,1600.00f,720.00f};
     SDL_RenderTexture(renderer,m_backgroundTexture, nullptr,&backgroundDst);
 
@@ -24,35 +25,135 @@ void EditMenuState::render(SDL_Renderer *renderer) {
     SDL_FRect nameTileDst {1038,420,500,270};
     SDL_RenderTexture(renderer,m_nameTileTexture,&nameTileSrc,&nameTileDst);
 
-    SDL_FRect backButton ={m_backButton.x,m_backButton.y,m_backButton.w,m_backButton.h};
+    SDL_FRect backButtonDst ={m_backButton.x,m_backButton.y,m_backButton.w,m_backButton.h};
     SDL_SetRenderDrawColor(renderer,0,0,255,255);
-    SDL_RenderFillRect(renderer,&backButton);
+    SDL_RenderTexture(renderer,m_backButtonTexture, nullptr,&backButtonDst);
+
+    SDL_FRect leftChevronDst{60.00f,36.00f,25.00f,25.00f};
+    SDL_FRect leftChevronSrc{0.00f,0.00f,9.00f,14.00f};
+    SDL_RenderTexture(renderer,m_leftChevronTexture,&leftChevronSrc,&leftChevronDst);
+
+    SDL_FRect yellowSkinTileDst{m_yellowSkinButton.x,m_yellowSkinButton.y,m_yellowSkinButton.w,m_yellowSkinButton.h};
+    SDL_FRect yellowSkinTileSrc{0.00f,0.00f,65.00f,88.00f};
+    if(m_playerSkin == PlayerSkin::YELLOW)
+        yellowSkinTileSrc={66.00f,0.00f,65.00f,88.00f};
+    SDL_RenderTexture(renderer,m_skinTileTexture,&yellowSkinTileSrc,&yellowSkinTileDst);
+
+    SDL_FRect blueSkinTileDst{m_blueSkinButton.x,m_blueSkinButton.y,m_blueSkinButton.w,m_blueSkinButton.h};
+    SDL_FRect blueSkinTileSrc{0.00f,0.00f,65.00f,88.00f};
+    if(m_playerSkin == PlayerSkin::BLUE)
+        blueSkinTileSrc={66.00f,0.00f,65.00f,88.00f};
+    SDL_RenderTexture(renderer,m_skinTileTexture,&blueSkinTileSrc,&blueSkinTileDst);
+
+    SDL_FRect redSkinTileDst{m_redSkinButton.x,m_redSkinButton.y,m_redSkinButton.w,m_redSkinButton.h};
+    SDL_FRect redSkinTileSrc{0.00f,0.00f,65.00f,88.00f};
+    if(m_playerSkin == PlayerSkin::RED)
+        redSkinTileSrc={66.00f,0.00f,65.00f,88.00f};
+    SDL_RenderTexture(renderer,m_skinTileTexture,&redSkinTileSrc,&redSkinTileDst);
+
+    SDL_FRect greenSkinTileDst{m_greenSkinButton.x,m_greenSkinButton.y,m_greenSkinButton.w,m_greenSkinButton.h};
+    SDL_FRect greenSkinTileSrc{0.00f,0.00f,65.00f,88.00f};
+    if(m_playerSkin == PlayerSkin::GREEN)
+        greenSkinTileSrc={66.00f,0.00f,65.00f,88.00f};
+    SDL_RenderTexture(renderer,m_skinTileTexture,&greenSkinTileSrc,&greenSkinTileDst);
+
+    SDL_FRect yellowSkinDst{m_yellowSkinButton.x , m_yellowSkinButton.y , m_yellowSkinButton.w, m_yellowSkinButton.h-100.00f};
+    SDL_FRect yellowSkinSrc{0.00f+m_currentFrame*24.00f,0.00f,24.00f,24.00f};
+    SDL_RenderTexture(renderer,m_yellowSkinTexture,&yellowSkinSrc,&yellowSkinDst);
+
+    SDL_FRect blueSkinDst{m_blueSkinButton.x , m_blueSkinButton.y , m_blueSkinButton.w, m_blueSkinButton.h-100.00f};
+    SDL_FRect blueSkinSrc{0.00f+m_currentFrame*24.00f,0.00f,24.00f,24.00f};
+    SDL_RenderTexture(renderer,m_blueSkinTexture,&blueSkinSrc,&blueSkinDst);
+
+    SDL_FRect redSkinDst{m_redSkinButton.x , m_redSkinButton.y , m_redSkinButton.w, m_redSkinButton.h-100.00f};
+    SDL_FRect redSkinSrc{0.00f+m_currentFrame*24.00f,0.00f,24.00f,24.00f};
+    SDL_RenderTexture(renderer,m_redSkinTexture,&redSkinSrc,&redSkinDst);
+
+    SDL_FRect greenSkinDst{m_greenSkinButton.x , m_greenSkinButton.y , m_greenSkinButton.w, m_greenSkinButton.h-100.00f};
+    SDL_FRect greenSkinSrc{0.00f+m_currentFrame*24.00f,0.00f,24.00f,24.00f};
+    SDL_RenderTexture(renderer,m_greenSkinTexture,&greenSkinSrc,&greenSkinDst);
+
+    SDL_FRect previewSkinDst{1038,35,500,390};
+    SDL_FRect previewSkinSrc{0.00f+m_currentFrame*24,0.00f,24.00f,24.00f};
+    SDL_RenderTexture(renderer,m_previewTexture,&previewSkinSrc,&previewSkinDst);
 }
 
-void EditMenuState::update(float dt) {
-    State::update(dt);
+void EditMenuState::update(float dt)
+{
+    if(m_playerSkin == PlayerSkin::YELLOW)
+        m_previewTexture = m_yellowSkinTexture;
+    if(m_playerSkin == PlayerSkin::BLUE)
+        m_previewTexture = m_blueSkinTexture;
+    if(m_playerSkin == PlayerSkin::RED)
+        m_previewTexture = m_redSkinTexture;
+    if(m_playerSkin == PlayerSkin::GREEN)
+        m_previewTexture = m_greenSkinTexture;
+    m_nowTime =SDL_GetTicks();
+    if(m_nowTime-m_lastTime >m_animationDelay)
+    {
+        m_currentFrame++;
+        m_lastTime=m_nowTime;
+    }
+
+    m_currentFrame %= m_endFrame;
+    if(m_playerSkin != PlayerDetail::getInstance().getPlayerSkin())
+    {
+
+        PlayerDetail::getInstance().setPlayerSkin(m_playerSkin);
+    }
 }
 
-bool EditMenuState::handleEvents(SDL_Event &event) {
-    if(event.type == SDL_EVENT_FINGER_DOWN){
+bool EditMenuState::handleEvents(SDL_Event &event)
+{
+    if(event.type == SDL_EVENT_FINGER_DOWN)
+    {
         float TouchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
         if(TouchX >= m_backButton.x && TouchX <= m_backButton.x + m_backButton.w &&
-            TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h){
-            int count = (int)Engine::Get().getOverlayStateCount();
-            while(count){
-                count--;
-                LOGI("popping overlay state");
-                Engine::Get().popOverlayState();
-            }
+            TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h)
+        {
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
         }
+
+        if(TouchX >= m_yellowSkinButton.x && TouchX <= m_yellowSkinButton.x + m_yellowSkinButton.w &&
+           TouchY >= m_yellowSkinButton.y && TouchY <= m_yellowSkinButton.y + m_yellowSkinButton.h) {
+
+            m_playerSkin =PlayerSkin::YELLOW;
+        }
+
+        if(TouchX >= m_blueSkinButton.x && TouchX <= m_blueSkinButton.x + m_blueSkinButton.w &&
+           TouchY >= m_blueSkinButton.y && TouchY <= m_blueSkinButton.y + m_blueSkinButton.h)
+        {
+
+            m_playerSkin =PlayerSkin::BLUE;
+        }
+        if(TouchX >= m_redSkinButton.x && TouchX <= m_redSkinButton.x + m_redSkinButton.w &&
+           TouchY >= m_redSkinButton.y && TouchY <= m_redSkinButton.y + m_redSkinButton.h)
+        {
+
+            m_playerSkin =PlayerSkin::RED;
+        }
+        if(TouchX >= m_greenSkinButton.x && TouchX <= m_greenSkinButton.x + m_greenSkinButton.w &&
+           TouchY >= m_greenSkinButton.y && TouchY <= m_greenSkinButton.y + m_greenSkinButton.h)
+        {
+
+            m_playerSkin =PlayerSkin::GREEN;
+        }
         return true;
+    }
+    if(event.type == SDL_EVENT_KEY_DOWN)
+    {
+        if(event.key.key == SDLK_AC_BACK)
+        {
+            Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+            return true;
+        }
     }
     return false;
 }
 
-EditMenuState::EditMenuState(SDL_Renderer *renderer) {
+EditMenuState::EditMenuState(SDL_Renderer *renderer)
+{
     m_renderer =renderer;
     if(!m_backgroundFile)
         LOGI("failed to load background file");
@@ -63,7 +164,10 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer) {
 
     if(!m_fontfile)
         LOGI("failed to load font file");
-        m_font = TTF_OpenFontIO(m_fontfile,false,18);
+    m_font = TTF_OpenFontIO(m_fontfile,false,18);
+    SDL_Surface* backButtonSurface = TTF_RenderText_Solid(m_font,"  back",6,{255,255,255,255});
+    m_backButtonTexture = SDL_CreateTextureFromSurface(renderer,backButtonSurface);
+    SDL_DestroySurface(backButtonSurface);
     if(!m_editMenuFile)
         LOGI("failed to load editMenu file");
     SDL_Surface* editMenuSurface = IMG_Load_IO(m_editMenuFile,false);
@@ -88,16 +192,50 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer) {
     m_previewTileTexture = SDL_CreateTextureFromSurface(renderer,previewTileSurface);
     SDL_DestroySurface(previewTileSurface);
     SDL_CloseIO(m_previewTileFile);
+    if(!m_leftChevronFile)
+        LOGI("failed to load leftChevron file");
+    SDL_Surface* leftChevronSurface = IMG_Load_IO(m_leftChevronFile,false);
+    m_leftChevronTexture = SDL_CreateTextureFromSurface(renderer,leftChevronSurface);
+    SDL_DestroySurface(leftChevronSurface);
+    SDL_CloseIO(m_leftChevronFile);
+
+    SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
+    m_yellowSkinTexture = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
+    SDL_DestroySurface(yellowSkinSurface);
+    SDL_CloseIO(m_yellowSkinFile);
+
+    SDL_Surface* blueSkinSurface = IMG_Load_IO(m_blueSkinFile,false);
+    m_blueSkinTexture = SDL_CreateTextureFromSurface(renderer,blueSkinSurface);
+    SDL_DestroySurface(blueSkinSurface);
+    SDL_CloseIO(m_blueSkinFile);
+
+    SDL_Surface* redSkinSurface = IMG_Load_IO(m_redSkinFile,false);
+    m_redSkinTexture = SDL_CreateTextureFromSurface(renderer,redSkinSurface);
+    SDL_DestroySurface(redSkinSurface);
+    SDL_CloseIO(m_redSkinFile);
+
+    SDL_Surface* greenSkinSurface = IMG_Load_IO(m_greenSkinFile,false);
+    m_greenSkinTexture = SDL_CreateTextureFromSurface(renderer,greenSkinSurface);
+    SDL_DestroySurface(greenSkinSurface);
+    SDL_CloseIO(m_greenSkinFile);
+
+
 
     SDL_SetTextureScaleMode(m_backgroundTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_editMenuTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_nameTileTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_skinTileTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_previewTileTexture,SDL_SCALEMODE_NEAREST);
-
+    SDL_SetTextureScaleMode(m_backButtonTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_leftChevronTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_yellowSkinTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_blueSkinTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_redSkinTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_greenSkinTexture,SDL_SCALEMODE_NEAREST);
 }
 
-EditMenuState::~EditMenuState() {
+EditMenuState::~EditMenuState()
+{
     SDL_CloseIO(m_fontfile);
     TTF_CloseFont(m_font);
     SDL_DestroyTexture(m_backgroundTexture);
@@ -105,4 +243,10 @@ EditMenuState::~EditMenuState() {
     SDL_DestroyTexture(m_nameTileTexture);
     SDL_DestroyTexture(m_skinTileTexture);
     SDL_DestroyTexture(m_previewTileTexture);
+    SDL_DestroyTexture(m_backButtonTexture);
+    SDL_DestroyTexture(m_leftChevronTexture);
+    SDL_DestroyTexture(m_yellowSkinTexture);
+    SDL_DestroyTexture(m_blueSkinTexture);
+    SDL_DestroyTexture(m_redSkinTexture);
+    SDL_DestroyTexture(m_greenSkinTexture);
 }

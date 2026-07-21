@@ -21,8 +21,6 @@ void JoystickOverlay::render(SDL_Renderer *renderer) {
 }
 
 void JoystickOverlay::update(float dt) {
-    LOGI("joystick is active: %d ", m_joystickFingerActive);
-    LOGI("playmove left:%d , right:%d",InputDispatcher::getInstance().movingLeft,InputDispatcher::getInstance().movingRight);
     float centerX = (m_joystick.x + m_joystick.w / 2);
     float centerY = (m_joystick.y + m_joystick.h / 2);
     float dY = m_touchY - centerY;
@@ -56,7 +54,6 @@ void JoystickOverlay::update(float dt) {
             InputDispatcher::getInstance().inputLogClear();
         if(dY <-deadZone && dX < 106.0f && dX > -106.0f){
 
-            LOGI("JUmp pressed");
             InputDispatcher::getInstance().setJump(true);
         }
         else InputDispatcher::getInstance().setJump(false);
@@ -123,10 +120,14 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
 }
 
 JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
+    if(!m_joystickFile)
+        LOGI("Failed to load joystick file");
     SDL_Surface* joystickSurface = IMG_Load_IO(m_joystickFile, false);
     m_joystickTexture =SDL_CreateTextureFromSurface(renderer, joystickSurface);
     SDL_DestroySurface(joystickSurface);
     SDL_CloseIO(m_joystickFile);
+    if(!m_joystickHandleFile)
+        LOGI("Failed to load joystickHandle file");
     SDL_Surface* joystickHandleSurface = IMG_Load_IO(m_joystickHandleFile, false);
     m_joystickHandleTexture =SDL_CreateTextureFromSurface(renderer, joystickHandleSurface);
     SDL_DestroySurface(joystickHandleSurface);

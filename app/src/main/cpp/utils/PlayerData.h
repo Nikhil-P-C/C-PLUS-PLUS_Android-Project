@@ -4,10 +4,7 @@
 #pragma once
 
 #include <string>
-enum ControlType{
-    JOYSTICK =0,
-    BUTTON=1
-};
+
 enum PlayerSkin{
     YELLOW=0,
     BLUE=1,
