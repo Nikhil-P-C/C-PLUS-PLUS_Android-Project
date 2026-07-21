@@ -21,7 +21,8 @@ void JoystickOverlay::render(SDL_Renderer *renderer) {
 }
 
 void JoystickOverlay::update(float dt) {
-
+    LOGI("joystick is active: %d ", m_joystickFingerActive);
+    LOGI("playmove left:%d , right:%d",InputDispatcher::getInstance().movingLeft,InputDispatcher::getInstance().movingRight);
     float centerX = (m_joystick.x + m_joystick.w / 2);
     float centerY = (m_joystick.y + m_joystick.h / 2);
     float dY = m_touchY - centerY;
@@ -75,9 +76,15 @@ void JoystickOverlay::update(float dt) {
         m_joystickHandle.y = (centerY + dY);
 
     }
+    else{
+        InputDispatcher::getInstance().setMovingLeft(false);
+        InputDispatcher::getInstance().setMovingRight(false);
+        InputDispatcher::getInstance().setInputReleased(true);
+    }
 //    LOGI("joystick handle x:%f y:%f w:%f h:%f",m_joystickHandle.x,m_joystickHandle.y,m_joystickHandle.w,m_joystickHandle.h);
 //    LOGI("joystick x:%f y:%f w:%f h:%f",m_joystick.x,m_joystick.y,m_joystick.w,m_joystick.h);
 //    LOGI("center x:%f y:%f",centerX,centerY);
+
     if(!m_joystickFingerActive){
         gameMath::interpolate(m_joystickHandle.x,m_joystickHandle.y,centerX,centerY,0.5f);
     }

@@ -88,6 +88,13 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer) {
     m_previewTileTexture = SDL_CreateTextureFromSurface(renderer,previewTileSurface);
     SDL_DestroySurface(previewTileSurface);
     SDL_CloseIO(m_previewTileFile);
+
+    SDL_SetTextureScaleMode(m_backgroundTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_editMenuTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_nameTileTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_skinTileTexture,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_previewTileTexture,SDL_SCALEMODE_NEAREST);
+
 }
 
 EditMenuState::~EditMenuState() {
