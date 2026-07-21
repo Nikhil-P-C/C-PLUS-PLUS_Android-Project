@@ -16,7 +16,7 @@ void JoystickOverlay::render(SDL_Renderer *renderer) {
     SDL_FRect joystickHandle{ m_joystickHandle.x-m_joystickHandle.h/2,
                               m_joystickHandle.y-m_joystickHandle.h/2,
                               m_joystickHandle.w,m_joystickHandle.h};
-
+    LOGI("joystick hande X:%f ,Y:%f",m_joystickHandle.x,m_joystickHandle.y);
     SDL_RenderTexture(renderer,m_joystickHandleTexture,NULL,&joystickHandle);
 }
 

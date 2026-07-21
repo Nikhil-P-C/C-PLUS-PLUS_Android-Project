@@ -19,9 +19,7 @@ public:
 private:
     Button m_JumpButton{1400,400,100,100};
     Button m_joystick{0+ 200, 720 -400,300,300};
-    Button m_joystickHandle{ m_touchX -150.00f/ 2.00f,
-                             m_touchY - 150.00f / 2.00f,
-                             150,150};
+    Button m_joystickHandle{350.00f,470.00f,150.00f,150.00f};
 
     float m_touchX =m_joystick.x + m_joystick.w/2,m_touchY =m_joystick.y + m_joystick.h/2;
 
