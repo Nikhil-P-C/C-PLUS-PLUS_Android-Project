@@ -81,6 +81,7 @@ add_library(main SHARED
         States/MenuState/OptionMenuState/OptionMenuState.cpp
         States/MenuState/OptionMenuState/ControlMenuState.cpp
         States/MenuState/OptionMenuState/AudioMenuState.cpp
+        States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
         engine/Engine.cpp
         utils/Camera.cpp

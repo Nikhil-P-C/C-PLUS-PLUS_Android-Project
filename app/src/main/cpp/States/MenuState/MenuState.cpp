@@ -12,6 +12,7 @@
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
+#include "States/MenuState/EditMenuState/EditMenuState.h"
 
 MenuState::MenuState(SDL_Renderer *renderer) {
     LOGI("menu construct:%p",this);
@@ -188,6 +189,13 @@ bool MenuState::handleEvents(SDL_Event &event) {
             if(touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
                 m_transitioning =true;
                 Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
+                return true;
+            }
+        }
+        if(touchX >m_editButton.x && touchX < m_editButton.x+m_editButton.w){
+            if(touchY>m_editButton.y&& touchY<m_editButton.y + m_editButton.h){
+                m_transitioning =true;
+                Engine::Get().changeState(std::make_unique<EditMenuState>(m_renderer));
                 return true;
             }
         }
