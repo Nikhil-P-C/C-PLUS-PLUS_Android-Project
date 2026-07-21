@@ -41,14 +41,16 @@ public:
         LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
         if (m_backGround)      SDL_DestroyTexture(m_backGround);
-        if (m_playerTexture)   SDL_DestroyTexture(m_playerTexture);
         if (m_tileset)         SDL_DestroyTexture(m_tileset);
         if (m_endTexture)      SDL_DestroyTexture(m_endTexture);
-
+        if (m_yellowSkin)      SDL_DestroyTexture(m_yellowSkin);
+        if (m_blueSkin)        SDL_DestroyTexture(m_blueSkin);
+        if (m_redSkin)         SDL_DestroyTexture(m_redSkin);
+        if (m_greenSkin)       SDL_DestroyTexture(m_greenSkin);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
-        if (m_playerSprite)    SDL_CloseIO(m_playerSprite);
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
+
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
     }
     bool hasWallAbove(float x,float y);
@@ -89,13 +91,20 @@ private:
     unsigned int m_aniNowTime =0;
     unsigned int m_aniLastTime =SDL_GetTicks();
 
-    SDL_IOStream* m_playerSprite     = SDL_IOFromFile("sheets/DinoSprites - vita.png", "rb");
+    SDL_IOStream* m_yellowSkinFile   = SDL_IOFromFile("sheets/DinoSprites - tard.png","rb");
+    SDL_IOStream* m_blueSkinFile     = SDL_IOFromFile("sheets/DinoSprites - doux.png","rb");
+    SDL_IOStream* m_redSkinFile      = SDL_IOFromFile("sheets/DinoSprites - mort.png","rb");
+    SDL_IOStream* m_greenSkinFile    = SDL_IOFromFile("sheets/DinoSprites - vita.png","rb");
     SDL_IOStream* m_tilesetSprite    = SDL_IOFromFile("Platforms/Terrain.png", "rb");
     SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf", "rb");
 
 
     SDL_Texture* m_playerTexture     = nullptr;
+    SDL_Texture* m_yellowSkin        = nullptr;
+    SDL_Texture* m_blueSkin          = nullptr;
+    SDL_Texture* m_redSkin           = nullptr;
+    SDL_Texture* m_greenSkin         = nullptr;
     SDL_Texture* m_tileset           = nullptr;
     SDL_Texture* m_backGround        = nullptr;
     SDL_Texture* m_endTexture        = nullptr;

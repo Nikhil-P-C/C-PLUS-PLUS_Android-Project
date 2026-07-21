@@ -37,12 +37,45 @@ GameState::GameState(SDL_Renderer *renderer) {
     SDL_DestroySurface(Backgroundsurface);
 
     //player sprite loading
-    SDL_Surface* playerSurface = IMG_Load_IO(m_playerSprite, false);
-    if(!playerSurface)return;
-    m_playerTexture = SDL_CreateTextureFromSurface(renderer, playerSurface);
-    if(!m_playerTexture)return;
-    SDL_DestroySurface(playerSurface);
 
+
+    if(!m_yellowSkinFile)
+        LOGI("couldnt load yellowskin file");
+    SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
+    m_yellowSkin  = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
+    SDL_DestroySurface(yellowSkinSurface);
+    SDL_CloseIO(m_yellowSkinFile);
+
+    if(!m_blueSkinFile)
+        LOGI("couldnt load blueskin file");
+    SDL_Surface* blueSkinSurface = IMG_Load_IO(m_blueSkinFile,false);
+    m_blueSkin  = SDL_CreateTextureFromSurface(renderer,blueSkinSurface);
+    SDL_DestroySurface(blueSkinSurface);
+    SDL_CloseIO(m_blueSkinFile);
+
+    if(!m_redSkinFile)
+        LOGI("couldnt load redskin file");
+    SDL_Surface* redSkinSurface = IMG_Load_IO(m_redSkinFile,false);
+    m_redSkin  = SDL_CreateTextureFromSurface(renderer,redSkinSurface);
+    SDL_DestroySurface(redSkinSurface);
+    SDL_CloseIO(m_redSkinFile);
+
+    if(!m_greenSkinFile)
+        LOGI("couldnt load greenskin file");
+    SDL_Surface* greenSkinSurface = IMG_Load_IO(m_greenSkinFile,false);
+    m_greenSkin  = SDL_CreateTextureFromSurface(renderer,greenSkinSurface);
+    SDL_DestroySurface(greenSkinSurface);
+    SDL_CloseIO(m_greenSkinFile);
+
+    //from player static data
+    if(PlayerDetail::getInstance().getPlayerSkin() == PlayerSkin::YELLOW)
+        m_playerTexture = m_yellowSkin;
+    else if(PlayerDetail::getInstance().getPlayerSkin()  == PlayerSkin::BLUE)
+        m_playerTexture = m_blueSkin;
+    else if(PlayerDetail::getInstance().getPlayerSkin()  == PlayerSkin::RED)
+        m_playerTexture = m_redSkin;
+    else if(PlayerDetail::getInstance().getPlayerSkin()  == PlayerSkin::GREEN)
+        m_playerTexture = m_greenSkin;
     // m_tileset loading
     SDL_Surface* Tilesurface = IMG_Load_IO(m_tilesetSprite, false);
     if(!Tilesurface)return;

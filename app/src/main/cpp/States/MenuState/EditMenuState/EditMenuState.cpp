@@ -199,21 +199,29 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer)
     SDL_DestroySurface(leftChevronSurface);
     SDL_CloseIO(m_leftChevronFile);
 
+    if(!m_yellowSkinFile)
+        LOGI("couldnt load yellowskin file");
     SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
     m_yellowSkinTexture = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
     SDL_DestroySurface(yellowSkinSurface);
     SDL_CloseIO(m_yellowSkinFile);
 
+    if(!m_blueSkinFile)
+        LOGI("couldnt load blueskin file");
     SDL_Surface* blueSkinSurface = IMG_Load_IO(m_blueSkinFile,false);
     m_blueSkinTexture = SDL_CreateTextureFromSurface(renderer,blueSkinSurface);
     SDL_DestroySurface(blueSkinSurface);
     SDL_CloseIO(m_blueSkinFile);
 
+    if(!m_redSkinFile)
+        LOGI("couldnt load redskin file");
     SDL_Surface* redSkinSurface = IMG_Load_IO(m_redSkinFile,false);
     m_redSkinTexture = SDL_CreateTextureFromSurface(renderer,redSkinSurface);
     SDL_DestroySurface(redSkinSurface);
     SDL_CloseIO(m_redSkinFile);
 
+    if(!m_greenSkinFile)
+        LOGI("couldnt load greenskin file");
     SDL_Surface* greenSkinSurface = IMG_Load_IO(m_greenSkinFile,false);
     m_greenSkinTexture = SDL_CreateTextureFromSurface(renderer,greenSkinSurface);
     SDL_DestroySurface(greenSkinSurface);
