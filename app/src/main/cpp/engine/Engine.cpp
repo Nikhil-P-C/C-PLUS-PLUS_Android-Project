@@ -11,7 +11,7 @@
 void Engine::run(){
     unsigned int lastTime = SDL_GetTicks();
     unsigned int currentTime;
-    int framedelay = 1000/120;
+    int framedelay = 1000/60;
     const SDL_DisplayMode* mode =SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
     if(mode)
     {
