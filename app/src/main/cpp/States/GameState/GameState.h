@@ -18,7 +18,7 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-const int SCALE = 4;
+const float SCALE = 4;
 const int TILE_SIZE =16;
 
 struct Animation{
@@ -47,6 +47,7 @@ public:
         if (m_blueSkin)        SDL_DestroyTexture(m_blueSkin);
         if (m_redSkin)         SDL_DestroyTexture(m_redSkin);
         if (m_greenSkin)       SDL_DestroyTexture(m_greenSkin);
+        if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
         if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
         if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
@@ -97,9 +98,9 @@ private:
     SDL_IOStream* m_greenSkinFile    = SDL_IOFromFile("sheets/DinoSprites - vita.png","rb");
     SDL_IOStream* m_tilesetSprite    = SDL_IOFromFile("Platforms/Terrain.png", "rb");
     SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
-    SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/PlayfulTime.ttf", "rb");
+    SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
 
-
+    SDL_Texture* m_playerNameTextue  = nullptr;
     SDL_Texture* m_playerTexture     = nullptr;
     SDL_Texture* m_yellowSkin        = nullptr;
     SDL_Texture* m_blueSkin          = nullptr;

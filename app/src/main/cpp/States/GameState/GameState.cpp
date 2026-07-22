@@ -18,9 +18,9 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowH =GameData::getInstance().getWinHeight();
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
-    m_player.setSize(SPRITE_WIDTH*P_scale-55.00f,SPRITE_HEIGHT*P_scale-35.00f);
+    m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
     m_player.setPosition(400.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
-    m_player.setSpriteOffset(-35.00f,-20.00f);
+    m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
 
@@ -76,6 +76,11 @@ GameState::GameState(SDL_Renderer *renderer) {
         m_playerTexture = m_redSkin;
     else if(PlayerDetail::getInstance().getPlayerSkin()  == PlayerSkin::GREEN)
         m_playerTexture = m_greenSkin;
+    //player name loading
+    SDL_Surface* playerNameSurface = TTF_RenderText_Solid(m_font,PlayerDetail::getInstance().getPlayerName().c_str(),
+                                                          PlayerDetail::getInstance().getPlayerName().length(),{255,255,255,255});
+    m_playerNameTextue = SDL_CreateTextureFromSurface(renderer,playerNameSurface);
+    SDL_DestroySurface(playerNameSurface);
     // m_tileset loading
     SDL_Surface* Tilesurface = IMG_Load_IO(m_tilesetSprite, false);
     if(!Tilesurface)return;
@@ -85,7 +90,7 @@ GameState::GameState(SDL_Renderer *renderer) {
 
     SDL_SetTextureScaleMode(m_playerTexture, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);
-
+    SDL_SetTextureScaleMode(m_playerNameTextue,SDL_SCALEMODE_NEAREST);
 
     setLevel(0);
 }
@@ -281,7 +286,13 @@ void GameState::render(SDL_Renderer* renderer)  {
     else
         SDL_RenderTexture(renderer,m_playerTexture,&src,&dst);
     SDL_SetRenderDrawColor(renderer,33,31,48,255);
-
+    //player name rendering
+    SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-camX+(12.50f*P_scale)
+                            -(50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()))/2,
+                            m_player.y+m_player.spriteOffsetY-camY-(2.00f*P_scale) -10,
+                            50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
+                            45.00f};
+    SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
 }
 
 void GameState::update(float dt){
