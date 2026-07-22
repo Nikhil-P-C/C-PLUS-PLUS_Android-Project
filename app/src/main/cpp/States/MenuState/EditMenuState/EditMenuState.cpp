@@ -86,6 +86,8 @@ void EditMenuState::render(SDL_Renderer *renderer)
     SDL_RenderTexture(renderer,editNameTexture, nullptr,&nameDst);
     SDL_DestroyTexture(editNameTexture);
     SDL_DestroySurface(editNamesSurface);
+
+    SDL_RenderRect(renderer,&m_saveNameButton);
 }
 
 void EditMenuState::update(float dt)
@@ -151,6 +153,8 @@ bool EditMenuState::handleEvents(SDL_Event &event)
         }
         if(TouchX >= m_textbox.x && TouchX <= m_textbox.x + m_textbox.w &&
             TouchY >= m_textbox.y && TouchY <= m_textbox.y + m_textbox.h){
+            LOGI("active");
+            SDL_StartTextInput(Engine::Get().getWindow());
 
             m_textboxActive=true;
         }
@@ -159,41 +163,62 @@ bool EditMenuState::handleEvents(SDL_Event &event)
     }
 
     if(m_textboxActive){
-        LOGI("active");
-        SDL_StartTextInput(Engine::Get().getWindow());
-
 
         switch (event.type) {
-            case SDL_EVENT_TEXT_INPUT:
-                m_editName += event.text.text;
-                break;
             case SDL_EVENT_KEY_DOWN:
                 if(event.key.key == SDLK_BACKSPACE)
                 {
-                    m_editName.pop_back();
+                    if(!m_editName.empty())
+                    {
+                        m_editName.pop_back();
+                        bool success =SDL_SetTextInputArea(Engine::Get().getWindow(),
+                                                           reinterpret_cast<const SDL_Rect *>(&m_textbox),  m_editName.length());
+                        if(success)LOGI("created text input area");
+                        else LOGI("failed to create input area");
+                    }
+                    return true;
                 }
                 if(event.key.key ==SDLK_AC_BACK) {
                     m_textboxActive = false;
                     SDL_StopTextInput(Engine::Get().getWindow());
+                    return true;
                 }
                 if(event.key.key == SDLK_RETURN)
                 {
                     m_textboxActive = false;
                     SDL_StopTextInput(Engine::Get().getWindow());
+                    return true;
                 }
                 if(event.key.key == SDLK_RETURN2) {
                     m_textboxActive = false;
                     SDL_StopTextInput(Engine::Get().getWindow());
+                    return true;
                 }
                 if(event.key.key == SDLK_KP_ENTER) {
                     m_textboxActive = false;
                     SDL_StopTextInput(Engine::Get().getWindow());
+                    return true;
                 }
                 break;
+            case SDL_EVENT_TEXT_INPUT:
+                LOGI("name:%s",m_editName.c_str());
+                LOGI("text text:%s",event.text.text);
+                LOGI("name:%s",m_editName.c_str());
+                if(m_editName.length() <9)
+                {
+                    m_editName += event.text.text;
+                    bool success =SDL_SetTextInputArea(Engine::Get().getWindow(),
+                                                       reinterpret_cast<const SDL_Rect *>(&m_textbox),  m_editName.length());
+                    if(success)LOGI("created text input area");
+                    else LOGI("failed to create input area");
+                }
+                return true;
+                break;
+            case SDL_EVENT_TEXT_EDITING:
+                LOGI("text edit:%s",event.edit.text);
         }
-        LOGI("textbox active :%d",m_textboxActive);
 
-        LOGI("name:%s",m_editName.c_str());
+
     }
     if(event.type == SDL_EVENT_KEY_DOWN)
     {
@@ -202,16 +227,14 @@ bool EditMenuState::handleEvents(SDL_Event &event)
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
             return true;
         }
+        return true;
     }
     return false;
 }
 
 EditMenuState::EditMenuState(SDL_Renderer *renderer)
 {
-    bool success =SDL_SetTextInputArea(Engine::Get().getWindow(),
-                                       reinterpret_cast<const SDL_Rect *>(&m_textbox), 0);
-    if(success)LOGI("created text input area");
-    else LOGI("failed to create input area");
+
     m_renderer =renderer;
     if(!m_backgroundFile)
         LOGI("failed to load background file");
