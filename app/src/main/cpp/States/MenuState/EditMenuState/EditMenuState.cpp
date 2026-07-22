@@ -78,8 +78,6 @@ void EditMenuState::render(SDL_Renderer *renderer)
     SDL_RenderTextureRotated(renderer,m_previewTexture,&previewSkinSrc,&previewSkinDst,0.00f,
                              nullptr,SDL_FLIP_HORIZONTAL);
 
-    SDL_SetRenderDrawColor(renderer,255,0,0,255);
-    SDL_RenderRect(renderer,&m_textbox);
     SDL_Surface* editNamesSurface = TTF_RenderText_Solid(m_font,m_editName.c_str(),m_editName.length(),{84, 83, 83,255});
     SDL_Texture* editNameTexture = SDL_CreateTextureFromSurface(renderer,editNamesSurface);
     SDL_SetTextureScaleMode(editNameTexture,SDL_SCALEMODE_NEAREST);
@@ -88,7 +86,6 @@ void EditMenuState::render(SDL_Renderer *renderer)
     SDL_DestroyTexture(editNameTexture);
     SDL_DestroySurface(editNamesSurface);
 
-    SDL_RenderRect(renderer,&m_saveNameButton);
     SDL_Surface* saveNameSurface = TTF_RenderText_Solid(m_font,"save",4,{255,255,255,255});
     SDL_Texture* saveNameTexture = SDL_CreateTextureFromSurface(renderer,saveNameSurface);
     SDL_FRect saveNameDst{m_saveNameButton.x+15,m_saveNameButton.y,m_saveNameButton.w-30.00f,m_saveNameButton.h};

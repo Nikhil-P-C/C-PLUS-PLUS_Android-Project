@@ -12,15 +12,10 @@ void Engine::run(){
     unsigned int lastTime = SDL_GetTicks();
     unsigned int currentTime;
     int framedelay = 1000/60;
-    const SDL_DisplayMode* mode =SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
-    if(mode)
-    {
-        LOGI("Display native: %d x %d", mode->w, mode->h);
-        int windowW =mode->w;
-        int windowH = mode->h;
-        GameData::getInstance().setSize(windowW,windowH);
-        LOGI("height:%d,width:%d",GameData::getInstance().getWinHeight(),GameData::getInstance().getWinWidth());
-    }
+
+    GameData::getInstance().setSize(1600,720);
+    LOGI("height:%d,width:%d",GameData::getInstance().getWinHeight(),GameData::getInstance().getWinWidth());
+
 
     float lastMasterAudioScale = GameData::getInstance().getAudioScale();
     float nowMasterAudioScale =0.0f;
