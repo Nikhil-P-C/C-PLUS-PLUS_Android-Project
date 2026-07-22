@@ -73,21 +73,27 @@ void EditMenuState::render(SDL_Renderer *renderer)
     SDL_FRect greenSkinSrc{0.00f+m_currentFrame*24.00f,0.00f,24.00f,24.00f};
     SDL_RenderTexture(renderer,m_greenSkinTexture,&greenSkinSrc,&greenSkinDst);
 
-    SDL_FRect previewSkinDst{1038,35,500,390};
+    SDL_FRect previewSkinDst{1058,35.00f,450.00f,390.00f};
     SDL_FRect previewSkinSrc{0.00f+m_currentFrame*24,0.00f,24.00f,24.00f};
-    SDL_RenderTexture(renderer,m_previewTexture,&previewSkinSrc,&previewSkinDst);
+    SDL_RenderTextureRotated(renderer,m_previewTexture,&previewSkinSrc,&previewSkinDst,0.00f,
+                             nullptr,SDL_FLIP_HORIZONTAL);
 
     SDL_SetRenderDrawColor(renderer,255,0,0,255);
     SDL_RenderRect(renderer,&m_textbox);
-    SDL_Surface* editNamesSurface = TTF_RenderText_Solid(m_font,m_editName.c_str(),m_editName.length(),{0,0,0,255});
+    SDL_Surface* editNamesSurface = TTF_RenderText_Solid(m_font,m_editName.c_str(),m_editName.length(),{84, 83, 83,255});
     SDL_Texture* editNameTexture = SDL_CreateTextureFromSurface(renderer,editNamesSurface);
     SDL_SetTextureScaleMode(editNameTexture,SDL_SCALEMODE_NEAREST);
-    SDL_FRect nameDst{m_textbox.x,m_textbox.y,static_cast<float>(0+ m_editName.length() *50),m_textbox.h};
+    SDL_FRect nameDst{m_textbox.x,m_textbox.y+10.00f,static_cast<float>(0+ m_editName.length() *50),m_textbox.h-10.00f};
     SDL_RenderTexture(renderer,editNameTexture, nullptr,&nameDst);
     SDL_DestroyTexture(editNameTexture);
     SDL_DestroySurface(editNamesSurface);
 
     SDL_RenderRect(renderer,&m_saveNameButton);
+    SDL_Surface* saveNameSurface = TTF_RenderText_Solid(m_font,"save",4,{255,255,255,255});
+    SDL_Texture* saveNameTexture = SDL_CreateTextureFromSurface(renderer,saveNameSurface);
+    SDL_FRect saveNameDst{m_saveNameButton.x+15,m_saveNameButton.y,m_saveNameButton.w-30.00f,m_saveNameButton.h};
+    SDL_SetTextureScaleMode(saveNameTexture,SDL_SCALEMODE_NEAREST);
+    SDL_RenderTexture(renderer,saveNameTexture, nullptr,&saveNameDst);
 }
 
 void EditMenuState::update(float dt)
@@ -106,7 +112,9 @@ void EditMenuState::update(float dt)
         m_currentFrame++;
         m_lastTime=m_nowTime;
     }
-
+    if(m_saveButtonActive){
+        PlayerDetail::getInstance().setPlayerName(m_editName);
+    }
     m_currentFrame %= m_endFrame;
     if(m_playerSkin != PlayerDetail::getInstance().getPlayerSkin())
     {
@@ -125,6 +133,7 @@ bool EditMenuState::handleEvents(SDL_Event &event)
         if(TouchX >= m_backButton.x && TouchX <= m_backButton.x + m_backButton.w &&
             TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h)
         {
+            SDL_StopTextInput(Engine::Get().getWindow());
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
         }
 
@@ -155,11 +164,20 @@ bool EditMenuState::handleEvents(SDL_Event &event)
             TouchY >= m_textbox.y && TouchY <= m_textbox.y + m_textbox.h){
             LOGI("active");
             SDL_StartTextInput(Engine::Get().getWindow());
-
             m_textboxActive=true;
         }
 
+        if(TouchX >= m_saveNameButton.x && TouchX <= m_saveNameButton.x + m_saveNameButton.w &&
+           TouchY >= m_saveNameButton.y && TouchY <= m_saveNameButton.y + m_saveNameButton.h)
+        {
+            m_saveButtonActive =true;
+        }
+
         return true;
+    }
+    if(event.type == SDL_EVENT_FINGER_UP)
+    {
+        m_saveButtonActive =false;
     }
 
     if(m_textboxActive){
@@ -206,7 +224,8 @@ bool EditMenuState::handleEvents(SDL_Event &event)
                 LOGI("name:%s",m_editName.c_str());
                 if(m_editName.length() <9)
                 {
-                    m_editName += event.text.text;
+                    LOGI("str length:%d",m_editName.length());
+                    m_editName += event.text.text[0];
                     bool success =SDL_SetTextInputArea(Engine::Get().getWindow(),
                                                        reinterpret_cast<const SDL_Rect *>(&m_textbox),  m_editName.length());
                     if(success)LOGI("created text input area");

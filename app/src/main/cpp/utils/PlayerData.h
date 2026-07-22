@@ -23,7 +23,7 @@ public:
     void setPlayerSkin(PlayerSkin skin){
         m_playerSkin = skin;
     }
-    std::string_view getPlayerName(){
+    std::string& getPlayerName(){
         return m_name;
     }
     void setPlayerName(const std::string& newName){
@@ -36,6 +36,6 @@ public:
     }
 private:
 
-    std::string m_name;
+    std::string m_name = "Name";
     PlayerSkin m_playerSkin = PlayerSkin::YELLOW; //default:0(yellow) , 1(blue),2(red),3(green)
 };

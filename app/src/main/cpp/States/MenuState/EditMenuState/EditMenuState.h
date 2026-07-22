@@ -27,7 +27,7 @@ private:
     Button m_greenSkinButton{775.00f,100.00f,200.00f,300.00f};
 
     SDL_FRect m_textbox{1057.00f,440.00f,462.00f,143.00f};
-    SDL_FRect m_saveNameButton{1180.00f,600.00f,220.00f,70.00f};
+    SDL_FRect m_saveNameButton{1180.00f,600.00f,216.00f,77.00f};
 
     SDL_IOStream* m_yellowSkinFile= SDL_IOFromFile("sheets/DinoSprites - tard.png","rb");
     SDL_IOStream* m_blueSkinFile= SDL_IOFromFile("sheets/DinoSprites - doux.png","rb");
@@ -59,7 +59,7 @@ private:
 
     bool m_saveButtonActive =true;
     bool m_textboxActive = false;
-    std::string m_editName ="";
+    std::string m_editName = PlayerDetail::getInstance().getPlayerName();
     unsigned int m_currentFrame=0;
     unsigned int m_startFrame =0;
     unsigned int m_endFrame = 4;
