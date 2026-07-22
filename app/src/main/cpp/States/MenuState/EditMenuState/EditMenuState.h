@@ -26,6 +26,8 @@ private:
     Button m_redSkinButton{550.00f,100.00f,200.00f,300.00f};
     Button m_greenSkinButton{775.00f,100.00f,200.00f,300.00f};
 
+    SDL_FRect m_textbox{1057.00f,440.00f,462.00f,143.00f};
+
     SDL_IOStream* m_yellowSkinFile= SDL_IOFromFile("sheets/DinoSprites - tard.png","rb");
     SDL_IOStream* m_blueSkinFile= SDL_IOFromFile("sheets/DinoSprites - doux.png","rb");
     SDL_IOStream* m_redSkinFile= SDL_IOFromFile("sheets/DinoSprites - mort.png","rb");
@@ -50,10 +52,13 @@ private:
     SDL_Texture* m_backButtonTexture = nullptr;
     SDL_Texture* m_leftChevronTexture = nullptr;
     SDL_Texture* m_previewTexture = nullptr;
+
     PlayerSkin m_playerSkin =PlayerDetail::getInstance().getPlayerSkin();
     TTF_Font* m_font = nullptr;
 
     bool m_saveButtonActive =true;
+    bool m_textboxActive = false;
+    std::string m_editName ="";
     unsigned int m_currentFrame=0;
     unsigned int m_startFrame =0;
     unsigned int m_endFrame = 4;

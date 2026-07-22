@@ -71,7 +71,9 @@ public:
     size_t getStateCount(){
         return m_States.size();
     }
-
+    SDL_Window* getWindow(){
+        return m_window;
+    }
 private:
     std::vector<Command> m_CommandQueue;
     std::vector<std::unique_ptr<State>> m_States;

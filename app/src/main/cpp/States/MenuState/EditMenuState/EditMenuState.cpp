@@ -76,6 +76,16 @@ void EditMenuState::render(SDL_Renderer *renderer)
     SDL_FRect previewSkinDst{1038,35,500,390};
     SDL_FRect previewSkinSrc{0.00f+m_currentFrame*24,0.00f,24.00f,24.00f};
     SDL_RenderTexture(renderer,m_previewTexture,&previewSkinSrc,&previewSkinDst);
+
+    SDL_SetRenderDrawColor(renderer,255,0,0,255);
+    SDL_RenderRect(renderer,&m_textbox);
+    SDL_Surface* editNamesSurface = TTF_RenderText_Solid(m_font,m_editName.c_str(),m_editName.length(),{0,0,0,255});
+    SDL_Texture* editNameTexture = SDL_CreateTextureFromSurface(renderer,editNamesSurface);
+    SDL_SetTextureScaleMode(editNameTexture,SDL_SCALEMODE_NEAREST);
+    SDL_FRect nameDst{m_textbox.x,m_textbox.y,static_cast<float>(0+ m_editName.length() *50),m_textbox.h};
+    SDL_RenderTexture(renderer,editNameTexture, nullptr,&nameDst);
+    SDL_DestroyTexture(editNameTexture);
+    SDL_DestroySurface(editNamesSurface);
 }
 
 void EditMenuState::update(float dt)
@@ -105,6 +115,7 @@ void EditMenuState::update(float dt)
 
 bool EditMenuState::handleEvents(SDL_Event &event)
 {
+
     if(event.type == SDL_EVENT_FINGER_DOWN)
     {
         float TouchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
@@ -136,10 +147,53 @@ bool EditMenuState::handleEvents(SDL_Event &event)
         if(TouchX >= m_greenSkinButton.x && TouchX <= m_greenSkinButton.x + m_greenSkinButton.w &&
            TouchY >= m_greenSkinButton.y && TouchY <= m_greenSkinButton.y + m_greenSkinButton.h)
         {
-
             m_playerSkin =PlayerSkin::GREEN;
         }
+        if(TouchX >= m_textbox.x && TouchX <= m_textbox.x + m_textbox.w &&
+            TouchY >= m_textbox.y && TouchY <= m_textbox.y + m_textbox.h){
+
+            m_textboxActive=true;
+        }
+
         return true;
+    }
+
+    if(m_textboxActive){
+        LOGI("active");
+        SDL_StartTextInput(Engine::Get().getWindow());
+
+
+        switch (event.type) {
+            case SDL_EVENT_TEXT_INPUT:
+                m_editName += event.text.text;
+                break;
+            case SDL_EVENT_KEY_DOWN:
+                if(event.key.key == SDLK_BACKSPACE)
+                {
+                    m_editName.pop_back();
+                }
+                if(event.key.key ==SDLK_AC_BACK) {
+                    m_textboxActive = false;
+                    SDL_StopTextInput(Engine::Get().getWindow());
+                }
+                if(event.key.key == SDLK_RETURN)
+                {
+                    m_textboxActive = false;
+                    SDL_StopTextInput(Engine::Get().getWindow());
+                }
+                if(event.key.key == SDLK_RETURN2) {
+                    m_textboxActive = false;
+                    SDL_StopTextInput(Engine::Get().getWindow());
+                }
+                if(event.key.key == SDLK_KP_ENTER) {
+                    m_textboxActive = false;
+                    SDL_StopTextInput(Engine::Get().getWindow());
+                }
+                break;
+        }
+        LOGI("textbox active :%d",m_textboxActive);
+
+        LOGI("name:%s",m_editName.c_str());
     }
     if(event.type == SDL_EVENT_KEY_DOWN)
     {
@@ -154,6 +208,10 @@ bool EditMenuState::handleEvents(SDL_Event &event)
 
 EditMenuState::EditMenuState(SDL_Renderer *renderer)
 {
+    bool success =SDL_SetTextInputArea(Engine::Get().getWindow(),
+                                       reinterpret_cast<const SDL_Rect *>(&m_textbox), 0);
+    if(success)LOGI("created text input area");
+    else LOGI("failed to create input area");
     m_renderer =renderer;
     if(!m_backgroundFile)
         LOGI("failed to load background file");
