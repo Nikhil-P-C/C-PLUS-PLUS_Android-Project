@@ -76,6 +76,7 @@ add_library(main SHARED
         States/inputOverlayState/SepJoysticknButton.cpp
         States/DebugState/DebugState.cpp
         States/GameState/GameState.cpp
+        States/GameState/ParticleSystem.cpp
         States/MenuState/TitleScreenState.cpp
         States/MenuState/MenuState.cpp
         States/MenuState/OptionMenuState/OptionMenuState.cpp

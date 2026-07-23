@@ -61,6 +61,7 @@ GameState::GameState(SDL_Renderer *renderer) {
 }
 
 void GameState::render(SDL_Renderer* renderer)  {
+
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 1600, 720};
@@ -159,8 +160,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                 else if(((top || bottom) && (left || right) && edge)){
                     SDL_RenderTexture(renderer, m_tileset, &src, &dst);
                 }
-//                SDL_SetRenderDrawColor(renderer,255,0,0,255);
-//                SDL_RenderRect(renderer,&dst);
+
             }
         }
     }
@@ -170,8 +170,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_FRect src = tile.src;
         SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
         SDL_RenderTexture(renderer,m_tileset,&src,&dst);
-//        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-//        SDL_RenderRect(renderer, &dst);
+
     }
 
     for(int i=0;i<10;i++){
@@ -225,21 +224,17 @@ void GameState::render(SDL_Renderer* renderer)  {
                     }
                 }
 
-//          SDL_FRect dst = {m_platforms[j].x + j * (48*SCALE), m_platforms[j].y, 48*SCALE, 48*SCALE};
                 SDL_FRect dst = {(m_platforms[i].x+x* (TILE_SIZE * SCALE)) - camX,
                                  ( m_platforms[i].y+y * (TILE_SIZE * SCALE)) - camY,
                                  TILE_SIZE * SCALE, TILE_SIZE * SCALE};
                 SDL_RenderTexture(renderer, m_tileset, &src, &dst);
-//                SDL_RenderRect(renderer,&dst);
             }
 
         }
 
     }
+    m_particleSystem.render(m_renderer);
 
-    SDL_FRect playerBorder{m_player.x-camX,
-                           m_player.y-camY,
-                           m_player.w, m_player.h};
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-camX,
                      m_player.y+m_player.spriteOffsetY-camY,
                      m_player.spriteW,m_player.spriteH};
@@ -258,6 +253,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
+
 }
 
 void GameState::update(float dt){
@@ -271,7 +267,7 @@ void GameState::update(float dt){
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
     updateAnimation();
-
+    m_particleSystem.update(dt);
 }
 
 bool GameState::handleEvents(SDL_Event& event) {
@@ -438,17 +434,47 @@ void GameState::handlePhysicAndInput(float dt) {
     if(InputDispatcher::getInstance().movingLeft){
         m_isPlayerfacingRight =false;
         m_playerAction=PlayerAction::MOVINGLEFT;
-        m_player.x -= 250.00f* dt;
+        m_player.x -= 400.00f* dt;
+        m_walkTimer += dt;
 
+        if(m_isGrounded){
+            if(m_walkTimer >0.08){
+                m_walkTimer =0.00f;
+                m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
+                LOGI("emitting left");
+
+            }
+        }
+        else{
+            m_walkTimer =0.00f;
+        }
     }
     if(InputDispatcher::getInstance().movingRight){
         m_isPlayerfacingRight =true;
         m_playerAction=PlayerAction::MOVINGRIGHT;
-        m_player.x +=250.00f * dt;
+        m_player.x +=400.00f * dt;
+        m_walkTimer += dt;
+        if(m_isGrounded){
+            if(m_walkTimer >0.08){
+                m_walkTimer =0.00f;
+                m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
+                LOGI("emitting Right");
+            }
+        }
+        else{
+            m_walkTimer =0.00f;
+        }
     }
     if(InputDispatcher::getInstance().jump && m_isGrounded){
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
+
+        if(m_isGrounded){
+
+            m_particleSystem.emitJumpDust(m_player.x , m_player.y+m_player.h-40.00f);
+            LOGI("emitting jump");
+
+        }
     }
 
     m_velocityY+=m_gravity*dt;

@@ -87,6 +87,7 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::MENU_SLIDEBAR,"menu/slidebar.png");
     loadTexture(TextureType::MENU_SLIDER,"menu/slider.png");
     loadTexture(TextureType::MENU_RADIO_BUTTON,"menu/radioButton.png");
+    loadTexture(TextureType::DUST_PARTICLE,"Particles/Dust Particle.png");
 
 
     //TODO set scale texture mode to nearest here

@@ -37,6 +37,7 @@ enum class TextureType{
     MENU_SLIDEBAR,
     MENU_SLIDER,
     MENU_RADIO_BUTTON,
+    DUST_PARTICLE,
     COUNT
 };
 class AssetManager{

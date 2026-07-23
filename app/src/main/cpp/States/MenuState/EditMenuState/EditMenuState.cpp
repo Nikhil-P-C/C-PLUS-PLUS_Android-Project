@@ -290,8 +290,9 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer)
 
 EditMenuState::~EditMenuState()
 {
-    SDL_CloseIO(m_fontfile);
     TTF_CloseFont(m_font);
+    SDL_CloseIO(m_fontfile);
+
     SDL_DestroyTexture(m_saveTextTexture);
     SDL_DestroyTexture(m_backButtonTexture);
 

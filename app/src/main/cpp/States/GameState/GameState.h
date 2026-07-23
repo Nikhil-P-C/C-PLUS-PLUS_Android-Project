@@ -13,6 +13,7 @@
 #include "engine/Engine.h"
 #include "utils/utils.h"
 #include "level/GroundShapeBuilder.h"
+#include "ParticleSystem.h"
 
 #define LOG_TAG "GameState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -109,12 +110,10 @@ private:
     std::vector<LevelGround> m_grounds;
     std::vector<LevelGround> m_levelWalls;
     SDL_FRect  m_wallCollisionRect;
-
     GroundShape m_wallShape;
-    //    Platform m_platforms[100];
-//    SDL_FRect m_levelWalls;
     Player   m_player;
-
+    ParticleSystem m_particleSystem;
+    float m_walkTimer=0.0f;
     //scaling and window
     constexpr static const float P_scale =5.0f;
     int m_windowH =0,m_windowW=0;
