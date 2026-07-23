@@ -265,6 +265,7 @@ void GameState::update(float dt){
 
     updateAnimation();
     m_particleSystem.update(dt);
+    m_fruitBuilder.update(dt);
 }
 
 bool GameState::handleEvents(SDL_Event& event) {
@@ -289,7 +290,7 @@ bool GameState::handleEvents(SDL_Event& event) {
 
 void GameState::handleCollision() {
     //Walls
-
+    m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     for(int i = 0;i<1;i++)
     {
         const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
@@ -510,11 +511,11 @@ void GameState::setLevel(int level) {
     m_grounds.emplace_back(704.0f,320.00f,48.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
     m_grounds.emplace_back(640.0f,512.00f,160.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
 
-    m_fruits.emplace_back(200.00f,600.00f,FruitType::BANANA);
-    m_fruits.emplace_back(0.00f,200.00f,FruitType::BANANA);
-    m_fruits.emplace_back(400.00f,500.00f,FruitType::BANANA);
-    m_fruits.emplace_back(700.00f,200.00f,FruitType::BANANA);
-    m_fruits.emplace_back(100.00f,700.00f,FruitType::BANANA);
+    m_fruits.emplace_back(200.00f,400.00f,FruitType::BANANA);
+    m_fruits.emplace_back(700.00f,200.00f,FruitType::APPLE);
+    m_fruits.emplace_back(650.00f,300.00f,FruitType::ORANGE);
+    m_fruits.emplace_back(1000.00f,200.00f,FruitType::BANANA);
+    m_fruits.emplace_back(200.00f,300.00f,FruitType::STRAWBERRY);
     m_fruitBuilder.init(m_fruits);
 
     GroundShapeBuilder builder;
