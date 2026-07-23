@@ -9,6 +9,10 @@
 #include "States/MenuState/TitleScreenState.h"
 
 void Engine::run(){
+    m_assetManager.init(m_renderer);
+
+    pushState(std::make_unique<TitleScreenState>(m_renderer));
+
     unsigned int lastTime = SDL_GetTicks();
     unsigned int currentTime;
     int framedelay = 1000/60;
@@ -124,8 +128,6 @@ Engine::Engine(){
         LOGE("Renderer creation failed: %s", SDL_GetError());
     }
     SDL_SetRenderLogicalPresentation(m_renderer,1600,720,SDL_LOGICAL_PRESENTATION_LETTERBOX);
-//    AssetManager assetManager(SDL_Renderer);
-    m_assetManager = AssetManager(m_renderer);
     m_mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (!m_mixer) {
         LOGE("Mixer creation failed: %s", SDL_GetError());
@@ -139,7 +141,6 @@ Engine::Engine(){
 
     const char* name = SDL_GetRendererName(m_renderer);
     LOGI("Renderer: %s", name);
-    pushState(std::make_unique<TitleScreenState>(m_renderer));
 }
 Engine::~Engine(){
     LOGI("engine destructor");

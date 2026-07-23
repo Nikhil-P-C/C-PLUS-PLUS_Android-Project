@@ -75,7 +75,7 @@ public:
     SDL_Window* getWindow(){
         return m_window;
     }
-    AssetManager getAssetManager(){
+    AssetManager& getAssetManager(){
         return m_assetManager;
     }
 private:
@@ -97,6 +97,6 @@ private:
 
     bool m_running =true;
 
-    AssetManager m_assetManager = AssetManager(nullptr);
+    AssetManager m_assetManager;
 
 };

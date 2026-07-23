@@ -1,7 +1,7 @@
 //
 // Created by LENOVO on 23-07-2026.
 //
-#define pragma once
+#pragma once
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -45,7 +45,10 @@ public:
     MIX_Audio* getSound(std::string soundName);
     TTF_Font* getFont(std::string fontName);
     void loadTexture(TextureType type,const std::string& filepath);
-    AssetManager(SDL_Renderer* renderer);
+    void init(SDL_Renderer* renderer);
+    AssetManager(const AssetManager&) = delete;
+    AssetManager& operator=(const AssetManager&) = delete;
+    AssetManager()= default;
     ~AssetManager();
 private:
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");

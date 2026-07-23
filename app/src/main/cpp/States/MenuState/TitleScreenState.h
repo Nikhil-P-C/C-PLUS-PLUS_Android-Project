@@ -6,7 +6,6 @@
 #include <android/log.h>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-
 #include "State/State.h"
 #include "engine/Engine.h"
 

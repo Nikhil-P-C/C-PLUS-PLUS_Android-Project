@@ -5,40 +5,59 @@
 #include <SDL3_image/SDL_image.h>
 SDL_Texture* AssetManager::getTexture(TextureType type)
 {
-    if(m_textureTable[(unsigned int)type])
-        return m_textureTable[(unsigned int)type];
 
+    if(m_textureTable[(unsigned int)type]) {
+        LOGI("the type that suceed:%d",(int)type);
+        return m_textureTable[(unsigned int) type];
+    }
+    LOGI("the type that failed : %d",(int)type);
     return nullptr;
 }
 
 MIX_Audio *AssetManager::getSound(std::string soundName)
 {
+    //TODO implement getSound
     return nullptr;
 }
 
 TTF_Font *AssetManager::getFont(std::string fontName)
 {
+    //TODO implement getFont
     return nullptr;
 }
 
 void AssetManager::loadTexture(TextureType type, const std::string &filepath)
 {
     LOGI("yo :%s",filepath.c_str());
-    if(type >TextureType::COUNT)
+    if(type >=TextureType::COUNT)
     {
         LOGI("out of bound");
     }
     SDL_IOStream* ioStream =SDL_IOFromFile(filepath.c_str(),"rb");
     SDL_Surface* surface = IMG_Load_IO(ioStream, false);
     m_textureTable[(unsigned int)type] = SDL_CreateTextureFromSurface(m_renderer,surface);
+    SDL_CloseIO(ioStream);
+    SDL_DestroySurface(surface);
     if(m_textureTable[(unsigned int)type] == nullptr)
     {
         LOGI("failed to load texture:%s",filepath.c_str());
     }
 
 }
-AssetManager::AssetManager(SDL_Renderer *renderer)
+
+
+AssetManager::~AssetManager()
 {
+    LOGI("all texture being destroyed");
+    for(const auto& texture:m_textureTable){
+        SDL_DestroyTexture(texture);
+    }
+    LOGI("all texture destroyed");
+
+}
+
+void AssetManager::init(SDL_Renderer *renderer) {
+
     if(!renderer) {
         LOGI("render is null");
         return;
@@ -70,12 +89,7 @@ AssetManager::AssetManager(SDL_Renderer *renderer)
     loadTexture(TextureType::MENU_RADIO_BUTTON,"menu/radioButton.png");
 
 
-
-
-}
-
-AssetManager::~AssetManager()
-{
+    //TODO set scale texture mode to nearest here
 
 }
 
