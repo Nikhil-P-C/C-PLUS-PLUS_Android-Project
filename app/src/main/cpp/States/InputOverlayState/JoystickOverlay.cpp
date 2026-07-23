@@ -120,22 +120,11 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
 }
 
 JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
-    if(!m_joystickFile)
-        LOGI("Failed to load joystick file");
-    SDL_Surface* joystickSurface = IMG_Load_IO(m_joystickFile, false);
-    m_joystickTexture =SDL_CreateTextureFromSurface(renderer, joystickSurface);
-    SDL_DestroySurface(joystickSurface);
-    SDL_CloseIO(m_joystickFile);
-    if(!m_joystickHandleFile)
-        LOGI("Failed to load joystickHandle file");
-    SDL_Surface* joystickHandleSurface = IMG_Load_IO(m_joystickHandleFile, false);
-    m_joystickHandleTexture =SDL_CreateTextureFromSurface(renderer, joystickHandleSurface);
-    SDL_DestroySurface(joystickHandleSurface);
-    SDL_CloseIO(m_joystickHandleFile);
+
+    m_joystickTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING);
+    m_joystickHandleTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE);
     LOGI("joystick overlay constructor:%p",this);
 }
 JoystickOverlay::~JoystickOverlay() {
-    SDL_DestroyTexture(m_joystickTexture);
-    SDL_DestroyTexture(m_joystickHandleTexture);
     LOGI("joystick overlay destructor:%p",this);
 }

@@ -5,6 +5,7 @@
 #include "SDL3/SDL.h"
 #include "SDL3_image/SDL_image.h"
 #include "SDL3_ttf/SDL_ttf.h"
+#include "engine/Engine.h"
 
 
 void AudioMenuState::render(SDL_Renderer *renderer) {
@@ -148,25 +149,12 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
 }
 AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
     LOGI("Audio menu state constructor:%p",this);
-    SDL_Surface* menuSurface = IMG_Load_IO(m_menuSpriteFile,false);
-    m_menuTexture =SDL_CreateTextureFromSurface(renderer,menuSurface);
-    SDL_CloseIO(m_menuSpriteFile);
-    SDL_DestroySurface(menuSurface);
 
-    SDL_Surface* optionBlockSurface = IMG_Load_IO(m_optionBlockFile,false);
-    m_optionBlockTexture = SDL_CreateTextureFromSurface(renderer,optionBlockSurface);
-    SDL_CloseIO(m_optionBlockFile);
-    SDL_DestroySurface(optionBlockSurface);
+    m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
+    m_optionBlockTexture =Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);
+    m_slidebarTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_SLIDEBAR);
+    m_sliderTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_SLIDER);
 
-    SDL_Surface* slidebarSurface = IMG_Load_IO(m_slidebarFile,false);
-    m_slidebarTexture = SDL_CreateTextureFromSurface(renderer,slidebarSurface);
-    SDL_CloseIO(m_slidebarFile);
-    SDL_DestroySurface(slidebarSurface);
-
-    SDL_Surface* sliderSurface = IMG_Load_IO(m_sliderFile,false);
-    m_sliderTexture = SDL_CreateTextureFromSurface(renderer,sliderSurface);
-    SDL_CloseIO(m_sliderFile);
-    SDL_DestroySurface(sliderSurface);
 
     m_font = TTF_OpenFontIO(m_fontfile,false,24);
     LOGI("Loaded font %p", m_font);
@@ -203,10 +191,6 @@ AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
 }
 AudioMenuState::~AudioMenuState(){
     LOGI("Audio menu state destructor:%p",this);
-    SDL_DestroyTexture(m_menuTexture);
-    SDL_DestroyTexture(m_optionBlockTexture);
-    SDL_DestroyTexture(m_slidebarTexture);
-    SDL_DestroyTexture(m_sliderTexture);
     SDL_DestroyTexture(m_musicFontTexture);
     SDL_DestroyTexture(m_masterFontTexture);
     SDL_DestroyTexture(m_sfxFontTexture);

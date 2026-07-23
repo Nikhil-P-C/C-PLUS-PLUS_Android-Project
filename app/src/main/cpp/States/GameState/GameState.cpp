@@ -27,48 +27,15 @@ GameState::GameState(SDL_Renderer *renderer) {
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
-
-
     //background sprite loading;
-    SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backGroundSprite, false);
-    if(!Backgroundsurface)return;
-    m_backGround = SDL_CreateTextureFromSurface(renderer, Backgroundsurface);
-    if(!m_backGround)return;
-    SDL_DestroySurface(Backgroundsurface);
-
+    m_backGround = Engine::Get().getAssetManager().getTexture(TextureType::BG_SKY);
+    // m_tileset loading
+    m_tileset = Engine::Get().getAssetManager().getTexture(TextureType::TILESET_SPRITE);
     //player sprite loading
-
-
-    if(!m_yellowSkinFile)
-        LOGI("couldnt load yellowskin file");
-    SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
-//    m_yellowSkin  = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
-    if(!Engine::Get().getAssetManager().getTexture("yellowSkin"))
-        LOGI("texture not  found");
-    m_yellowSkin = Engine::Get().getAssetManager().getTexture("yellowSkin");
-    SDL_DestroySurface(yellowSkinSurface);
-    SDL_CloseIO(m_yellowSkinFile);
-
-    if(!m_blueSkinFile)
-        LOGI("couldnt load blueskin file");
-    SDL_Surface* blueSkinSurface = IMG_Load_IO(m_blueSkinFile,false);
-    m_blueSkin  = SDL_CreateTextureFromSurface(renderer,blueSkinSurface);
-    SDL_DestroySurface(blueSkinSurface);
-    SDL_CloseIO(m_blueSkinFile);
-
-    if(!m_redSkinFile)
-        LOGI("couldnt load redskin file");
-    SDL_Surface* redSkinSurface = IMG_Load_IO(m_redSkinFile,false);
-    m_redSkin  = SDL_CreateTextureFromSurface(renderer,redSkinSurface);
-    SDL_DestroySurface(redSkinSurface);
-    SDL_CloseIO(m_redSkinFile);
-
-    if(!m_greenSkinFile)
-        LOGI("couldnt load greenskin file");
-    SDL_Surface* greenSkinSurface = IMG_Load_IO(m_greenSkinFile,false);
-    m_greenSkin  = SDL_CreateTextureFromSurface(renderer,greenSkinSurface);
-    SDL_DestroySurface(greenSkinSurface);
-    SDL_CloseIO(m_greenSkinFile);
+    m_yellowSkin = Engine::Get().getAssetManager().getTexture(TextureType::YELLOW_SKIN);
+    m_blueSkin  = Engine::Get().getAssetManager().getTexture(TextureType::BLUE_SKIN);
+    m_redSkin  = Engine::Get().getAssetManager().getTexture(TextureType::RED_SKIN);
+    m_greenSkin  = Engine::Get().getAssetManager().getTexture(TextureType::GREEN_SKIN);
 
     //from player static data
     if(PlayerDetail::getInstance().getPlayerSkin() == PlayerSkin::YELLOW)
@@ -79,17 +46,12 @@ GameState::GameState(SDL_Renderer *renderer) {
         m_playerTexture = m_redSkin;
     else if(PlayerDetail::getInstance().getPlayerSkin()  == PlayerSkin::GREEN)
         m_playerTexture = m_greenSkin;
+
     //player name loading
     SDL_Surface* playerNameSurface = TTF_RenderText_Solid(m_font,PlayerDetail::getInstance().getPlayerName().c_str(),
                                                           PlayerDetail::getInstance().getPlayerName().length(),{255,255,255,255});
     m_playerNameTextue = SDL_CreateTextureFromSurface(renderer,playerNameSurface);
     SDL_DestroySurface(playerNameSurface);
-    // m_tileset loading
-    SDL_Surface* Tilesurface = IMG_Load_IO(m_tilesetSprite, false);
-    if(!Tilesurface)return;
-    m_tileset = SDL_CreateTextureFromSurface(renderer, Tilesurface);
-    if(!m_tileset)return;
-    SDL_DestroySurface(Tilesurface);
 
     SDL_SetTextureScaleMode(m_playerTexture, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);

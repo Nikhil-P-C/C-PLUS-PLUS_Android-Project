@@ -3,6 +3,7 @@
 //
 #pragma once
 #include <vector>
+#include "Engine/Engine.h"
 #include "State/State.h"
 #include "utils/button.h"
 
@@ -20,10 +21,6 @@ private:
     Button m_LeftButton{200 ,400,100,100};
     Button m_RightButton{300,400,100,100};
     Button m_CrouchButton{1400,600,100,100};
-
-    SDL_IOStream* m_jumpButtonFile = SDL_IOFromFile("button/jump_button.png","rb");
-    SDL_IOStream* m_leftButtonFile = SDL_IOFromFile("button/left_button.png","rb");
-    SDL_IOStream* m_rightButtonFile = SDL_IOFromFile("button/right_button.png","rb");
 
     SDL_Texture* m_jumpButtonTexture = nullptr;
     SDL_Texture* m_leftButtonTexture = nullptr;

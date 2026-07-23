@@ -25,7 +25,6 @@ public:
     bool handleEvents(SDL_Event& event)override;
 
 private:
-    SDL_IOStream* m_backgroundSprite = SDL_IOFromFile("menu-animate.png","rb");
 
     SDL_Texture* m_background = nullptr;
 

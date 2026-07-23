@@ -122,22 +122,14 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
 
 
 ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
-    SDL_Surface* jumpButtonSurface = IMG_Load_IO(m_jumpButtonFile,false);
-    SDL_Surface* leftButtonSurface = IMG_Load_IO(m_leftButtonFile,false);
-    SDL_Surface* rightButtonSurface = IMG_Load_IO(m_rightButtonFile,false);
-    m_jumpButtonTexture = SDL_CreateTextureFromSurface(renderer,jumpButtonSurface);
-    m_leftButtonTexture = SDL_CreateTextureFromSurface(renderer,leftButtonSurface);
-    m_rightButtonTexture = SDL_CreateTextureFromSurface(renderer,rightButtonSurface);
-    SDL_CloseIO(m_jumpButtonFile);
-    SDL_CloseIO(m_leftButtonFile);
-    SDL_CloseIO(m_rightButtonFile);
-    SDL_DestroySurface(jumpButtonSurface);
-    SDL_DestroySurface(leftButtonSurface);
-    SDL_DestroySurface(rightButtonSurface);
+    LOGI("Button Overlay Constructor : %p",this);
+    m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
+    m_leftButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_LEFT_BUTTON);
+    m_rightButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_RIGHT_BUTTON);
+
 }
 
 ButtonOverlay::~ButtonOverlay(){
-    SDL_DestroyTexture(m_jumpButtonTexture);
-    SDL_DestroyTexture(m_leftButtonTexture);
-    SDL_DestroyTexture(m_rightButtonTexture);
+    LOGI("Button Overlay Destructor : %p",this);
+
 }

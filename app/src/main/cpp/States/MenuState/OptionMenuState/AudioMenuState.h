@@ -34,10 +34,7 @@ private:
     Button m_sfxSlidebar{930.00f, m_masterSlidebar.y+(150.00f+20.00f)*2, 450.00f, 25.00f};
 
     SDL_FingerID m_sliderFingerID =0;
-    SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("menu/optionMenu.png","rb");
-    SDL_IOStream* m_optionBlockFile= SDL_IOFromFile("menu/menutile.png","rb");
-    SDL_IOStream* m_slidebarFile   = SDL_IOFromFile("menu/slidebar.png","rb");
-    SDL_IOStream* m_sliderFile     = SDL_IOFromFile("menu/slider.png","rb");
+
     SDL_IOStream* m_fontfile       = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
 
     TTF_Font* m_font               = nullptr;

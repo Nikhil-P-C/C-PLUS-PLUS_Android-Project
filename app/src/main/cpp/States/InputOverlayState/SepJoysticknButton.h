@@ -29,10 +29,6 @@ private:
     SDL_FingerID m_joystickFingerID =0;
     SDL_FingerID m_jumpFingerID =0;
 
-    SDL_IOStream* m_jumpButtonFile = SDL_IOFromFile("button/jump_button.png","rb");
-    SDL_IOStream *m_joystickFile = SDL_IOFromFile("joystick/Joystick.png","rb");
-    SDL_IOStream *m_joystickHandleFile =SDL_IOFromFile("joystick/SmallHandleFilledGrey.png","rb");
-
     SDL_Texture* m_jumpButtonTexture = nullptr;
     SDL_Texture *m_joystickTexture = nullptr;
     SDL_Texture *m_joystickHandleTexture = nullptr;

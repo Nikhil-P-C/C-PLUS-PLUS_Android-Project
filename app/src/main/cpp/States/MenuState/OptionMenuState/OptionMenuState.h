@@ -22,9 +22,6 @@ private:
     Button m_controlButton{100.00f,275.00f,180.00f,155.00f};
     Button m_backButton{50.00f,600.00f,200.00f,100.00f};
 
-    SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("misc/bg.png","rb");
-
-
     SDL_Texture* m_backGroundTexture = nullptr;
 
     SDL_Renderer* m_renderer= nullptr;

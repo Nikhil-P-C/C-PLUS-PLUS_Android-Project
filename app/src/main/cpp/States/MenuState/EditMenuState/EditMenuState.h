@@ -29,17 +29,7 @@ private:
     SDL_FRect m_textbox{1057.00f,440.00f,462.00f,143.00f};
     SDL_FRect m_saveNameButton{1180.00f,600.00f,216.00f,77.00f};
 
-    SDL_IOStream* m_yellowSkinFile= SDL_IOFromFile("sheets/DinoSprites - tard.png","rb");
-    SDL_IOStream* m_blueSkinFile= SDL_IOFromFile("sheets/DinoSprites - doux.png","rb");
-    SDL_IOStream* m_redSkinFile= SDL_IOFromFile("sheets/DinoSprites - mort.png","rb");
-    SDL_IOStream* m_greenSkinFile= SDL_IOFromFile("sheets/DinoSprites - vita.png","rb");
-    SDL_IOStream* m_backgroundFile = SDL_IOFromFile("misc/bg.png","rb");
-    SDL_IOStream* m_editMenuFile = SDL_IOFromFile("menu/editMenu.png","rb");
-    SDL_IOStream* m_nameTileFile = SDL_IOFromFile("menu/nameTile.png","rb");
-    SDL_IOStream* m_previewTileFile = SDL_IOFromFile("menu/previewTile.png","rb");
-    SDL_IOStream* m_skinTileFile = SDL_IOFromFile("menu/skinTile.png","rb");
     SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
-    SDL_IOStream* m_leftChevronFile = SDL_IOFromFile("menu/Chevron-Arrow-Left.png","rb");
 
     SDL_Texture* m_yellowSkinTexture =nullptr;
     SDL_Texture* m_blueSkinTexture =nullptr;

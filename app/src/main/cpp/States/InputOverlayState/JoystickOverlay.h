@@ -2,9 +2,10 @@
 // Created by LENOVO on 12-05-2026.
 //
 #pragma once
+#include <SDL3/SDL.h>
 #include "State/State.h"
 #include "utils/button.h"
-#include "SDL3/SDL.h"
+#include "engine/Engine.h"
 class JoystickOverlay: public State {
 public:
     JoystickOverlay(SDL_Renderer* renderer);
@@ -24,8 +25,7 @@ private:
     bool m_joystickFingerActive =false;
 
     SDL_FingerID m_fingerID =0;
-    SDL_IOStream *m_joystickFile = SDL_IOFromFile("joystick/Joystick.png","rb");
-    SDL_IOStream *m_joystickHandleFile =SDL_IOFromFile("joystick/SmallHandleFilledGrey.png","rb");
+
     SDL_Texture *m_joystickTexture = nullptr;
     SDL_Texture *m_joystickHandleTexture = nullptr;
 

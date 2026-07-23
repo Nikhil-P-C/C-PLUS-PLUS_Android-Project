@@ -250,80 +250,27 @@ bool EditMenuState::handleEvents(SDL_Event &event)
 
 EditMenuState::EditMenuState(SDL_Renderer *renderer)
 {
-
     m_renderer =renderer;
-    if(!m_backgroundFile)
-        LOGI("failed to load background file");
-    SDL_Surface* backgroundSurface = IMG_Load_IO(m_backgroundFile, false);
-    m_backgroundTexture = SDL_CreateTextureFromSurface(renderer,backgroundSurface);
-    SDL_DestroySurface(backgroundSurface);
-    SDL_CloseIO(m_backgroundFile);
 
     if(!m_fontfile)
         LOGI("failed to load font file");
     m_font = TTF_OpenFontIO(m_fontfile,false,18);
+
     SDL_Surface* backButtonSurface = TTF_RenderText_Solid(m_font,"  back",6,{255,255,255,255});
     m_backButtonTexture = SDL_CreateTextureFromSurface(renderer,backButtonSurface);
     SDL_DestroySurface(backButtonSurface);
-    if(!m_editMenuFile)
-        LOGI("failed to load editMenu file");
-    SDL_Surface* editMenuSurface = IMG_Load_IO(m_editMenuFile,false);
-    m_editMenuTexture = SDL_CreateTextureFromSurface(renderer,editMenuSurface);
-    SDL_DestroySurface(editMenuSurface);
-    SDL_CloseIO(m_editMenuFile);
-    if(!m_nameTileFile)
-        LOGI("failed to load nameTile file");
-    SDL_Surface* nameTileSurface = IMG_Load_IO(m_nameTileFile,false);
-    m_nameTileTexture = SDL_CreateTextureFromSurface(renderer,nameTileSurface);
-    SDL_DestroySurface(nameTileSurface);
-    SDL_CloseIO(m_nameTileFile);
-    if(!m_skinTileFile)
-        LOGI("failed to load skinTile file");
-    SDL_Surface* skinTileSurface = IMG_Load_IO(m_skinTileFile,false);
-    m_skinTileTexture = SDL_CreateTextureFromSurface(renderer,skinTileSurface);
-    SDL_DestroySurface(skinTileSurface);
-    SDL_CloseIO(m_skinTileFile);
-    if(!m_previewTileFile)
-        LOGI("failed to load previewTile file");
-    SDL_Surface* previewTileSurface = IMG_Load_IO(m_previewTileFile,false);
-    m_previewTileTexture = SDL_CreateTextureFromSurface(renderer,previewTileSurface);
-    SDL_DestroySurface(previewTileSurface);
-    SDL_CloseIO(m_previewTileFile);
-    if(!m_leftChevronFile)
-        LOGI("failed to load leftChevron file");
-    SDL_Surface* leftChevronSurface = IMG_Load_IO(m_leftChevronFile,false);
-    m_leftChevronTexture = SDL_CreateTextureFromSurface(renderer,leftChevronSurface);
-    SDL_DestroySurface(leftChevronSurface);
-    SDL_CloseIO(m_leftChevronFile);
 
-    if(!m_yellowSkinFile)
-        LOGI("couldnt load yellowskin file");
-    SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
-//    m_yellowSkinTexture = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
-    m_yellowSkinTexture=Engine::Get().getAssetManager().getTexture("yellowSkin");
-    SDL_DestroySurface(yellowSkinSurface);
-    SDL_CloseIO(m_yellowSkinFile);
+    m_backgroundTexture =Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
+    m_editMenuTexture = Engine::Get().getAssetManager().getTexture(TextureType::EDIT_MENU_TILE);
+    m_nameTileTexture = Engine::Get().getAssetManager().getTexture(TextureType::EDIT_NAME_TILE);
+    m_skinTileTexture = Engine::Get().getAssetManager().getTexture(TextureType::EDIT_SKIN_TILE);
+    m_previewTileTexture = Engine::Get().getAssetManager().getTexture(TextureType::EDIT_PREVIEW_TILE);
+    m_leftChevronTexture = Engine::Get().getAssetManager().getTexture(TextureType::EDIT_LEFT_CHEVRON);
 
-    if(!m_blueSkinFile)
-        LOGI("couldnt load blueskin file");
-    SDL_Surface* blueSkinSurface = IMG_Load_IO(m_blueSkinFile,false);
-    m_blueSkinTexture = SDL_CreateTextureFromSurface(renderer,blueSkinSurface);
-    SDL_DestroySurface(blueSkinSurface);
-    SDL_CloseIO(m_blueSkinFile);
-
-    if(!m_redSkinFile)
-        LOGI("couldnt load redskin file");
-    SDL_Surface* redSkinSurface = IMG_Load_IO(m_redSkinFile,false);
-    m_redSkinTexture = SDL_CreateTextureFromSurface(renderer,redSkinSurface);
-    SDL_DestroySurface(redSkinSurface);
-    SDL_CloseIO(m_redSkinFile);
-
-    if(!m_greenSkinFile)
-        LOGI("couldnt load greenskin file");
-    SDL_Surface* greenSkinSurface = IMG_Load_IO(m_greenSkinFile,false);
-    m_greenSkinTexture = SDL_CreateTextureFromSurface(renderer,greenSkinSurface);
-    SDL_DestroySurface(greenSkinSurface);
-    SDL_CloseIO(m_greenSkinFile);
+    m_yellowSkinTexture=Engine::Get().getAssetManager().getTexture(TextureType::YELLOW_SKIN);
+    m_blueSkinTexture = Engine::Get().getAssetManager().getTexture(TextureType::BLUE_SKIN);
+    m_redSkinTexture = Engine::Get().getAssetManager().getTexture(TextureType::RED_SKIN);
+    m_greenSkinTexture = Engine::Get().getAssetManager().getTexture(TextureType::GREEN_SKIN);
 
 
 
@@ -344,14 +291,7 @@ EditMenuState::~EditMenuState()
 {
     SDL_CloseIO(m_fontfile);
     TTF_CloseFont(m_font);
-    SDL_DestroyTexture(m_backgroundTexture);
-    SDL_DestroyTexture(m_editMenuTexture);
-    SDL_DestroyTexture(m_nameTileTexture);
-    SDL_DestroyTexture(m_skinTileTexture);
-    SDL_DestroyTexture(m_previewTileTexture);
+
     SDL_DestroyTexture(m_backButtonTexture);
-    SDL_DestroyTexture(m_leftChevronTexture);
-    SDL_DestroyTexture(m_blueSkinTexture);
-    SDL_DestroyTexture(m_redSkinTexture);
-    SDL_DestroyTexture(m_greenSkinTexture);
+
 }

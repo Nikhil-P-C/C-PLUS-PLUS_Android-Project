@@ -6,37 +6,53 @@
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <android/log.h>
-#include <unordered_map>
+#include <array>
 #include <string>
 
 #define LOG_TAG "AssetManager"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
+enum class TextureType{
+    YELLOW_SKIN=0,
+    BLUE_SKIN,
+    RED_SKIN,
+    GREEN_SKIN,
+    TILESET_SPRITE,
+    BG_SKY,
+    BG_CONFETTI,
+    BG_CONFETTI_ANIMATED,
+    EDIT_MENU_TILE,
+    EDIT_NAME_TILE,
+    EDIT_PREVIEW_TILE,
+    EDIT_SKIN_TILE,
+    EDIT_LEFT_CHEVRON,
+    BUTTON_JUMP_BUTTON,
+    BUTTON_LEFT_BUTTON,
+    BUTTON_RIGHT_BUTTON,
+    JOYSTICK_JOYSTICK_OUTERRING,
+    JOYSTICK_JOYSTICK_HANDLE,
+    MENU_BUTTONS,
+    OPTION_MENU_TILE,
+    MENU_OPTION_BLOCK_TILE,
+    MENU_SLIDEBAR,
+    MENU_SLIDER,
+    MENU_RADIO_BUTTON,
+    COUNT
+};
 class AssetManager{
 public:
-    SDL_Texture* getTexture(std::string textureName);
+    SDL_Texture* getTexture(TextureType type);
     MIX_Audio* getSound(std::string soundName);
     TTF_Font* getFont(std::string fontName);
-
+    void loadTexture(TextureType type,const std::string& filepath);
     AssetManager(SDL_Renderer* renderer);
     ~AssetManager();
 private:
-
-    SDL_IOStream* m_yellowSkinFile   = SDL_IOFromFile("sheets/DinoSprites - tard.png","rb");
-    SDL_IOStream* m_blueSkinFile     = SDL_IOFromFile("sheets/DinoSprites - doux.png","rb");
-    SDL_IOStream* m_redSkinFile      = SDL_IOFromFile("sheets/DinoSprites - mort.png","rb");
-    SDL_IOStream* m_greenSkinFile    = SDL_IOFromFile("sheets/DinoSprites - vita.png","rb");
-    SDL_IOStream* m_tilesetSprite    = SDL_IOFromFile("Platforms/Terrain.png", "rb");
-    SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
-    SDL_IOStream* m_backgroundFile = SDL_IOFromFile("misc/bg.png","rb");
-    SDL_IOStream* m_editMenuFile = SDL_IOFromFile("menu/editMenu.png","rb");
-    SDL_IOStream* m_nameTileFile = SDL_IOFromFile("menu/nameTile.png","rb");
-    SDL_IOStream* m_previewTileFile = SDL_IOFromFile("menu/previewTile.png","rb");
-    SDL_IOStream* m_skinTileFile = SDL_IOFromFile("menu/skinTile.png","rb");
-    SDL_IOStream* m_leftChevronFile = SDL_IOFromFile("menu/Chevron-Arrow-Left.png","rb");
-    std::unordered_map<std::string ,SDL_Texture*> m_textureTable;
-    std::unordered_map<std::string ,MIX_Audio*> m_soundTable;
-    std::unordered_map<std::string ,TTF_Font*> m_fontTable;
+
+    std::array<SDL_Texture*,(unsigned int)TextureType::COUNT> m_textureTable{nullptr};
+    std::array<MIX_Audio*,5> m_soundTable{nullptr};
+    std::array<TTF_Font*,5> m_fontTable{nullptr};
+
+    SDL_Renderer* m_renderer= nullptr;
 };

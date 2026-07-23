@@ -19,8 +19,7 @@ private:
     Button m_editButton{1100,350,350,150};
     bool m_transitioning =false;
 
-    SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("misc/bg.png","rb");
-    SDL_IOStream* m_buttonSprite = SDL_IOFromFile("button/buttons.png","rb");
+
     SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
     SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
 

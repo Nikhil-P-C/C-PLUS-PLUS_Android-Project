@@ -16,9 +16,7 @@ public:
     ControlMenuState(SDL_Renderer* renderer);
     ~ControlMenuState()override;
 private:
-    SDL_IOStream* m_menuSpriteFile = SDL_IOFromFile("menu/optionMenu.png","rb");
-    SDL_IOStream* m_optionBlockFile= SDL_IOFromFile("menu/menutile.png","rb");
-    SDL_IOStream* m_radioButtonfile = SDL_IOFromFile("menu/radioButton.png","rb");
+
     SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
 
     TTF_Font* m_font = nullptr;

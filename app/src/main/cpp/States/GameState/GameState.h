@@ -40,16 +40,9 @@ public:
     ~GameState() override{
         LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
-        if (m_backGround)      SDL_DestroyTexture(m_backGround);
-        if (m_tileset)         SDL_DestroyTexture(m_tileset);
-        if (m_endTexture)      SDL_DestroyTexture(m_endTexture);
-        if (m_blueSkin)        SDL_DestroyTexture(m_blueSkin);
-        if (m_redSkin)         SDL_DestroyTexture(m_redSkin);
-        if (m_greenSkin)       SDL_DestroyTexture(m_greenSkin);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
-        if (m_tilesetSprite)   SDL_CloseIO(m_tilesetSprite);
-        if (m_backGroundSprite)SDL_CloseIO(m_backGroundSprite);
+
 
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
     }
@@ -91,12 +84,6 @@ private:
     unsigned int m_aniNowTime =0;
     unsigned int m_aniLastTime =SDL_GetTicks();
 
-    SDL_IOStream* m_yellowSkinFile   = SDL_IOFromFile("sheets/DinoSprites - tard.png","rb");
-    SDL_IOStream* m_blueSkinFile     = SDL_IOFromFile("sheets/DinoSprites - doux.png","rb");
-    SDL_IOStream* m_redSkinFile      = SDL_IOFromFile("sheets/DinoSprites - mort.png","rb");
-    SDL_IOStream* m_greenSkinFile    = SDL_IOFromFile("sheets/DinoSprites - vita.png","rb");
-    SDL_IOStream* m_tilesetSprite    = SDL_IOFromFile("Platforms/Terrain.png", "rb");
-    SDL_IOStream* m_backGroundSprite = SDL_IOFromFile("Background/orig.png", "rb");
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
 
     SDL_Texture* m_playerNameTextue  = nullptr;

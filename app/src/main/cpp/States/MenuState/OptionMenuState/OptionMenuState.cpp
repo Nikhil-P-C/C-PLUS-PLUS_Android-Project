@@ -72,10 +72,9 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
 
 OptionMenuState::OptionMenuState(SDL_Renderer *renderer) {
     m_renderer =renderer;
-    SDL_Surface* backgroundSurface = IMG_Load_IO(m_backGroundSprite,false);
-    m_backGroundTexture = SDL_CreateTextureFromSurface(renderer,backgroundSurface);
-    SDL_CloseIO(m_backGroundSprite);
-    SDL_DestroySurface(backgroundSurface);
+
+    m_backGroundTexture =Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
+    ;
     //push default optionstate
     Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));
 

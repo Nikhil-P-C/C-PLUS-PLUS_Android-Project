@@ -4,6 +4,7 @@
 #include <math.h>
 #include "SepJoysticknButton.h"
 #include "SDL3_image/SDL_image.h"
+#include "engine/Engine.h"
 
 void SepJoysticknButton::render(SDL_Renderer *renderer) {
     SDL_FRect joystick{m_joystick.x,m_joystick.y,m_joystick.w,m_joystick.h};
@@ -123,31 +124,20 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
 }
 
 SepJoysticknButton::SepJoysticknButton(SDL_Renderer *renderer) {
-    SDL_Surface* joystickSurface = IMG_Load_IO(m_joystickFile, false);
-    m_joystickTexture =SDL_CreateTextureFromSurface(renderer, joystickSurface);
-    SDL_DestroySurface(joystickSurface);
+    m_joystickTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING);
 
-    SDL_Surface* joystickHandleSurface = IMG_Load_IO(m_joystickHandleFile, false);
-    m_joystickHandleTexture =SDL_CreateTextureFromSurface(renderer, joystickHandleSurface);
-    SDL_DestroySurface(joystickHandleSurface);
+    m_joystickHandleTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE);
 
-    SDL_Surface* jumpButtonSurface = IMG_Load_IO(m_jumpButtonFile, false);
-    m_jumpButtonTexture =SDL_CreateTextureFromSurface(renderer, jumpButtonSurface);
-    SDL_DestroySurface(jumpButtonSurface);
+    m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
+
 
     SDL_SetTextureScaleMode(m_joystickTexture, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_joystickHandleTexture, SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_jumpButtonTexture, SDL_SCALEMODE_NEAREST);
 
-    SDL_CloseIO(m_jumpButtonFile);
-    SDL_CloseIO(m_joystickFile);
-    SDL_CloseIO(m_joystickHandleFile);
-
     LOGI("SepJoysticknButton overlay constructor:%p",this);
 }
 SepJoysticknButton::~SepJoysticknButton() {
-    SDL_DestroyTexture(m_joystickTexture);
-    SDL_DestroyTexture(m_joystickHandleTexture);
-    SDL_DestroyTexture(m_jumpButtonTexture);
+
     LOGI("SepJoysticknButton overlay destructor:%p",this);
 }

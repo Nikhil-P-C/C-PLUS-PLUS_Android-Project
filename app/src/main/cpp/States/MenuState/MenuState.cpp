@@ -19,8 +19,7 @@ MenuState::MenuState(SDL_Renderer *renderer) {
     if(!m_fontfile)return;
     if(!m_fontShadowfile)return;
 
-    if(!m_backGroundSprite)return;
-    if(!m_buttonSprite)return;
+
 
     m_font =TTF_OpenFontIO(m_fontfile,false,32);
     m_fontShadow =TTF_OpenFontIO(m_fontShadowfile,false,32);
@@ -28,11 +27,10 @@ MenuState::MenuState(SDL_Renderer *renderer) {
     if(!m_font)return;
     if(!m_fontShadow)return;
 
-    SDL_Surface* Backgroundsurface = IMG_Load_IO(m_backGroundSprite,false);
-    SDL_Surface* playButtonSurface = IMG_Load_IO(m_buttonSprite,false);
+
     m_renderer = renderer;
-    m_background = SDL_CreateTextureFromSurface(renderer,Backgroundsurface);
-    m_playButtonTexture = SDL_CreateTextureFromSurface(renderer,playButtonSurface);
+    m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
+    m_playButtonTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_BUTTONS);
 
     //text texture
     //play text
@@ -84,17 +82,13 @@ MenuState::MenuState(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_editText,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_editTextShadow,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_playButtonTexture,SDL_SCALEMODE_NEAREST);
-    SDL_DestroySurface(Backgroundsurface);
-    SDL_DestroySurface(playButtonSurface);
-    if(!m_background)return;
-    if(!m_playButtonTexture)return;
+
 }
 
 MenuState::~MenuState() {
 
     LOGI("menu destructor:%p",this);
-    SDL_DestroyTexture(m_background);
-    SDL_DestroyTexture(m_playButtonTexture);
+
     SDL_DestroyTexture(m_playText);
     SDL_DestroyTexture(m_playTextShadow);
     SDL_DestroyTexture(m_optionText);
@@ -107,8 +101,6 @@ MenuState::~MenuState() {
     TTF_CloseFont(m_font);
     TTF_CloseFont(m_fontShadow);
 
-    SDL_CloseIO(m_backGroundSprite);
-    SDL_CloseIO(m_buttonSprite);
     SDL_CloseIO(m_fontfile);
     SDL_CloseIO(m_fontShadowfile);
 }

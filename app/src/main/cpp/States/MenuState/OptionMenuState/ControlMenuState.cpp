@@ -4,6 +4,7 @@
 #include "ControlMenuState.h"
 #include "SDL3/SDL.h"
 #include "SDL3_image/SDL_image.h"
+#include "engine/Engine.h"
 
 void ControlMenuState::render(SDL_Renderer *renderer) {
 
@@ -21,18 +22,7 @@ void ControlMenuState::render(SDL_Renderer *renderer) {
         SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 34.00f};
         SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
     }
-//
-//    SDL_SetRenderDrawColor(renderer,0,0,255,255);
-//    SDL_FRect joystickButton ={m_joystickButton.x,m_joystickButton.y,m_joystickButton.w,m_joystickButton.h};
-//    SDL_RenderRect(renderer,&joystickButton);
-//
-//    SDL_SetRenderDrawColor(renderer,255,0,0,255);
-//    SDL_FRect buttonButton ={m_buttonButton.x,m_buttonButton.y,m_buttonButton.w,m_buttonButton.h};
-//    SDL_RenderRect(renderer,&buttonButton);
-//
-//    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-//    SDL_FRect joystickWButton ={m_joystickWButtons.x,m_joystickWButtons.y,m_joystickWButtons.w,m_joystickWButtons.h};
-//    SDL_RenderRect(renderer,&joystickWButton);
+
     //text rendering
     //joystick text
 
@@ -124,21 +114,10 @@ bool ControlMenuState::handleEvents(SDL_Event &event) {
 
 ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
 
-    SDL_Surface* menuSurface = IMG_Load_IO(m_menuSpriteFile,false);
-    m_menuTexture = SDL_CreateTextureFromSurface(renderer,menuSurface);
-    SDL_CloseIO(m_menuSpriteFile);
-    SDL_DestroySurface(menuSurface);
 
-    SDL_Surface* optionBlockSurface = IMG_Load_IO(m_optionBlockFile,false);
-    m_optionBlockTexture = SDL_CreateTextureFromSurface(renderer,optionBlockSurface);
-    SDL_CloseIO(m_optionBlockFile);
-    SDL_DestroySurface(optionBlockSurface);
-
-    SDL_Surface* radioButtonSurface = IMG_Load_IO(m_radioButtonfile,false);
-    m_radioButtonTexture = SDL_CreateTextureFromSurface(renderer,radioButtonSurface);
-    SDL_CloseIO(m_radioButtonfile);
-    SDL_DestroySurface(radioButtonSurface);
-
+    m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
+    m_optionBlockTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);
+    m_radioButtonTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_RADIO_BUTTON);
     m_font = TTF_OpenFontIO(m_fontfile,false,26);
     LOGI("Loaded font %p", m_font);
     if (!m_font)
@@ -178,9 +157,6 @@ ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
 }
 
 ControlMenuState::~ControlMenuState() {
-    SDL_DestroyTexture(m_optionBlockTexture);
-    SDL_DestroyTexture(m_radioButtonTexture);
-    SDL_DestroyTexture(m_menuTexture);
     SDL_DestroyTexture(m_joystickFontTexture);
     SDL_DestroyTexture(m_buttonsFontTexture);
     SDL_DestroyTexture(m_joystickWButtonsFontTexture);
