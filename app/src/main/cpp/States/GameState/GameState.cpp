@@ -42,7 +42,10 @@ GameState::GameState(SDL_Renderer *renderer) {
     if(!m_yellowSkinFile)
         LOGI("couldnt load yellowskin file");
     SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
-    m_yellowSkin  = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
+//    m_yellowSkin  = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
+    if(!Engine::Get().getAssetManager().getTexture("yellowSkin"))
+        LOGI("texture not  found");
+    m_yellowSkin = Engine::Get().getAssetManager().getTexture("yellowSkin");
     SDL_DestroySurface(yellowSkinSurface);
     SDL_CloseIO(m_yellowSkinFile);
 

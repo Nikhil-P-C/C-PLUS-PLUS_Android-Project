@@ -299,7 +299,8 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer)
     if(!m_yellowSkinFile)
         LOGI("couldnt load yellowskin file");
     SDL_Surface* yellowSkinSurface = IMG_Load_IO(m_yellowSkinFile,false);
-    m_yellowSkinTexture = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
+//    m_yellowSkinTexture = SDL_CreateTextureFromSurface(renderer,yellowSkinSurface);
+    m_yellowSkinTexture=Engine::Get().getAssetManager().getTexture("yellowSkin");
     SDL_DestroySurface(yellowSkinSurface);
     SDL_CloseIO(m_yellowSkinFile);
 
@@ -350,7 +351,6 @@ EditMenuState::~EditMenuState()
     SDL_DestroyTexture(m_previewTileTexture);
     SDL_DestroyTexture(m_backButtonTexture);
     SDL_DestroyTexture(m_leftChevronTexture);
-    SDL_DestroyTexture(m_yellowSkinTexture);
     SDL_DestroyTexture(m_blueSkinTexture);
     SDL_DestroyTexture(m_redSkinTexture);
     SDL_DestroyTexture(m_greenSkinTexture);

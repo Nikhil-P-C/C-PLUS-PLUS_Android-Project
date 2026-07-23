@@ -43,7 +43,6 @@ public:
         if (m_backGround)      SDL_DestroyTexture(m_backGround);
         if (m_tileset)         SDL_DestroyTexture(m_tileset);
         if (m_endTexture)      SDL_DestroyTexture(m_endTexture);
-        if (m_yellowSkin)      SDL_DestroyTexture(m_yellowSkin);
         if (m_blueSkin)        SDL_DestroyTexture(m_blueSkin);
         if (m_redSkin)         SDL_DestroyTexture(m_redSkin);
         if (m_greenSkin)       SDL_DestroyTexture(m_greenSkin);

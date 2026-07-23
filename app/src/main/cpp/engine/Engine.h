@@ -3,6 +3,7 @@
 //
 
 #include "State/State.h"
+#include "AssetManager.h"
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3/SDL.h>
 #include <android/log.h>
@@ -74,6 +75,9 @@ public:
     SDL_Window* getWindow(){
         return m_window;
     }
+    AssetManager getAssetManager(){
+        return m_assetManager;
+    }
 private:
     std::vector<Command> m_CommandQueue;
     std::vector<std::unique_ptr<State>> m_States;
@@ -93,5 +97,6 @@ private:
 
     bool m_running =true;
 
+    AssetManager m_assetManager = AssetManager(nullptr);
 
 };

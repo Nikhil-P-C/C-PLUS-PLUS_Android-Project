@@ -106,12 +106,13 @@ void Engine::exitEngine(){
 }
 Engine::Engine(){
     LOGI("engine constructor");
-    if(MIX_Init()){
+
+    if(!MIX_Init()){
         LOGI("failed SDL_mixer:%s", SDL_GetError());
     }
-    if (SDL_Init(SDL_INIT_VIDEO))
+    if (!SDL_Init(SDL_INIT_VIDEO))
         LOGI("failed SDL:%s", SDL_GetError());
-    if (TTF_Init())
+    if (!TTF_Init())
         LOGI("failed ttf:%s", SDL_GetError());
     m_window = SDL_CreateWindow("Dino", 0, 0, SDL_WINDOW_FULLSCREEN);
     if (!m_window) {
@@ -123,7 +124,8 @@ Engine::Engine(){
         LOGE("Renderer creation failed: %s", SDL_GetError());
     }
     SDL_SetRenderLogicalPresentation(m_renderer,1600,720,SDL_LOGICAL_PRESENTATION_LETTERBOX);
-
+//    AssetManager assetManager(SDL_Renderer);
+    m_assetManager = AssetManager(m_renderer);
     m_mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (!m_mixer) {
         LOGE("Mixer creation failed: %s", SDL_GetError());

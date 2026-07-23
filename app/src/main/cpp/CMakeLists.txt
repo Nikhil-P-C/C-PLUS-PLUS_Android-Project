@@ -84,6 +84,7 @@ add_library(main SHARED
         States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
         engine/Engine.cpp
+        engine/AssetManager.cpp
         utils/Camera.cpp
         utils/gameMath.cpp
         utils/SpriteCollector.cpp
