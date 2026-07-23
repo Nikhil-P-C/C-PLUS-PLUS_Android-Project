@@ -41,7 +41,12 @@ void DebugState::render(SDL_Renderer *renderer) {
         SDL_FRect dst{ground.x-camX,ground.y-camY,ground.w*SCALE,ground.h*SCALE};
         SDL_RenderRect(renderer,&dst);
     }
-
+    //fruit
+    for(const auto& fruit:m_fruits){
+        SDL_FRect border{(fruit.x+35)-camX,(fruit.y+35)-camY,(32*SCALE)-70,(32*SCALE)-70};
+        SDL_RenderRect(renderer,&border);
+    }
+    //player
     SDL_FRect playerBorder{m_player.x - camX, m_player.y - camY, m_player.w, m_player.h};
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderRect(renderer, &playerBorder);
@@ -70,7 +75,7 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     m_grounds=m_gameState->getLevelGrounds();
     m_walls=m_gameState->getLevelWalls();
     m_platforms=m_gameState->getPlatforms();
-
+    m_fruits=m_gameState->getFruits();
     LOGI("Debug state constructor :%p",this);
     m_font = TTF_OpenFontIO(m_fontFile,false, 24);
     LOGI("font:%d",(bool)m_font);

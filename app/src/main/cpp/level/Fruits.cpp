@@ -33,8 +33,8 @@ void FruitBuilder::render(SDL_Renderer *renderer) {
             fruitSrc={0.00f+m_spriteWidth*m_collectedStartFrame,0.00f,m_spriteWidth,m_spriteHeight};
             SDL_RenderTexture(renderer, m_collectedTexture,&fruitSrc,&fruitDst);
         }
-        SDL_FRect border{(fruit.x+35)-camX,(fruit.y+35)-camY,(m_spriteWidth*SCALE)-70,(m_spriteHeight*SCALE)-70};
-        SDL_RenderRect(renderer,&border);
+//        SDL_FRect border{(fruit.x+35)-camX,(fruit.y+35)-camY,(m_spriteWidth*SCALE)-70,(m_spriteHeight*SCALE)-70};
+//        SDL_RenderRect(renderer,&border);
 //        LOGI("fruit rendered , frame:%d",m_currentFrame);
     }
 }

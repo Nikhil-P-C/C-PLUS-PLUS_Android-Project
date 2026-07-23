@@ -76,6 +76,9 @@ public:
     std::vector<LevelGround> getLevelGrounds(){
         return m_grounds;
     }
+    std::vector<Fruit> getFruits(){
+        return m_fruits;
+    }
 private:
 
     //animation and texture

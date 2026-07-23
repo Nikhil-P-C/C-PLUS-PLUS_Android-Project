@@ -22,6 +22,7 @@ private:
     std::vector<Platform> m_platforms;
     SDL_FRect m_walls;
     std::vector<LevelGround> m_grounds;
+    std::vector<Fruit> m_fruits;
     Player m_player;
     SDL_Texture*  m_fpsTexture       = nullptr;
     TTF_Font*     m_font             = nullptr;
