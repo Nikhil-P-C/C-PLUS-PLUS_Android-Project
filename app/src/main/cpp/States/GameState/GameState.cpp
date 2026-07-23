@@ -231,6 +231,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     }
     m_particleSystem.render(m_renderer);
+    m_fruitBuilder.render(m_renderer);
 
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-camX,
                      m_player.y+m_player.spriteOffsetY-camY,
@@ -250,7 +251,6 @@ void GameState::render(SDL_Renderer* renderer)  {
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
-    m_fruitBuilder.render(m_renderer);
 }
 
 void GameState::update(float dt){
