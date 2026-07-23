@@ -90,6 +90,7 @@ add_library(main SHARED
         utils/gameMath.cpp
         utils/SpriteCollector.cpp
         level/GroundShapeBuilder.cpp
+        level/Fruits.cpp
 
 )
 

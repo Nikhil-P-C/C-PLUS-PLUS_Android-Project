@@ -14,6 +14,7 @@
 #include "utils/utils.h"
 #include "level/GroundShapeBuilder.h"
 #include "ParticleSystem.h"
+#include "level/Fruits.h"
 
 #define LOG_TAG "GameState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -109,11 +110,16 @@ private:
     std::vector<Platform> m_platforms;
     std::vector<LevelGround> m_grounds;
     std::vector<LevelGround> m_levelWalls;
+    std::vector<Fruit> m_fruits;
+
     SDL_FRect  m_wallCollisionRect;
+    FruitBuilder m_fruitBuilder;
     GroundShape m_wallShape;
-    Player   m_player;
     ParticleSystem m_particleSystem;
     float m_walkTimer=0.0f;
+
+    Player   m_player;
+
     //scaling and window
     constexpr static const float P_scale =5.0f;
     int m_windowH =0,m_windowW=0;
@@ -130,6 +136,7 @@ private:
     float m_gravity =1800.00f;
     float m_jumpVelocity =1000.00f;
     bool  m_isGrounded =true;
+    bool  m_wasGrounded =false;
 
     //input
     Button m_JumpButton;

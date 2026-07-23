@@ -7,7 +7,6 @@ SDL_Texture* AssetManager::getTexture(TextureType type)
 {
 
     if(m_textureTable[(unsigned int)type]) {
-        LOGI("the type that suceed:%d",(int)type);
         return m_textureTable[(unsigned int) type];
     }
     LOGI("the type that failed : %d",(int)type);
@@ -88,7 +87,11 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::MENU_SLIDER,"menu/slider.png");
     loadTexture(TextureType::MENU_RADIO_BUTTON,"menu/radioButton.png");
     loadTexture(TextureType::DUST_PARTICLE,"Particles/Dust Particle.png");
-
+    loadTexture(TextureType::FRUIT_BANANA,"Fruits/Bananas.png");
+    loadTexture(TextureType::FRUIT_APPLE,"Fruits/Apple.png");
+    loadTexture(TextureType::FRUIT_ORANGE,"Fruits/Orange.png");
+    loadTexture(TextureType::FRUIT_STRAWBERRY,"Fruits/Strawberry.png");
+    loadTexture(TextureType::FRUIT_COLLECTED,"Fruits/Collected.png");
 
     //TODO set scale texture mode to nearest here
 

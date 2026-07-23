@@ -26,6 +26,7 @@
       <w>isgrounded</w>
       <w>jumpforce</w>
       <w>lasttime</w>
+      <w>maxfruit</w>
       <w>menutile</w>
       <w>movingleft</w>
       <w>movingright</w>

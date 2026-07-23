@@ -253,11 +253,11 @@ void GameState::render(SDL_Renderer* renderer)  {
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
-
+    m_fruitBuilder.render(m_renderer);
 }
 
 void GameState::update(float dt){
-
+    m_fruitBuilder.update(dt);
     m_previousY =m_player.y;
     handlePhysicAndInput(dt);
 
@@ -364,6 +364,7 @@ void GameState::handleCollision() {
                 m_velocityY = 0.0f;
                 m_isGrounded = true;
             }
+            
         }
 
     }
@@ -383,6 +384,7 @@ void GameState::handleCollision() {
             m_isGrounded = true;
             m_velocityY = 0.0f;
         }
+
         if(groundCollisionSide == gameMath::collisionSide::BOTTOM){
             m_velocityY =0.0f;
         }
@@ -427,7 +429,11 @@ void GameState::updateAnimation() {
 }
 
 void GameState::handlePhysicAndInput(float dt) {
-
+    if(m_wasGrounded && m_isGrounded){
+        m_particleSystem.emitLandDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f,
+                                      m_player.x-40.00f, m_player.y+m_player.h-50.00f);
+        m_wasGrounded =false;
+    }
     if(!InputDispatcher::getInstance().movingLeft&&!InputDispatcher::getInstance().movingRight){
         m_playerAction=PlayerAction::IDLE;
     }
@@ -438,8 +444,10 @@ void GameState::handlePhysicAndInput(float dt) {
         m_walkTimer += dt;
 
         if(m_isGrounded){
-            if(m_walkTimer >0.08){
+            if(m_walkTimer >0.2){
                 m_walkTimer =0.00f;
+                m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
+                m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
                 m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
                 LOGI("emitting left");
 
@@ -455,9 +463,12 @@ void GameState::handlePhysicAndInput(float dt) {
         m_player.x +=400.00f * dt;
         m_walkTimer += dt;
         if(m_isGrounded){
-            if(m_walkTimer >0.08){
+            if(m_walkTimer >0.2){
                 m_walkTimer =0.00f;
                 m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
+                m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
+                m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
+
                 LOGI("emitting Right");
             }
         }
@@ -468,14 +479,13 @@ void GameState::handlePhysicAndInput(float dt) {
     if(InputDispatcher::getInstance().jump && m_isGrounded){
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
-
+        m_wasGrounded =true;
         if(m_isGrounded){
-
             m_particleSystem.emitJumpDust(m_player.x , m_player.y+m_player.h-40.00f);
             LOGI("emitting jump");
-
         }
     }
+
 
     m_velocityY+=m_gravity*dt;
     m_player.y +=m_velocityY*dt;
@@ -503,6 +513,12 @@ void GameState::setLevel(int level) {
     m_grounds.emplace_back(704.0f,320.00f,48.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
     m_grounds.emplace_back(640.0f,512.00f,160.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
 
+    m_fruits.emplace_back(200.00f,600.00f,FruitType::BANANA);
+    m_fruits.emplace_back(0.00f,200.00f,FruitType::BANANA);
+    m_fruits.emplace_back(400.00f,500.00f,FruitType::BANANA);
+    m_fruits.emplace_back(700.00f,200.00f,FruitType::BANANA);
+    m_fruits.emplace_back(100.00f,700.00f,FruitType::BANANA);
+    m_fruitBuilder.init(m_fruits);
 
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,SCALE);

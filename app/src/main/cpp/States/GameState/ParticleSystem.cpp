@@ -18,11 +18,6 @@ void ParticleSystem::render(SDL_Renderer* renderer)
     {
         if (!particle.isAlive)
             continue;
-        if(particle.isAlive){
-            LOGI("particle is alive");
-        }
-        if (!particle.isAlive)
-            continue;
         float sizefactor = particle.life /particle.maxLife;
         float alpha = particle.life / particle.maxLife;
         float size = 70.00f*sizefactor;
@@ -89,7 +84,7 @@ void ParticleSystem::emitLeftDust(float feetX, float feetY)
 
             particle.vX =randomFloat(0,200);
             particle.vY =randomFloat(-100,100);
-
+            LOGI("left particle VX:%f , Vy : %f",particle.vX,particle.vY);
             particle.life = 0.4f;
             particle.maxLife=0.4f;
             return;
@@ -104,8 +99,9 @@ void ParticleSystem::emitRightDust(float feetX, float feetY) {
             particle.x =feetX;
             particle.y =feetY;
 
-            particle.vX =randomFloat(-200,0);
+            particle.vX =randomFloat(-100,0);
             particle.vY =randomFloat(-100,100);
+            LOGI("right particle VX:%f , Vy : %f",particle.vX,particle.vY);
 
             particle.life = 0.4f;
             particle.maxLife=0.4f;
@@ -116,8 +112,16 @@ void ParticleSystem::emitRightDust(float feetX, float feetY) {
 
 void ParticleSystem::emitLandDust(float leftFeetX, float leftFeetY,float rightFeetX,float rightFeetY)
 {
-    emitLeftDust(leftFeetX,leftFeetY);
-    emitRightDust(rightFeetX,rightFeetY);
+    int burst =3;
+    for(int i =0; i<burst;i++)
+    {
+        float randomX1 = randomFloat(leftFeetX,rightFeetX);
+        float randomX2 = randomFloat(leftFeetX,rightFeetX);
+
+
+        emitLeftDust(randomX1, leftFeetY);
+        emitRightDust(randomX2, rightFeetY);
+    }
 }
 
 ParticleSystem::ParticleSystem()

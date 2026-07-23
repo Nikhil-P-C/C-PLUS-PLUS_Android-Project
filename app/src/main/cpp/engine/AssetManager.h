@@ -38,6 +38,11 @@ enum class TextureType{
     MENU_SLIDER,
     MENU_RADIO_BUTTON,
     DUST_PARTICLE,
+    FRUIT_BANANA,
+    FRUIT_APPLE,
+    FRUIT_ORANGE,
+    FRUIT_STRAWBERRY,
+    FRUIT_COLLECTED,
     COUNT
 };
 class AssetManager{

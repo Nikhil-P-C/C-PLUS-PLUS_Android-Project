@@ -11,8 +11,8 @@ struct Particle{
     float x=0,y=0;
     float vX=0,vY=0;
 
-    float life=0.08f;
-    float maxLife =0.8;
+    float life=0.04f;
+    float maxLife =0.4;
 };
 class ParticleSystem{
 public:
