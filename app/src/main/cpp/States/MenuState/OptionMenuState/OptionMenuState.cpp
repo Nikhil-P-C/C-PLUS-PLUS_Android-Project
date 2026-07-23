@@ -71,15 +71,17 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
 }
 
 OptionMenuState::OptionMenuState(SDL_Renderer *renderer) {
+    LOGI("Option Menu State Constructor:%p",this);
+
     m_renderer =renderer;
 
     m_backGroundTexture =Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
-    ;
+
     //push default optionstate
     Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));
 
 }
 
 OptionMenuState::~OptionMenuState() {
-    SDL_DestroyTexture(m_backGroundTexture);
+    LOGI("Option Menu State Destructor:%p",this);
 }

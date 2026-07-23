@@ -86,11 +86,10 @@ void EditMenuState::render(SDL_Renderer *renderer)
     SDL_DestroyTexture(editNameTexture);
     SDL_DestroySurface(editNamesSurface);
 
-    SDL_Surface* saveNameSurface = TTF_RenderText_Solid(m_font,"save",4,{255,255,255,255});
-    SDL_Texture* saveNameTexture = SDL_CreateTextureFromSurface(renderer,saveNameSurface);
+
     SDL_FRect saveNameDst{m_saveNameButton.x+15,m_saveNameButton.y,m_saveNameButton.w-30.00f,m_saveNameButton.h};
-    SDL_SetTextureScaleMode(saveNameTexture,SDL_SCALEMODE_NEAREST);
-    SDL_RenderTexture(renderer,saveNameTexture, nullptr,&saveNameDst);
+    SDL_SetTextureScaleMode(m_saveTextTexture,SDL_SCALEMODE_NEAREST);
+    SDL_RenderTexture(renderer,m_saveTextTexture, nullptr,&saveNameDst);
 }
 
 void EditMenuState::update(float dt)
@@ -255,7 +254,9 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer)
     if(!m_fontfile)
         LOGI("failed to load font file");
     m_font = TTF_OpenFontIO(m_fontfile,false,18);
-
+    SDL_Surface* saveNameSurface = TTF_RenderText_Solid(m_font,"save",4,{255,255,255,255});
+    m_saveTextTexture = SDL_CreateTextureFromSurface(renderer,saveNameSurface);
+    SDL_DestroySurface(saveNameSurface);
     SDL_Surface* backButtonSurface = TTF_RenderText_Solid(m_font,"  back",6,{255,255,255,255});
     m_backButtonTexture = SDL_CreateTextureFromSurface(renderer,backButtonSurface);
     SDL_DestroySurface(backButtonSurface);
@@ -291,7 +292,7 @@ EditMenuState::~EditMenuState()
 {
     SDL_CloseIO(m_fontfile);
     TTF_CloseFont(m_font);
-
+    SDL_DestroyTexture(m_saveTextTexture);
     SDL_DestroyTexture(m_backButtonTexture);
 
 }

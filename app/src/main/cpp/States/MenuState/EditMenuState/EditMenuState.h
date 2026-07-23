@@ -43,6 +43,7 @@ private:
     SDL_Texture* m_backButtonTexture = nullptr;
     SDL_Texture* m_leftChevronTexture = nullptr;
     SDL_Texture* m_previewTexture = nullptr;
+    SDL_Texture* m_saveTextTexture = nullptr;
 
     PlayerSkin m_playerSkin =PlayerDetail::getInstance().getPlayerSkin();
     TTF_Font* m_font = nullptr;
