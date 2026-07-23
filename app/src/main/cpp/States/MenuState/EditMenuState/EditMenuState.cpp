@@ -275,17 +275,8 @@ EditMenuState::EditMenuState(SDL_Renderer *renderer)
 
 
 
-    SDL_SetTextureScaleMode(m_backgroundTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_editMenuTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_nameTileTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_skinTileTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_previewTileTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_backButtonTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_leftChevronTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_yellowSkinTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_blueSkinTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_redSkinTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_greenSkinTexture,SDL_SCALEMODE_NEAREST);
+
 }
 
 EditMenuState::~EditMenuState()

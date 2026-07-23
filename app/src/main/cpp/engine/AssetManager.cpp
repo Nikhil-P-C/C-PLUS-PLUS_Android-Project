@@ -93,8 +93,9 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::FRUIT_STRAWBERRY,"Fruits/Strawberry.png");
     loadTexture(TextureType::FRUIT_COLLECTED,"Fruits/Collected.png");
 
-    //TODO set scale texture mode to nearest here
-
+    for(const auto & texture: m_textureTable){
+        SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
+    }
 }
 
 

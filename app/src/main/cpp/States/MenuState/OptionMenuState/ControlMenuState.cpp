@@ -151,9 +151,6 @@ ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_joystickWButtonsFontTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_debugFontTexture,SDL_SCALEMODE_NEAREST);
 
-    SDL_SetTextureScaleMode(m_menuTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_radioButtonTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
 }
 
 ControlMenuState::~ControlMenuState() {

@@ -131,9 +131,6 @@ SepJoysticknButton::SepJoysticknButton(SDL_Renderer *renderer) {
     m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
 
 
-    SDL_SetTextureScaleMode(m_joystickTexture, SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_joystickHandleTexture, SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_jumpButtonTexture, SDL_SCALEMODE_NEAREST);
 
     LOGI("SepJoysticknButton overlay constructor:%p",this);
 }

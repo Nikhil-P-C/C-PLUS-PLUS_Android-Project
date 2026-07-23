@@ -81,7 +81,6 @@ MenuState::MenuState(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_quitTextShadow,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_editText,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_editTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_playButtonTexture,SDL_SCALEMODE_NEAREST);
 
 }
 

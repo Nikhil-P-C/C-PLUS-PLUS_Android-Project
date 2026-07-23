@@ -183,10 +183,7 @@ AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_masterFontTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_musicFontTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_sfxFontTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_menuTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionBlockTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_slidebarTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_sliderTexture,SDL_SCALEMODE_NEAREST);
+
 
 }
 AudioMenuState::~AudioMenuState(){

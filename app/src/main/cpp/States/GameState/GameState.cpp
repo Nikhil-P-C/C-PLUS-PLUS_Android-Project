@@ -53,9 +53,6 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_playerNameTextue = SDL_CreateTextureFromSurface(renderer,playerNameSurface);
     SDL_DestroySurface(playerNameSurface);
 
-    SDL_SetTextureScaleMode(m_playerTexture, SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_tileset, SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_playerNameTextue,SDL_SCALEMODE_NEAREST);
 
     setLevel(0);
 }

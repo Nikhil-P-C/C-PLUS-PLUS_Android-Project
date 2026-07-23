@@ -44,7 +44,6 @@ TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
 
     m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI_ANIMATED);
 
-    SDL_SetTextureScaleMode(m_background,SDL_SCALEMODE_NEAREST);
 
 }
 TitleScreenState::~TitleScreenState() {
