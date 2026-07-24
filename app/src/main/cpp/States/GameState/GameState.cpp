@@ -251,6 +251,17 @@ void GameState::render(SDL_Renderer* renderer)  {
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
+    //TODO BETTER COUNTER RENDERING
+    //this is for test purpose
+    std::string fruitCounter = "fruit:"+std::to_string(PlayerDetail::getInstance().getScore());
+
+    SDL_Surface* fruitCounterSurface = TTF_RenderText_Solid(m_font,fruitCounter.c_str(),
+                                                           fruitCounter.length(),{255,255,255,255});
+    SDL_Texture* fruitCounterTexture= SDL_CreateTextureFromSurface(renderer,fruitCounterSurface);
+    SDL_FRect fruitCounterDst{1400.00f,50.00f,160.00f,100.00f};
+    SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
+    SDL_DestroyTexture(fruitCounterTexture);
+    SDL_DestroySurface(fruitCounterSurface);
 }
 
 void GameState::update(float dt){
@@ -259,8 +270,11 @@ void GameState::update(float dt){
     handlePhysicAndInput(dt);
 
     m_isGrounded =false;
-    handleCollision();
 
+    handleCollision();
+    int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
+    PlayerDetail::getInstance().addScore(score);
+    LOGI("score:%d",PlayerDetail::getInstance().getScore());
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
     updateAnimation();
@@ -290,7 +304,6 @@ bool GameState::handleEvents(SDL_Event& event) {
 
 void GameState::handleCollision() {
     //Walls
-    m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     for(int i = 0;i<1;i++)
     {
         const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
@@ -516,6 +529,8 @@ void GameState::setLevel(int level) {
     m_fruits.emplace_back(650.00f,300.00f,FruitType::ORANGE);
     m_fruits.emplace_back(1000.00f,200.00f,FruitType::BANANA);
     m_fruits.emplace_back(200.00f,300.00f,FruitType::STRAWBERRY);
+    m_fruits.emplace_back(200.00f,300.00f,FruitType::BANANA);
+
     m_fruitBuilder.init(m_fruits);
 
     GroundShapeBuilder builder;

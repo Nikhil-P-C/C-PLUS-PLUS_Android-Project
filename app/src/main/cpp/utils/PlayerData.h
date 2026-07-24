@@ -20,22 +20,31 @@ public:
     PlayerSkin getPlayerSkin(){
         return m_playerSkin;
     }
-    void setPlayerSkin(PlayerSkin skin){
-        m_playerSkin = skin;
-    }
     std::string& getPlayerName(){
         return m_name;
     }
+    int getScore(){
+        return m_fruitCollectionScore;
+    }
+    void setPlayerSkin(PlayerSkin skin){
+        m_playerSkin = skin;
+    }
+
     void setPlayerName(const std::string& newName){
         m_name = newName;
+    }
+    void addScore(int score){
+        m_fruitCollectionScore += score;
+    }
+    void setScore(int score){
+        m_fruitCollectionScore = score;
     }
     static PlayerDetail& getInstance(){
         static PlayerDetail instance;
         return instance;
-
     }
 private:
-
+    int m_fruitCollectionScore = 0;
     std::string m_name = "Name";
     PlayerSkin m_playerSkin = PlayerSkin::YELLOW; //default:0(yellow) , 1(blue),2(red),3(green)
 };

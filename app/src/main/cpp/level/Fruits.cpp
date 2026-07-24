@@ -65,8 +65,9 @@ void FruitBuilder::update(float dt)
         }
     }
 }
-void FruitBuilder::onCollision(float x, float y, float w, float h)
+int FruitBuilder::onCollision(float x, float y, float w, float h)
 {
+    int totalConsumedFruit =0;
     for(auto& fruit:m_fruits)
     {
         if(fruit.collectedAniDone)
@@ -75,10 +76,17 @@ void FruitBuilder::onCollision(float x, float y, float w, float h)
         bool collision = gameMath::checkcollision(x,y,fruitcollider.x,fruitcollider.y,
                                                   h,w,fruitcollider.h,fruitcollider.w);
         if(collision) {
-            fruit.type = FruitType::COLLECTED;
+
+            if(fruit.type != FruitType::COLLECTED)
+                totalConsumedFruit++;
             fruit.consumed=true;
+            fruit.type = FruitType::COLLECTED;
         }
+
     }
+    LOGI("total fruit consumed:%d",totalConsumedFruit);
+
+    return totalConsumedFruit;
 }
 void FruitBuilder::init(const std::vector<Fruit> &fruits)
 {

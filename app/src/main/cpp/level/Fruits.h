@@ -30,7 +30,7 @@ public:
     void init(const std::vector<Fruit>& fruits);
     void render(SDL_Renderer* renderer);
     void update(float dt);
-    void onCollision(float x,float y,float w,float h);
+    int onCollision(float x,float y,float w,float h);
 private:
     std::vector<Fruit> m_fruits;
     SDL_Texture* m_orangeTexture= nullptr;

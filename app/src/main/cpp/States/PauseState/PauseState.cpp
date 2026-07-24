@@ -82,6 +82,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
     if(event.type == SDL_EVENT_FINGER_DOWN){
         if (shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)) {
+            PlayerDetail::getInstance().setScore(0);
             GameData::getInstance().setPaused(false);
             m_transitioning = true;
             LOGI("should close");
