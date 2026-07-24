@@ -15,6 +15,7 @@
 #include "level/GroundShapeBuilder.h"
 #include "ParticleSystem.h"
 #include "level/Fruits.h"
+#include "level/Traps.h"
 
 #define LOG_TAG "GameState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)

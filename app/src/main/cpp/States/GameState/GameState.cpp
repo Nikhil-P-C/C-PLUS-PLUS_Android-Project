@@ -258,7 +258,7 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_Surface* fruitCounterSurface = TTF_RenderText_Solid(m_font,fruitCounter.c_str(),
                                                            fruitCounter.length(),{255,255,255,255});
     SDL_Texture* fruitCounterTexture= SDL_CreateTextureFromSurface(renderer,fruitCounterSurface);
-    SDL_FRect fruitCounterDst{1400.00f,50.00f,160.00f,100.00f};
+    SDL_FRect fruitCounterDst{1420.00f,0.00f,160.00f,100.00f};
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);

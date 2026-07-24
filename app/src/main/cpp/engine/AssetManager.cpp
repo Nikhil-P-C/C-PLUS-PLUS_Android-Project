@@ -92,6 +92,39 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::FRUIT_ORANGE,"Fruits/Orange.png");
     loadTexture(TextureType::FRUIT_STRAWBERRY,"Fruits/Strawberry.png");
     loadTexture(TextureType::FRUIT_COLLECTED,"Fruits/Collected.png");
+    loadTexture(TextureType::TRAP_FALLING_PLATFORM_OFF,"Traps/Falling Platforms/Off.png");
+    loadTexture(TextureType::TRAP_FALLING_PLATFORM_ON,"Traps/Falling Platforms/On (32x10).png");
+    loadTexture(TextureType::TRAP_FAN_OFF,"Traps/Fan/Off.png");
+    loadTexture(TextureType::TRAP_FAN_ON,"Traps/Fan/On (24x8).png");
+    loadTexture(TextureType::TRAP_FIRE_HIT,"Traps/Fire/Hit (16x32).png");
+    loadTexture(TextureType::TRAP_FIRE_OFF,"Traps/Fire/Off.png");
+    loadTexture(TextureType::TRAP_FIRE_ON,"Traps/Fire/On (16x32).png");
+    loadTexture(TextureType::TRAP_PLATFORM_BROWN_OFF,"Traps/Platforms/Brown Off.png");
+    loadTexture(TextureType::TRAP_PLATFORM_BROWN_ON,"Traps/Platforms/Brown On (32x8).png");
+    loadTexture(TextureType::TRAP_PLATFORM_CHAIN,"Traps/Platforms/Chain.png");
+    loadTexture(TextureType::TRAP_PLATFORM_GREY_OFF,"Traps/Platforms/Grey Off.png");
+    loadTexture(TextureType::TRAP_PLATFORM_GREY_ON,"Traps/Platforms/Grey On (32x8).png");
+    loadTexture(TextureType::TRAP_ROCK_HEAD_BLINK,"Traps/Rock Head/Blink (42x42).png");
+    loadTexture(TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,"Traps/Rock Head/Bottom Hit (42x42).png");
+    loadTexture(TextureType::TRAP_ROCK_HEAD_HIT_LEFT,"Traps/Rock Head/Left Hit (42x42).png");
+    loadTexture(TextureType::TRAP_ROCK_HEAD_HIT_RIGHT,"Traps/Rock Head/Right Hit (42x42).png");
+    loadTexture(TextureType::TRAP_ROCK_HEAD_HIT_TOP,"Traps/Rock Head/Top Hit (42x42).png");
+    loadTexture(TextureType::TRAP_SPIKE_HEAD_BLINK,"Traps/Spike Head/Blink (54x52).png");
+    loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_BOTTOM, "Traps/Spike Head/Bottom Hit (54x52).png");
+    loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_LEFT,"Traps/Spike Head/Left Hit (54x52).png");
+    loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_RIGHT,"Traps/Spike Head/Right Hit (54x52).png");
+    loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_TOP,"Traps/Spike Head/Top Hit (54x52).png");
+    loadTexture(TextureType::TRAP_SPIKE_BALL_CAHIN,"Traps/Spiked Ball/Chain.png");
+    loadTexture(TextureType::TRAP_SPIKE_BALL,"Traps/Spiked Ball/Spiked Ball.png");
+    loadTexture(TextureType::TRAP_SAW_CHAIN,"Traps/Saw/Chain.png");
+    loadTexture(TextureType::TRAP_SAW_OFF,"Traps/Saw/Off.png");
+    loadTexture(TextureType::TRAP_SAW_CHAIN,"Traps/Saw/On (38x38).png");
+    loadTexture(TextureType::TRAP_SPIKE,"Traps/Spikes/Idle.png");
+    loadTexture(TextureType::TRAP_TRAMPOLINE,"Traps/Trampoline/Idle.png");
+    loadTexture(TextureType::TRAP_TRAMPOLINE_TRIGGER,"Traps/Trampoline/Jump (28x28).png");
+
+
+
 
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);

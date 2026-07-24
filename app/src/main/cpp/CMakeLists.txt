@@ -91,6 +91,7 @@ add_library(main SHARED
         utils/SpriteCollector.cpp
         level/GroundShapeBuilder.cpp
         level/Fruits.cpp
+        level/Traps.cpp
 
 )
 
