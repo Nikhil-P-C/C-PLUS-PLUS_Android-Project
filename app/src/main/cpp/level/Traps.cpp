@@ -72,6 +72,10 @@ bool TrapBuilder::isSolid(int trapIndex) {
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float &playerY, float playerW, float playerH){
     auto& trap = m_traps[trapIndex];
     SDL_FRect trapCollider= getTrapCollisionBox(trap);
+    if(trap.type ==TrapType::FIRE){
+        trapCollider.y+=trapCollider.h/2;
+        trapCollider.h-=trapCollider.h/2;
+    }
     gameMath::collisionSide collision = gameMath::checkcollisionXY(playerX,playerY,trapCollider.x,trapCollider.y,
                                               playerH,playerW,trapCollider.h,trapCollider.w);
     return collision;
@@ -150,7 +154,7 @@ float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, fl
 bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY, float playerW, float playerH) {
     if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return false;
     Trap& trap = m_traps[trapIndex];
-    if(trap.type != TrapType::FIRE||trap.status != TrapStatus::OFF) return false;
+    if(trap.type != TrapType::FIRE) return false;
     SDL_FRect trapSize = getTrapCollisionBox(trap);
     float w=trapSize.w,h =trapSize.h;
     if(!gameMath::checkcollision(playerX, playerY, trap.x, trap.y, playerH, playerW, h, w)) return false;
@@ -198,9 +202,9 @@ const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
             {trapKey(TrapType::FIRE,TrapStatus::OFF),
                     {TextureType::TRAP_FIRE_OFF,16,32,1,50,false}},
             {trapKey(TrapType::FIRE,TrapStatus::ON),
-                    {TextureType::TRAP_FIRE_ON,16,32,3,50,true}},
+                    {TextureType::TRAP_FIRE_ON,16,32,3,50,false}},
             {trapKey(TrapType::FIRE,TrapStatus::HIT),
-                    {TextureType::TRAP_FIRE_HIT,16,32,4,200,false}},
+                    {TextureType::TRAP_FIRE_HIT,16,32,4,500,false}},
 
 
             {trapKey(TrapType::MOVING_PLATFORM_BROWN,TrapStatus::OFF),

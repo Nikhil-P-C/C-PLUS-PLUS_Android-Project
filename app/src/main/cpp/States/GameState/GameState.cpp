@@ -269,6 +269,13 @@ void GameState::update(float dt){
     m_fruitBuilder.update(dt);
     m_previousY =m_player.y;
     handlePhysicAndInput(dt);
+
+    m_isGrounded=false;
+
+    handleCollision();
+    int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
+    PlayerDetail::getInstance().addScore(score);
+    Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.h,m_player.w);
     if(Force)
     {
@@ -276,18 +283,19 @@ void GameState::update(float dt){
         m_velocityY += Force;
         m_isGrounded = false;
     }
-
-    handleCollision();
-    int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
-    PlayerDetail::getInstance().addScore(score);
-    Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-
     for(int i =0;i<m_traps.size();i++)
     {
         if(m_traps[i].type == TrapType::FIRE)
             m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
         if(m_trapBuilder.isSolid(i)){
             gameMath::collisionSide side =m_trapBuilder.resolveTrapCollision(i, m_player.x, m_player.y, m_player.w, m_player.h);
+            switch (side) {
+                case gameMath::collisionSide::TOP:
+                    m_isGrounded =true;
+                    m_velocityY =0.0f;
+                case gameMath::collisionSide::BOTTOM:
+                    m_velocityY =0.0f;
+            }
         }
 
         bool trampolineJump =false;
