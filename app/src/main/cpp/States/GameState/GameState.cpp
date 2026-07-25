@@ -262,6 +262,7 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);
+    m_trapBuilder.render(renderer);
 }
 
 void GameState::update(float dt){
@@ -274,12 +275,12 @@ void GameState::update(float dt){
     handleCollision();
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
-    LOGI("score:%d",PlayerDetail::getInstance().getScore());
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
     updateAnimation();
     m_particleSystem.update(dt);
     m_fruitBuilder.update(dt);
+    m_trapBuilder.update(dt);
 }
 
 bool GameState::handleEvents(SDL_Event& event) {
@@ -531,8 +532,24 @@ void GameState::setLevel(int level) {
     m_fruits.emplace_back(200.00f,300.00f,FruitType::STRAWBERRY);
     m_fruits.emplace_back(200.00f,300.00f,FruitType::BANANA);
 
-    m_fruitBuilder.init(m_fruits);
+    m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(300.00f,400.00f,TrapType::FAN,TrapStatus::ON,0,0);
+    m_traps.emplace_back(400.00f,400.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0);
+    m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0); m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::TRIGGERED,0,0);
+    m_traps.emplace_back(700.00f,200.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
+    m_traps.emplace_back(300.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,0,0);
+    m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,0);
+    m_traps.emplace_back(1200.00f,500.00f,TrapType::FIRE,TrapStatus::HIT,0,0);
+    m_traps.emplace_back(1300.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1400.00f,500.00f,TrapType::FIRE,TrapStatus::ON,0,0);
 
+
+
+
+
+    m_fruitBuilder.init(m_fruits);
+    m_trapBuilder.init(m_traps);
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,SCALE);
     if(GameData::getInstance().isDebugEnabled()){

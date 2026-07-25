@@ -118,7 +118,7 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::TRAP_SPIKE_BALL,"Traps/Spiked Ball/Spiked Ball.png");
     loadTexture(TextureType::TRAP_SAW_CHAIN,"Traps/Saw/Chain.png");
     loadTexture(TextureType::TRAP_SAW_OFF,"Traps/Saw/Off.png");
-    loadTexture(TextureType::TRAP_SAW_CHAIN,"Traps/Saw/On (38x38).png");
+    loadTexture(TextureType::TRAP_SAW_ON,"Traps/Saw/On (38x38).png");
     loadTexture(TextureType::TRAP_SPIKE,"Traps/Spikes/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE,"Traps/Trampoline/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE_TRIGGER,"Traps/Trampoline/Jump (28x28).png");

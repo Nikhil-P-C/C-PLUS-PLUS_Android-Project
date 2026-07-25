@@ -115,9 +115,11 @@ private:
     std::vector<LevelGround> m_grounds;
     std::vector<LevelGround> m_levelWalls;
     std::vector<Fruit> m_fruits;
+    std::vector<Trap> m_traps;
 
     SDL_FRect  m_wallCollisionRect;
     FruitBuilder m_fruitBuilder;
+    TrapBuilder m_trapBuilder;
     GroundShape m_wallShape;
     ParticleSystem m_particleSystem;
     float m_walkTimer=0.0f;

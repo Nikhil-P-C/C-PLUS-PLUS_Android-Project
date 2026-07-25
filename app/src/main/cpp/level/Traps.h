@@ -3,8 +3,10 @@
 //
 #pragma once
 #include <vector>
+#include <unordered_map>
 #include <SDL3/SDL.h>
 #include "engine/Engine.h"
+
 enum class TrapType{
     FALLING_PLATFORM=0,
     FAN,
@@ -25,16 +27,24 @@ enum class TrapStatus{
     OFF,
     TRIGGERED,
 };
+struct TrapFrameInfo{
+    TextureType texture;
+    int frameW, frameH;
+    int frameCount;
+    bool loop;
+};
 struct Trap{
+    Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath);
+    float x ,y;
     TrapType type;
     TrapStatus status;
-    float x ,y;
-    float startPath,endPath;
+    float startPath=0,endPath=0;
+    unsigned int lastTime = 0;
     int aniStartFrame =0;
-    int aniEndFrame;
-    bool aniDone;
+     int aniEndFrame=0;
+    bool aniDone= false;
 };
-
+const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status);
 class TrapBuilder{
 public:
     std::vector<Trap>& getTraps();
@@ -47,7 +57,7 @@ public:
 
 private:
     std::vector<Trap> m_traps;
-
+    int m_aniDelay =50;
     SDL_Texture* m_fallingPlatformOnTexture =nullptr;
     SDL_Texture* m_fallingPlatformOffTexture =nullptr;
 

@@ -84,7 +84,6 @@ int FruitBuilder::onCollision(float x, float y, float w, float h)
         }
 
     }
-    LOGI("total fruit consumed:%d",totalConsumedFruit);
 
     return totalConsumedFruit;
 }

@@ -154,7 +154,7 @@ public:
             singleClayBlock,
             stoneBlock,
             horizontalStoneBlock,
-             verticalStoneBlock,
+            verticalStoneBlock,
             singleStoneBlock,
             waxBlock,
             horizontalWaxBlock,
@@ -168,34 +168,4 @@ public:
             woodenPlatform,
             stonePlatform
     };
-//    static std::unordered_map<SpriteType,SpriteValue> spriteValueTable={
-//            {STONE_BRICK_WALL,stoneBrickWall},
-//            {WOODEN_SHAFT_WALL,woodenShaftWall},
-//            {MOSS_WALL,mossWall},
-//
-//            {GREEN_GRASS_GROUND,greenGrassGround},
-//            {ORANGE_GRASS_GROUND,orangeGrassGround},
-//            {PINK_GRASS_GROUND,pinkGrassGround},
-//            {BRICK_GROUND,brickGround},
-//
-//            {CLAY_BLOCK,clayBlock},
-//            {CLAY_BLOCK_HORIZONTAL,horizontalClayBlock},
-//            {CLAY_BLOCK_VERTICAL,verticalClayBlock},
-//            {CLAY_BLOCK_SINGLE,singleClayBlock},
-//            {STONE_BLOCK,stoneBlock},
-//            {STONE_BLOCK_HORIZONTAL,horizontalStoneBlock},
-//            {STONE_BLOCK_VERTICAL, verticalStoneBlock},
-//            {STONE_BLOCK_SINGLE, singleStoneBlock},
-//            {WAX_BLOCK,waxBlock},
-//            {WAX_BLOCK_HORIZONTAL,horizontalWaxBlock},
-//            {WAX_BLOCK_VERTICAL,verticalWaxBlock},
-//            {WAX_BLOCK_SINGLE,singleWaxBlock},
-//            {GOLD_BLOCK,goldBlock},
-//            {GOLD_BLOCK_HORIZONTAL,horizontalGoldBlock},
-//            {GOLD_BLOCK_VERTICAL,verticalGoldBlock},
-//            {GOLD_BLOCK_SINGLE,singleGoldBlock},
-//            {GOLD_PLATFORM, goldPlatform},
-//            {WOODEN_PLATFORM,woodenPlatform},
-//            {STONE_PLATFORM, stonePlatform}
-//    };
 };
