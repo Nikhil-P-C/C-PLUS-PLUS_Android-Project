@@ -31,6 +31,7 @@ struct TrapFrameInfo{
     TextureType texture;
     int frameW, frameH;
     int frameCount;
+    int frameDelay;
     bool loop;
 };
 struct Trap{
@@ -57,7 +58,6 @@ public:
 
 private:
     std::vector<Trap> m_traps;
-    int m_aniDelay =50;
     SDL_Texture* m_fallingPlatformOnTexture =nullptr;
     SDL_Texture* m_fallingPlatformOffTexture =nullptr;
 
