@@ -170,66 +170,66 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     }
 
-    for(int i=0;i<10;i++){
-        int tileSize =TILE_SIZE;
-        const int platformWidth = (int)m_platforms[i].w;
-        const int platformHeight = (int)m_platforms[i].h;
-        int widthTiles = platformWidth / tileSize;
-        int heightTiles = platformHeight / tileSize;
-
-        for (int y = 0; y < heightTiles; y++) {
-            for (int x = 0; x < widthTiles; x++) {
-                SDL_FRect src;
-
-                bool left = (x == 0);
-                bool right = (x == widthTiles - 1);
-                bool top = (y == 0);
-                bool bottom = (y == heightTiles - 1);
-
-                if(heightTiles ==1){
-                    if(m_platforms[i].platformType == SpriteType::GOLD_PLATFORM){
-                        if (left) src = {SpriteCollection::goldPlatform.x, 0.00f, TILE_SIZE, TILE_SIZE};
-                        else if (right)
-                            src = {SpriteCollection::goldPlatform.x + 32.00f, 0.00f, TILE_SIZE,
-                                   TILE_SIZE};
-                        else
-                            src = {SpriteCollection::goldPlatform.x + TILE_SIZE, 0.00f, TILE_SIZE,
-                                   TILE_SIZE};
-                    }
-                    else if(m_platforms[i].platformType == SpriteType::WOODEN_PLATFORM){
-                        if (left) src = {SpriteCollection::woodenPlatform.x,
-                                         SpriteCollection::woodenPlatform.y, TILE_SIZE, TILE_SIZE};
-                        else if (right)
-                            src = {SpriteCollection::woodenPlatform.x + 32.00f,
-                                   SpriteCollection::woodenPlatform.y, TILE_SIZE,TILE_SIZE};
-                        else
-                            src = {SpriteCollection::woodenPlatform.x + TILE_SIZE,
-                                   SpriteCollection::woodenPlatform.y, TILE_SIZE,
-                                   TILE_SIZE};
-
-                    }
-                    else if(m_platforms[i].platformType == SpriteType::STONE_PLATFORM) {
-                        if (left) src = {SpriteCollection::stonePlatform.x,
-                                         SpriteCollection::stonePlatform.y, TILE_SIZE, TILE_SIZE};
-                        else if (right)
-                            src = {SpriteCollection::stonePlatform.x + 32.00f,
-                                   SpriteCollection::stonePlatform.y, TILE_SIZE,TILE_SIZE};
-                        else
-                            src = {SpriteCollection::stonePlatform.x + TILE_SIZE,
-                                   SpriteCollection::stonePlatform.y, TILE_SIZE,
-                                   TILE_SIZE};
-                    }
-                }
-
-                SDL_FRect dst = {(m_platforms[i].x+x* (TILE_SIZE * SCALE)) - camX,
-                                 ( m_platforms[i].y+y * (TILE_SIZE * SCALE)) - camY,
-                                 TILE_SIZE * SCALE, TILE_SIZE * SCALE};
-                SDL_RenderTexture(renderer, m_tileset, &src, &dst);
-            }
-
-        }
-
-    }
+//    for(int i=0;i<10;i++){
+//        int tileSize =TILE_SIZE;
+//        const int platformWidth = (int)m_platforms[i].w;
+//        const int platformHeight = (int)m_platforms[i].h;
+//        int widthTiles = platformWidth / tileSize;
+//        int heightTiles = platformHeight / tileSize;
+//
+//        for (int y = 0; y < heightTiles; y++) {
+//            for (int x = 0; x < widthTiles; x++) {
+//                SDL_FRect src;
+//
+//                bool left = (x == 0);
+//                bool right = (x == widthTiles - 1);
+//                bool top = (y == 0);
+//                bool bottom = (y == heightTiles - 1);
+//
+//                if(heightTiles ==1){
+//                    if(m_platforms[i].platformType == SpriteType::GOLD_PLATFORM){
+//                        if (left) src = {SpriteCollection::goldPlatform.x, 0.00f, TILE_SIZE, TILE_SIZE};
+//                        else if (right)
+//                            src = {SpriteCollection::goldPlatform.x + 32.00f, 0.00f, TILE_SIZE,
+//                                   TILE_SIZE};
+//                        else
+//                            src = {SpriteCollection::goldPlatform.x + TILE_SIZE, 0.00f, TILE_SIZE,
+//                                   TILE_SIZE};
+//                    }
+//                    else if(m_platforms[i].platformType == SpriteType::WOODEN_PLATFORM){
+//                        if (left) src = {SpriteCollection::woodenPlatform.x,
+//                                         SpriteCollection::woodenPlatform.y, TILE_SIZE, TILE_SIZE};
+//                        else if (right)
+//                            src = {SpriteCollection::woodenPlatform.x + 32.00f,
+//                                   SpriteCollection::woodenPlatform.y, TILE_SIZE,TILE_SIZE};
+//                        else
+//                            src = {SpriteCollection::woodenPlatform.x + TILE_SIZE,
+//                                   SpriteCollection::woodenPlatform.y, TILE_SIZE,
+//                                   TILE_SIZE};
+//
+//                    }
+//                    else if(m_platforms[i].platformType == SpriteType::STONE_PLATFORM) {
+//                        if (left) src = {SpriteCollection::stonePlatform.x,
+//                                         SpriteCollection::stonePlatform.y, TILE_SIZE, TILE_SIZE};
+//                        else if (right)
+//                            src = {SpriteCollection::stonePlatform.x + 32.00f,
+//                                   SpriteCollection::stonePlatform.y, TILE_SIZE,TILE_SIZE};
+//                        else
+//                            src = {SpriteCollection::stonePlatform.x + TILE_SIZE,
+//                                   SpriteCollection::stonePlatform.y, TILE_SIZE,
+//                                   TILE_SIZE};
+//                    }
+//                }
+//
+//                SDL_FRect dst = {(m_platforms[i].x+x* (TILE_SIZE * SCALE)) - camX,
+//                                 ( m_platforms[i].y+y * (TILE_SIZE * SCALE)) - camY,
+//                                 TILE_SIZE * SCALE, TILE_SIZE * SCALE};
+//                SDL_RenderTexture(renderer, m_tileset, &src, &dst);
+//            }
+//
+//        }
+//
+//    }
     m_particleSystem.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
 
@@ -269,13 +269,36 @@ void GameState::update(float dt){
     m_fruitBuilder.update(dt);
     m_previousY =m_player.y;
     handlePhysicAndInput(dt);
-
-    m_isGrounded =false;
+    float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.h,m_player.w);
+    if(Force)
+    {
+        m_velocityY=0.0f;
+        m_velocityY += Force;
+        m_isGrounded = false;
+    }
 
     handleCollision();
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
+
+    for(int i =0;i<m_traps.size();i++)
+    {
+        if(m_traps[i].type == TrapType::FIRE)
+            m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
+        if(m_trapBuilder.isSolid(i)){
+            gameMath::collisionSide side =m_trapBuilder.resolveTrapCollision(i, m_player.x, m_player.y, m_player.w, m_player.h);
+        }
+
+        bool trampolineJump =false;
+        if(m_traps[i].type == TrapType::TRAMPOLINE)
+            trampolineJump=m_trapBuilder.checkTrampolineBounce(i,m_player.x,m_player.y,m_player.w,m_player.h);
+        if(trampolineJump){
+            m_velocityY=0.0f;
+            m_isGrounded = false;
+            m_velocityY += -1500;
+        }
+    }
 
     updateAnimation();
     m_particleSystem.update(dt);
@@ -343,43 +366,43 @@ void GameState::handleCollision() {
     }
 
 //platforms
-    for(int i=0;i<10;i++) {
-        if (m_platforms[i].colliderType == ColliderType::SOLID) {
-
-            gameMath::collisionSide side = gameMath::checkcollisionXY(m_player.x, m_player.y,
-                                                                      m_platforms[i].x,
-                                                                      m_platforms[i].y,
-                                                                      m_player.h, m_player.w,
-                                                                      m_platforms[i].h * SCALE,
-                                                                      m_platforms[i].w * SCALE);
-            if (side == gameMath::collisionSide::TOP) {
-
-                m_velocityY = 0.0f;
-                m_isGrounded =true;
-            }
-            if (side == gameMath::collisionSide::BOTTOM) {
-                m_velocityY = 0.0f;
-            }
-        } else if (m_platforms[i].colliderType == ColliderType::ONE_WAY) {
-            float previousBottom = m_previousY + m_player.h;
-            float currentBottom = m_player.y + m_player.h;
-            float platformTop = m_platforms[i].y;
-
-            if (m_velocityY > 0 && previousBottom <= platformTop
-                && currentBottom >= platformTop
-                && gameMath::checkcollisionX(m_player.x, m_player.y, m_platforms[i].x,
-                                             m_platforms[i].y,
-                                             m_player.h, m_player.w, m_platforms[i].h * SCALE,
-                                             m_platforms[i].w * SCALE)) {
-
-                m_player.y = platformTop - m_player.h;
-                m_velocityY = 0.0f;
-                m_isGrounded = true;
-            }
-            
-        }
-
-    }
+//    for(int i=0;i<10;i++) {
+//        if (m_platforms[i].colliderType == ColliderType::SOLID) {
+//
+//            gameMath::collisionSide side = gameMath::checkcollisionXY(m_player.x, m_player.y,
+//                                                                      m_platforms[i].x,
+//                                                                      m_platforms[i].y,
+//                                                                      m_player.h, m_player.w,
+//                                                                      m_platforms[i].h * SCALE,
+//                                                                      m_platforms[i].w * SCALE);
+//            if (side == gameMath::collisionSide::TOP) {
+//
+//                m_velocityY = 0.0f;
+//                m_isGrounded =true;
+//            }
+//            if (side == gameMath::collisionSide::BOTTOM) {
+//                m_velocityY = 0.0f;
+//            }
+//        } else if (m_platforms[i].colliderType == ColliderType::ONE_WAY) {
+//            float previousBottom = m_previousY + m_player.h;
+//            float currentBottom = m_player.y + m_player.h;
+//            float platformTop = m_platforms[i].y;
+//
+//            if (m_velocityY > 0 && previousBottom <= platformTop
+//                && currentBottom >= platformTop
+//                && gameMath::checkcollisionX(m_player.x, m_player.y, m_platforms[i].x,
+//                                             m_platforms[i].y,
+//                                             m_player.h, m_player.w, m_platforms[i].h * SCALE,
+//                                             m_platforms[i].w * SCALE)) {
+//
+//                m_player.y = platformTop - m_player.h;
+//                m_velocityY = 0.0f;
+//                m_isGrounded = true;
+//            }
+//
+//        }
+//
+//    }
     //ground
 
     for(const auto& ground : m_grounds){
@@ -507,23 +530,23 @@ void GameState::setLevel(int level) {
     m_levelWalls.emplace_back(0,0,1600,384,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
     m_levelWalls.emplace_back(0,384,1600,384,SpriteType::MOSS_WALL,ColliderType::SOLID);
     m_wallCollisionRect={0.00f,0.00f,1600.00f,768};
+//
+//    m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+//    m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
+//    m_platforms.emplace_back(640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+//    m_platforms.emplace_back(960,360,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+//    m_platforms.emplace_back(1280,280,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+//    m_platforms.emplace_back(1600,200,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+//    m_platforms.emplace_back(1920,120,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+//    m_platforms.emplace_back(2240,40,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+//    m_platforms.emplace_back(2560,-40,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
+//    m_platforms.emplace_back(2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
+//    m_platforms.emplace_back(3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
 
-    m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
-    m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
-    m_platforms.emplace_back(640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
-    m_platforms.emplace_back(960,360,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
-    m_platforms.emplace_back(1280,280,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
-    m_platforms.emplace_back(1600,200,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
-    m_platforms.emplace_back(1920,120,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
-    m_platforms.emplace_back(2240,40,224,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
-    m_platforms.emplace_back(2560,-40,128,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
-    m_platforms.emplace_back(2880,-120,160,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
-    m_platforms.emplace_back(3200,-200,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
-
-    m_grounds.emplace_back(64.0f,384.00f,48.00f,16.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
-    m_grounds.emplace_back(64.0f,448.00f,64.00f,64.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
-    m_grounds.emplace_back(704.0f,320.00f,48.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
-    m_grounds.emplace_back(640.0f,512.00f,160.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
+//    m_grounds.emplace_back(64.0f,384.00f,48.00f,16.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+//    m_grounds.emplace_back(64.0f,448.00f,64.00f,64.00f,SpriteType::GREEN_GRASS_GROUND,ColliderType::SOLID);
+//    m_grounds.emplace_back(704.0f,320.00f,48.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
+//    m_grounds.emplace_back(640.0f,512.00f,160.00f,48.00f,SpriteType::PINK_GRASS_GROUND,ColliderType::SOLID);
 
     m_fruits.emplace_back(200.00f,400.00f,FruitType::BANANA);
     m_fruits.emplace_back(700.00f,200.00f,FruitType::APPLE);
@@ -532,13 +555,13 @@ void GameState::setLevel(int level) {
     m_fruits.emplace_back(200.00f,300.00f,FruitType::STRAWBERRY);
     m_fruits.emplace_back(200.00f,300.00f,FruitType::BANANA);
 
-    m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(300.00f,400.00f,TrapType::FAN,TrapStatus::ON,0,0);
+    m_traps.emplace_back(200.00f,650.00f,TrapType::FAN,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(300.00f,650.00f,TrapType::FAN,TrapStatus::ON,0,0);
     m_traps.emplace_back(400.00f,400.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0);
     m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0); m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::TRIGGERED,0,0);
+    m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
     m_traps.emplace_back(700.00f,200.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
-    m_traps.emplace_back(300.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,0,0);
+    m_traps.emplace_back(300.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,300,500);
     m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,0);
     m_traps.emplace_back(1200.00f,500.00f,TrapType::FIRE,TrapStatus::HIT,0,0);
     m_traps.emplace_back(1300.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);

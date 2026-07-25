@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <SDL3/SDL.h>
 #include "engine/Engine.h"
+#include "utils/utils.h"
 
 enum class TrapType{
     FALLING_PLATFORM=0,
@@ -52,50 +53,24 @@ public:
     void init(const std::vector<Trap>& traps);
     void render(SDL_Renderer* renderer);
     void update(float dt);
-    int onCollision(float x,float y,float w,float h);
-    constexpr bool trapHasPath(TrapType type);
-    constexpr bool trapHasHit(TrapType type);
+    constexpr bool trapHasPath(TrapType type){
+        return type == TrapType::ROCK_HEAD || type == TrapType::SPIKE_HEAD ||
+        type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN;
+    }
+    constexpr bool trapHasHit(TrapType type){
+        return type == TrapType::FIRE || type ==TrapType::ROCK_HEAD|| type ==TrapType::SPIKE_HEAD;
+    }
 
+    bool isSolid(int trapIndex);
+    SDL_FRect getTrapCollisionBox(const Trap& trap);
+    void triggerFall(int trapIndex);
+    bool checkHazard(float playerX ,float playerY,float playerW,float playerH,TrapType& outType);
+    SDL_FRect getHazardHitBox(const Trap& trap);
+    float checkFanForce(float playerX,float playerY,float playerW,float playerH);
+    bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,float playerW,float playerH);
+    bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
+    gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY, float playerW, float playerH);
 private:
     std::vector<Trap> m_traps;
-    SDL_Texture* m_fallingPlatformOnTexture =nullptr;
-    SDL_Texture* m_fallingPlatformOffTexture =nullptr;
-
-    SDL_Texture* m_fanOnTexture =nullptr;
-    SDL_Texture* m_fanOffTexture =nullptr;
-
-    SDL_Texture* m_fireHitTexture =nullptr;
-    SDL_Texture* m_fireOffTexture =nullptr;
-    SDL_Texture* m_fireOnTexture =nullptr;
-
-    SDL_Texture* m_platformBrownOffTexture = nullptr;
-    SDL_Texture* m_platformBrownOnTexture = nullptr;
-    SDL_Texture* m_platformGreyOffTexture = nullptr;
-    SDL_Texture* m_platformGreyOnTexture = nullptr;
-    SDL_Texture* m_platformChainTexture =nullptr;
-
-    SDL_Texture* m_rockHeadBlinkTexture = nullptr;
-    SDL_Texture* m_rockHeadHitBottomTexture = nullptr;
-    SDL_Texture* m_rockHeadHitTopTexture = nullptr;
-    SDL_Texture* m_rockHeadHitLeftTexture = nullptr;
-    SDL_Texture* m_rockHeadHitRightTexture = nullptr;
-
-    SDL_Texture* m_spikeHeadHitBottomTexture = nullptr;
-    SDL_Texture* m_spikeHeadBlinkTexture = nullptr;
-    SDL_Texture* m_spikeHeadHitTopTexture = nullptr;
-    SDL_Texture* m_spikeHeadHitLeftTexture = nullptr;
-    SDL_Texture* m_spikeHeadHitRightTexture = nullptr;
-
-    SDL_Texture* m_spikeBallTexture =nullptr;
-    SDL_Texture* m_spikeBallChainTexture = nullptr;
-
-    SDL_Texture* m_sawOffTexture = nullptr;
-    SDL_Texture* m_sawOnTexture = nullptr;
-    SDL_Texture* m_sawChainTexture = nullptr;
-
-    SDL_Texture* m_spikesTexture = nullptr;
-
-    SDL_Texture* m_trampolineIdleTexture = nullptr;
-    SDL_Texture* m_trampolineTriggerTexture = nullptr;
 
 };
