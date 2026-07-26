@@ -84,7 +84,6 @@ void ParticleSystem::emitLeftDust(float feetX, float feetY)
 
             particle.vX =randomFloat(0,200);
             particle.vY =randomFloat(-100,100);
-            LOGI("left particle VX:%f , Vy : %f",particle.vX,particle.vY);
             particle.life = 0.4f;
             particle.maxLife=0.4f;
             return;
@@ -101,8 +100,6 @@ void ParticleSystem::emitRightDust(float feetX, float feetY) {
 
             particle.vX =randomFloat(-100,0);
             particle.vY =randomFloat(-100,100);
-            LOGI("right particle VX:%f , Vy : %f",particle.vX,particle.vY);
-
             particle.life = 0.4f;
             particle.maxLife=0.4f;
             return;

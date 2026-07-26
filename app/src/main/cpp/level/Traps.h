@@ -42,6 +42,7 @@ struct Trap{
     TrapStatus status;
     float startPath=0,endPath=0;
     unsigned int lastTime = 0;
+    unsigned int lastSwitchTime =0;
     int aniStartFrame =0;
      int aniEndFrame=0;
     bool aniDone= false;
@@ -72,5 +73,6 @@ public:
     gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY, float playerW, float playerH);
 private:
     std::vector<Trap> m_traps;
-
+    int m_fireTimer =3000;
+    int m_fanTimer =100;
 };

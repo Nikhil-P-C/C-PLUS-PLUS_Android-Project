@@ -80,6 +80,12 @@ public:
     std::vector<Fruit> getFruits(){
         return m_fruits;
     }
+    TrapBuilder& getTrapBuilder(){
+        return m_trapBuilder;
+    }
+    std::vector<Trap>& getTraps(){
+        return m_traps;
+    }
 private:
 
     //animation and texture

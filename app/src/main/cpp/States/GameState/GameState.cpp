@@ -277,7 +277,7 @@ void GameState::update(float dt){
     PlayerDetail::getInstance().addScore(score);
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.h,m_player.w);
-    if(Force)
+    if(Force >0)
     {
         m_velocityY=0.0f;
         m_velocityY += Force;
@@ -492,8 +492,6 @@ void GameState::handlePhysicAndInput(float dt) {
                 m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
                 m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
                 m_particleSystem.emitLeftDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f);
-                LOGI("emitting left");
-
             }
         }
         else{
@@ -511,8 +509,6 @@ void GameState::handlePhysicAndInput(float dt) {
                 m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
                 m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
                 m_particleSystem.emitRightDust(m_player.x-40.00f, m_player.y+m_player.h-50.00f);
-
-                LOGI("emitting Right");
             }
         }
         else{
@@ -525,7 +521,6 @@ void GameState::handlePhysicAndInput(float dt) {
         m_wasGrounded =true;
         if(m_isGrounded){
             m_particleSystem.emitJumpDust(m_player.x , m_player.y+m_player.h-40.00f);
-            LOGI("emitting jump");
         }
     }
 
@@ -566,14 +561,21 @@ void GameState::setLevel(int level) {
     m_traps.emplace_back(200.00f,650.00f,TrapType::FAN,TrapStatus::OFF,0,0);
     m_traps.emplace_back(300.00f,650.00f,TrapType::FAN,TrapStatus::ON,0,0);
     m_traps.emplace_back(400.00f,400.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0);
-    m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0); m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
     m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
     m_traps.emplace_back(700.00f,200.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
     m_traps.emplace_back(300.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,300,500);
     m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,0);
-    m_traps.emplace_back(1200.00f,500.00f,TrapType::FIRE,TrapStatus::HIT,0,0);
+    m_traps.emplace_back(1000.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1060.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1120.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1180.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1240.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
     m_traps.emplace_back(1300.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1400.00f,500.00f,TrapType::FIRE,TrapStatus::ON,0,0);
+    m_traps.emplace_back(1360.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1420.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(1480.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
 
 
 

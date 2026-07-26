@@ -51,7 +51,13 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderRect(renderer, &playerBorder);
     SDL_SetRenderDrawColor(renderer, 33, 31, 48, 255);
-
+    //traps
+    for(const auto trap:m_traps){
+        SDL_FRect trapCollRect =m_trapBuilder.getTrapCollisionBox(trap);
+        trapCollRect.x =trapCollRect.x-camX;
+        trapCollRect.y =trapCollRect.y-camY;
+        SDL_RenderRect(renderer,&trapCollRect);
+    }
 }
 
 void DebugState::update(float dt) {
@@ -76,6 +82,9 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     m_walls=m_gameState->getLevelWalls();
     m_platforms=m_gameState->getPlatforms();
     m_fruits=m_gameState->getFruits();
+    m_trapBuilder =m_gameState->getTrapBuilder();
+    m_traps =m_trapBuilder.getTraps();
+
     LOGI("Debug state constructor :%p",this);
     m_font = TTF_OpenFontIO(m_fontFile,false, 24);
     LOGI("font:%d",(bool)m_font);

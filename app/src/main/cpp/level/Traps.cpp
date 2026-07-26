@@ -43,12 +43,35 @@ void TrapBuilder::update(float dt)
 
     for(auto &trap:m_traps)
     {
+        if(trap.type == TrapType::FIRE)
+        {
+            if (trap.status == TrapStatus::ON) {
+                unsigned int nowSwitchTime = SDL_GetTicks();
+                if (nowSwitchTime - trap.lastSwitchTime > m_fireTimer) {
+                    trap.lastSwitchTime = nowSwitchTime;
+                    trap.status = TrapStatus::OFF;
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
+                }
+            }
+        }
+        if(trap.aniDone && trap.type ==TrapType::FIRE)
+        {
+            if(trap.status == TrapStatus::HIT)
+            {
+                trap.lastSwitchTime =SDL_GetTicks();
+                trap.status = TrapStatus::ON;
+                trap.aniStartFrame = 0;
+                trap.aniDone = false;
+            }
+
+        }
+
         if(trap.aniDone)continue;
         const auto* info = getTrapFrameInfo(trap.type,trap.status);
         if(!info || info->frameCount<=1) continue;
 
         unsigned int now = SDL_GetTicks();
-        LOGI("delay:%d",info->frameDelay);
         if(now - trap.lastTime > info->frameDelay)
         {
             trap.lastTime =now;
@@ -57,7 +80,7 @@ void TrapBuilder::update(float dt)
             }
             else if(info->loop) trap.aniStartFrame=0;
             else {
-                trap.aniDone;
+                trap.aniDone=true;
             }
         }
 
@@ -72,10 +95,6 @@ bool TrapBuilder::isSolid(int trapIndex) {
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float &playerY, float playerW, float playerH){
     auto& trap = m_traps[trapIndex];
     SDL_FRect trapCollider= getTrapCollisionBox(trap);
-    if(trap.type ==TrapType::FIRE){
-        trapCollider.y+=trapCollider.h/2;
-        trapCollider.h-=trapCollider.h/2;
-    }
     gameMath::collisionSide collision = gameMath::checkcollisionXY(playerX,playerY,trapCollider.x,trapCollider.y,
                                               playerH,playerW,trapCollider.h,trapCollider.w);
     return collision;
@@ -83,6 +102,21 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
 SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
     auto* info = getTrapFrameInfo(trap.type,trap.status);
     SDL_FRect rect{trap.x,trap.y,info->frameW*SCALE,info->frameH*SCALE};
+    switch(trap.type){
+        case TrapType::FAN:
+            return { trap.x, trap.y , (info->frameW)*SCALE,(info->frameH) *SCALE };
+        case TrapType::TRAMPOLINE:
+            return { trap.x+10 , trap.y+70 , (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
+        case TrapType::FALLING_PLATFORM:
+            return { trap.x , trap.y, (info->frameW)*SCALE, info->frameH*SCALE };
+        case TrapType::FIRE:
+            return { trap.x , trap.y+64, (info->frameW)*SCALE, (info->frameH-16)*SCALE};
+        case TrapType::ROCK_HEAD:
+            // only dangerous while actively hitting, not during the idle blink loop
+            return { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
+        default:
+            return { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
+    }
     return rect;
 }
 
@@ -157,11 +191,14 @@ bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY,
     if(trap.type != TrapType::FIRE) return false;
     SDL_FRect trapSize = getTrapCollisionBox(trap);
     float w=trapSize.w,h =trapSize.h;
-    if(!gameMath::checkcollision(playerX, playerY, trap.x, trap.y, playerH, playerW, h, w)) return false;
-
-    trap.status = TrapStatus::HIT;
-    trap.aniStartFrame = 0;
-    trap.aniDone = false;
+    if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y, playerH, playerW, h, w)) return false;
+    if(trap.status == TrapStatus::OFF)
+    {
+        trap.lastSwitchTime=SDL_GetTicks();
+        trap.status = TrapStatus::HIT;
+        trap.aniStartFrame = 0;
+        trap.aniDone = false;
+    }
     if(const auto* info = getTrapFrameInfo(trap.type, trap.status)) trap.aniEndFrame = info->frameCount-1;
     return true;
 }
@@ -171,7 +208,7 @@ bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playe
     if(trap.type != TrapType::TRAMPOLINE) return false;
     SDL_FRect trapSize = getTrapCollisionBox(trap);
     float w=trapSize.w,h =trapSize.h;
-    if(!gameMath::checkcollision(playerX, playerY, trap.x, trap.y, playerH, playerW, h, w)) return false;
+    if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y, playerH, playerW, h, w)) return false;
 
     trap.status = TrapStatus::TRIGGERED;
     trap.aniStartFrame = 0;
@@ -202,9 +239,9 @@ const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
             {trapKey(TrapType::FIRE,TrapStatus::OFF),
                     {TextureType::TRAP_FIRE_OFF,16,32,1,50,false}},
             {trapKey(TrapType::FIRE,TrapStatus::ON),
-                    {TextureType::TRAP_FIRE_ON,16,32,3,50,false}},
+                    {TextureType::TRAP_FIRE_ON,16,32,3,50,true}},
             {trapKey(TrapType::FIRE,TrapStatus::HIT),
-                    {TextureType::TRAP_FIRE_HIT,16,32,4,500,false}},
+                    {TextureType::TRAP_FIRE_HIT,16,32,4,50,false}},
 
 
             {trapKey(TrapType::MOVING_PLATFORM_BROWN,TrapStatus::OFF),
