@@ -10,7 +10,8 @@ struct Particle{
 
     float x=0,y=0;
     float vX=0,vY=0;
-
+    float size=70.00f;
+    float baseSize =70.00f;
     float life=0.04f;
     float maxLife =0.4;
 };
@@ -26,15 +27,15 @@ public:
     void emitOneJumpParticle(float feetX, float feetY);
     void emitParticleWProps(int count,int rangeX1,int rangeX2,int rangeY1, int rangeY2,
                             int velocityX1,int velocityX2 , int velocityY1,int velocityY2,
-                            int minParticleNum,int maxParticleNum,int dirX,int dirY);
-    void emitDust(float pointX, float pointY, int velocityX, int velocityY);
+                            float minLife, float maxLife,int dirX,int dirY,float size);
+    void emitDust(float pointX, float pointY, int velocityX, int velocityY,float life,float size);
     int randomInt(int min, int max);
     float randomFloat(float min, float max);
 
     ParticleSystem();
 private:
     SDL_Texture* m_particleTexture=nullptr;
-    std::array<Particle,50> m_particles;
+    std::array<Particle,256> m_particles;
 
 
 };

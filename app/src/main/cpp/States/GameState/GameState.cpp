@@ -285,27 +285,35 @@ void GameState::update(float dt){
     }
     for(int i =0;i<m_traps.size();i++)
     {
+        //fire
         if(m_traps[i].type == TrapType::FIRE)
             m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
         if(m_trapBuilder.isSolid(i)){
             gameMath::collisionSide side =m_trapBuilder.resolveTrapCollision(i, m_player.x, m_player.y, m_player.w, m_player.h);
+
             switch (side) {
                 case gameMath::collisionSide::TOP:
+                    if(m_traps[i].type == TrapType::FALLING_PLATFORM) {
+                        m_trapBuilder.triggerFall(i);
+                        LOGI("trigger fall");
+                    }
                     m_isGrounded =true;
                     m_velocityY =0.0f;
+                    break;
                 case gameMath::collisionSide::BOTTOM:
                     m_velocityY =0.0f;
             }
         }
-
+        //trampoline
         bool trampolineJump =false;
         if(m_traps[i].type == TrapType::TRAMPOLINE)
-            trampolineJump=m_trapBuilder.checkTrampolineBounce(i,m_player.x,m_player.y,m_player.w,m_player.h);
+            trampolineJump=m_trapBuilder.checkTrampolineBounce(i,m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
         if(trampolineJump){
             m_velocityY=0.0f;
             m_isGrounded = false;
             m_velocityY += -1500;
         }
+
     }
 
     updateAnimation();

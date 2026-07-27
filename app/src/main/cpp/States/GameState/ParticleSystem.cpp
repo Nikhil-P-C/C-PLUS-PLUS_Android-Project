@@ -18,14 +18,13 @@ void ParticleSystem::render(SDL_Renderer* renderer)
     {
         if (!particle.isAlive)
             continue;
-        float sizefactor = particle.life /particle.maxLife;
         float alpha = particle.life / particle.maxLife;
-        float size = 70.00f*sizefactor;
+        if(particle.size<0)continue;
         SDL_SetTextureAlphaMod(
                 m_particleTexture,
                 static_cast<Uint8>(alpha * 255)
         );
-        SDL_FRect dustDst{particle.x-camX,particle.y-camY,size,size};
+        SDL_FRect dustDst{particle.x-camX,particle.y-camY,particle.size,particle.size};
         SDL_RenderTexture(renderer,m_particleTexture, &src,&dustDst);
     }
 }
@@ -34,6 +33,8 @@ void ParticleSystem::update(float dt)
 {
     for(auto& particle:m_particles)
     {
+        float sizefactor = particle.life /particle.maxLife;
+        particle.size = particle.baseSize*sizefactor;
         if(!particle.isAlive)
             continue;
         particle.life -= dt;
@@ -54,7 +55,8 @@ void ParticleSystem::emitOneJumpParticle(float feetX, float feetY)
             particle.isAlive = true;
             particle.x =feetX;
             particle.y =feetY;
-
+            particle.size =70.00f;
+            particle.baseSize=particle.size;
             particle.vX =randomFloat(-100,100);
             particle.vY =randomFloat(0,-300);
 
@@ -81,7 +83,8 @@ void ParticleSystem::emitLeftDust(float feetX, float feetY)
             particle.isAlive = true;
             particle.x =feetX;
             particle.y =feetY;
-
+            particle.size =70.00f;
+            particle.baseSize=particle.size;
             particle.vX =randomFloat(0,200);
             particle.vY =randomFloat(-100,100);
             particle.life = 0.4f;
@@ -97,7 +100,8 @@ void ParticleSystem::emitRightDust(float feetX, float feetY) {
             particle.isAlive = true;
             particle.x =feetX;
             particle.y =feetY;
-
+            particle.size =70.00f;
+            particle.baseSize=particle.size;
             particle.vX =randomFloat(-100,0);
             particle.vY =randomFloat(-100,100);
             particle.life = 0.4f;
@@ -126,19 +130,20 @@ ParticleSystem::ParticleSystem()
     m_particleTexture = Engine::Get().getAssetManager().getTexture(TextureType::DUST_PARTICLE);
 
 }
-void ParticleSystem::emitDust(float pointX, float pointY,int velocityX,int velocityY)
+void ParticleSystem::emitDust(float pointX, float pointY,int velocityX,int velocityY,float life,float size)
 {
     for(auto& particle:m_particles){
         if(!particle.isAlive){
             particle.isAlive = true;
             particle.x =pointX;
             particle.y =pointY;
-
+            particle.size =size;
+            particle.baseSize=particle.size;
             particle.vX =velocityX;
             particle.vY =velocityY;
 
-            particle.life = 0.4f;
-            particle.maxLife=0.4f;
+            particle.life = life;
+            particle.maxLife=life;
             return;
         }
     }
@@ -146,17 +151,18 @@ void ParticleSystem::emitDust(float pointX, float pointY,int velocityX,int veloc
 
 void ParticleSystem::emitParticleWProps(int count, int rangeX1, int rangeX2, int rangeY1, int rangeY2,
                                         int velocityX1,int velocityX2 , int velocityY1,int velocityY2,
-                                        int minParticleNum, int maxParticleNum, int dirX, int dirY)
+                                        float minLife, float maxLife, int dirX, int dirY,float size)
 {
     if(count <=0)return;
     for(int i =0; i<count;i++)
     {
         int randomX = randomInt(rangeX1,rangeX2);
-        int randomY = rangeY1;
+        int randomY = randomInt(rangeY1,rangeY2);
+        int randomVx = randomInt(velocityX1,velocityX2);
+        float life = randomFloat(minLife,maxLife);
 
 
-
-        emitDust(randomX,randomY,dirX,dirY);
+        emitDust(randomX,randomY,randomVx,dirY,life,size);
 
     }
 }

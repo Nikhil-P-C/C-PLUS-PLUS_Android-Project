@@ -69,11 +69,11 @@ public:
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,TrapType& outType);
     SDL_FRect getHazardHitBox(const Trap& trap);
     float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
-    bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,float playerW,float playerH);
+    bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
     bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
     gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY, float playerW, float playerH);
 private:
     std::vector<Trap> m_traps;
     int m_fireTimer =3000;
-    int m_fanTimer =100;
+    int m_fanTimer =3000;
 };

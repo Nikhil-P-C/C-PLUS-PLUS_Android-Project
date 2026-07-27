@@ -43,6 +43,7 @@ void TrapBuilder::update(float dt)
 
     for(auto &trap:m_traps)
     {
+        //fire
         if(trap.type == TrapType::FIRE)
         {
             if (trap.status == TrapStatus::ON) {
@@ -54,6 +55,32 @@ void TrapBuilder::update(float dt)
                     trap.aniDone = false;
                 }
             }
+        }
+        //fan
+        if(trap.type == TrapType::FAN)
+        {
+            if (trap.status == TrapStatus::ON) {
+                unsigned int nowSwitchTime = SDL_GetTicks();
+                if (nowSwitchTime - trap.lastSwitchTime > m_fanTimer) {
+                    trap.lastSwitchTime = nowSwitchTime;
+                    trap.status = TrapStatus::OFF;
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
+                }
+            }
+            if (trap.status == TrapStatus::OFF) {
+                unsigned int nowSwitchTime = SDL_GetTicks();
+                if (nowSwitchTime - trap.lastSwitchTime > m_fanTimer) {
+                    trap.lastSwitchTime = nowSwitchTime;
+                    trap.status = TrapStatus::ON;
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
+                }
+            }
+        }
+        //falling platform
+        if(trap.type ==TrapType::FALLING_PLATFORM && trap.status ==TrapStatus::OFF){
+            trap.y += 300.00f *dt;
         }
         if(trap.aniDone && trap.type ==TrapType::FIRE)
         {
@@ -89,8 +116,8 @@ void TrapBuilder::update(float dt)
 
 bool TrapBuilder::isSolid(int trapIndex) {
     auto& trap = m_traps[trapIndex];
-    if(trap.type == TrapType::FALLING_PLATFORM)return trap.status == TrapStatus::ON;
-    return trapHasPath(trap.type)||trap.type==TrapType::FIRE;
+
+    return trapHasPath(trap.type)||trap.type==TrapType::FIRE||trap.type == TrapType::FALLING_PLATFORM;
 }
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float &playerY, float playerW, float playerH){
     auto& trap = m_traps[trapIndex];
@@ -122,7 +149,7 @@ SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
 
 void TrapBuilder::triggerFall(int trapIndex) {
     auto &trap = m_traps[trapIndex];
-    if(trap.type != TrapType::FALLING_PLATFORM || trap.status == TrapStatus::ON) return;
+    if(trap.type != TrapType::FALLING_PLATFORM || trap.status == TrapStatus::OFF) return;
     trap.status = TrapStatus::OFF;
     trap.aniStartFrame = 0;
     trap.aniDone = true;
@@ -178,18 +205,17 @@ float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, fl
     const float FAN_FORCE = -500.0f; // px/s upward, tune against m_gravity/m_jumpVelocity
     for(const auto& trap : m_traps){
         SDL_FRect trapCollRect =getTrapCollisionBox(trap);
-        if(trap.type == TrapType::FAN){
-            trapCollRect.y -=700;
-            trapCollRect.h +=700+trapCollRect.h;
-        }
+        if(trap.type != TrapType::FAN)continue;
+        SDL_FRect sensorRect{trapCollRect.x,trapCollRect.y -700,
+                              trapCollRect.w,  trapCollRect.h +700+trapCollRect.h};
         if(trap.status == TrapStatus::ON){
-            particleSystem.emitParticleWProps(2,trapCollRect.x,trapCollRect.x,
-                                              trapCollRect.y+trapCollRect.h-60,trapCollRect.y+trapCollRect.h-100,0,
-                                              0,0,0,0,0,0,-700);
+            particleSystem.emitParticleWProps(1,(trapCollRect.x+trapCollRect.w/2)-40.00f,(trapCollRect.x+trapCollRect.w/2),
+                                              trapCollRect.y-60,trapCollRect.y-30,-40,
+                                              80,0,0,1.5f,1.5f,0,-500,40.00f);
         }
+
         if(trap.type != TrapType::FAN || trap.status != TrapStatus::ON) continue;
-        SDL_FRect trapSize = getTrapCollisionBox(trap);
-        if(gameMath::checkcollision(playerX, playerY, trapCollRect.x,trapCollRect.x, playerH, playerW, trapCollRect.h, trapCollRect.w)) {
+        if(gameMath::checkcollision(playerX, playerY, sensorRect.x,sensorRect.x, playerH, playerW, sensorRect.h, sensorRect.w)) {
 
             return FAN_FORCE;
         }
@@ -213,14 +239,14 @@ bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY,
     if(const auto* info = getTrapFrameInfo(trap.type, trap.status)) trap.aniEndFrame = info->frameCount-1;
     return true;
 }
-bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playerY, float playerW, float playerH) {
+bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playerY, float playerW, float playerH,ParticleSystem& particleSystem) {
     if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return false;
     Trap& trap = m_traps[trapIndex];
     if(trap.type != TrapType::TRAMPOLINE) return false;
     SDL_FRect trapSize = getTrapCollisionBox(trap);
     float w=trapSize.w,h =trapSize.h;
     if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y, playerH, playerW, h, w)) return false;
-
+    particleSystem.emitJumpDust(playerX , playerY+playerH-40.00f);
     trap.status = TrapStatus::TRIGGERED;
     trap.aniStartFrame = 0;
     trap.aniDone = false;
