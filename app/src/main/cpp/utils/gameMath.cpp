@@ -114,26 +114,7 @@ namespace gameMath{
 
             float overlapX = ((w1 / 2) + (w2 / 2)) - fabs(dx);
             float overlapY = ((h1 / 2) + (h2 / 2)) - fabs(dy);
-            if (overlapX > 0 && overlapY > 0) {
-                if (overlapX < overlapY) {
-                    // Push along X
-                    if (dx > 0){
-                        x1 += overlapX;
-                    }
-                    else {
-                        x1 -= overlapX;
-                    }
-                }
-                else {
-                    // Push along Y
-                    if (dy > 0) {
-                        y1 += overlapY;
-                    }
-                    else {
-                        y1 -= overlapY;
-                    }
-                }
-            }
+
             return true;
         }
         return false;

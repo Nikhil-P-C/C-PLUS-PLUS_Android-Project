@@ -56,6 +56,10 @@ void DebugState::render(SDL_Renderer *renderer) {
         SDL_FRect trapCollRect =m_trapBuilder.getTrapCollisionBox(trap);
         trapCollRect.x =trapCollRect.x-camX;
         trapCollRect.y =trapCollRect.y-camY;
+        if(trap.type == TrapType::FAN){
+            trapCollRect.y -=700;
+            trapCollRect.h +=700+trapCollRect.h;
+        }
         SDL_RenderRect(renderer,&trapCollRect);
     }
 }

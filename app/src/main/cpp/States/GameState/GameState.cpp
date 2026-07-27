@@ -276,8 +276,8 @@ void GameState::update(float dt){
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-    float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.h,m_player.w);
-    if(Force >0)
+    float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
+    if(Force <0)
     {
         m_velocityY=0.0f;
         m_velocityY += Force;

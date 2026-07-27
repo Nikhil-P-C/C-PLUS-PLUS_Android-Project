@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 #include "engine/Engine.h"
 #include "utils/utils.h"
+#include "States/GameState/ParticleSystem.h"
 
 enum class TrapType{
     FALLING_PLATFORM=0,
@@ -67,7 +68,7 @@ public:
     void triggerFall(int trapIndex);
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,TrapType& outType);
     SDL_FRect getHazardHitBox(const Trap& trap);
-    float checkFanForce(float playerX,float playerY,float playerW,float playerH);
+    float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
     bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,float playerW,float playerH);
     bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
     gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY, float playerW, float playerH);

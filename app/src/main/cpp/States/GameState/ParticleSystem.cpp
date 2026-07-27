@@ -126,6 +126,40 @@ ParticleSystem::ParticleSystem()
     m_particleTexture = Engine::Get().getAssetManager().getTexture(TextureType::DUST_PARTICLE);
 
 }
+void ParticleSystem::emitDust(float pointX, float pointY,int velocityX,int velocityY)
+{
+    for(auto& particle:m_particles){
+        if(!particle.isAlive){
+            particle.isAlive = true;
+            particle.x =pointX;
+            particle.y =pointY;
+
+            particle.vX =velocityX;
+            particle.vY =velocityY;
+
+            particle.life = 0.4f;
+            particle.maxLife=0.4f;
+            return;
+        }
+    }
+}
+
+void ParticleSystem::emitParticleWProps(int count, int rangeX1, int rangeX2, int rangeY1, int rangeY2,
+                                        int velocityX1,int velocityX2 , int velocityY1,int velocityY2,
+                                        int minParticleNum, int maxParticleNum, int dirX, int dirY)
+{
+    if(count <=0)return;
+    for(int i =0; i<count;i++)
+    {
+        int randomX = randomInt(rangeX1,rangeX2);
+        int randomY = rangeY1;
+
+
+
+        emitDust(randomX,randomY,dirX,dirY);
+
+    }
+}
 
 
 
@@ -140,4 +174,3 @@ int ParticleSystem::randomInt(int min, int max)
     std::uniform_int_distribution<int> dist(min, max);
     return dist(rng);
 }
-

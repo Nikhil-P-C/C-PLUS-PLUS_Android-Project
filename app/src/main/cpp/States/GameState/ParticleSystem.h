@@ -24,7 +24,10 @@ public:
     void emitRightDust(float feetX ,float feetY);
     void emitLandDust(float leftFeetX, float leftFeetY,float rightFeetX,float rightFeetY);
     void emitOneJumpParticle(float feetX, float feetY);
-
+    void emitParticleWProps(int count,int rangeX1,int rangeX2,int rangeY1, int rangeY2,
+                            int velocityX1,int velocityX2 , int velocityY1,int velocityY2,
+                            int minParticleNum,int maxParticleNum,int dirX,int dirY);
+    void emitDust(float pointX, float pointY, int velocityX, int velocityY);
     int randomInt(int min, int max);
     float randomFloat(float min, float max);
 
@@ -32,5 +35,6 @@ public:
 private:
     SDL_Texture* m_particleTexture=nullptr;
     std::array<Particle,50> m_particles;
+
 
 };

@@ -104,7 +104,7 @@ SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
     SDL_FRect rect{trap.x,trap.y,info->frameW*SCALE,info->frameH*SCALE};
     switch(trap.type){
         case TrapType::FAN:
-            return { trap.x, trap.y , (info->frameW)*SCALE,(info->frameH) *SCALE };
+            return { trap.x+3, trap.y , ((info->frameW)*SCALE)-3,(info->frameH) *SCALE };
         case TrapType::TRAMPOLINE:
             return { trap.x+10 , trap.y+70 , (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
         case TrapType::FALLING_PLATFORM:
@@ -174,14 +174,25 @@ bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float
 }
 
 
-float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, float playerH) {
+float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, float playerH,ParticleSystem& particleSystem) {
     const float FAN_FORCE = -500.0f; // px/s upward, tune against m_gravity/m_jumpVelocity
     for(const auto& trap : m_traps){
+        SDL_FRect trapCollRect =getTrapCollisionBox(trap);
+        if(trap.type == TrapType::FAN){
+            trapCollRect.y -=700;
+            trapCollRect.h +=700+trapCollRect.h;
+        }
+        if(trap.status == TrapStatus::ON){
+            particleSystem.emitParticleWProps(2,trapCollRect.x,trapCollRect.x,
+                                              trapCollRect.y+trapCollRect.h-60,trapCollRect.y+trapCollRect.h-100,0,
+                                              0,0,0,0,0,0,-700);
+        }
         if(trap.type != TrapType::FAN || trap.status != TrapStatus::ON) continue;
         SDL_FRect trapSize = getTrapCollisionBox(trap);
-        float w=trapSize.w,h =700+trapSize.h;
-        if(gameMath::checkcollision(playerX, playerY, trap.x, trap.y-700, playerH, playerW, h, w))
+        if(gameMath::checkcollision(playerX, playerY, trapCollRect.x,trapCollRect.x, playerH, playerW, trapCollRect.h, trapCollRect.w)) {
+
             return FAN_FORCE;
+        }
     }
     return 0.0f;
 }

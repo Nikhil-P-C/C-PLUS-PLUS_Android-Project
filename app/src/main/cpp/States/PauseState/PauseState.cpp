@@ -26,8 +26,6 @@ void PauseState::init(SDL_Renderer *renderer) {
     m_font = TTF_OpenFontIO(m_fontfile,false,24);
     LOGI("font:%d",(bool)m_font);
     m_fontShadow = TTF_OpenFontIO(m_fontShadowfile,false,24);
-
-
     m_renderer = renderer;
     SDL_Surface* fontSurface = TTF_RenderText_Solid(m_font,"paused ",
                                                     7,SDL_Color{255,255,255,255});
@@ -56,7 +54,13 @@ void PauseState::init(SDL_Renderer *renderer) {
 
 void PauseState::render(SDL_Renderer *renderer) {
 
-
+    SDL_FRect blurDst{0.00f,0.00f,1600.00f,
+                      720.00f};
+    SDL_SetRenderDrawColor(renderer,0,0,0,126);
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
+    SDL_RenderFillRect(renderer,&blurDst);
+    SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(renderer,33,31,48,255);
 
     SDL_FRect pauseDst = {800 - 150, 320 - 50, 300, 100};
     SDL_RenderTexture(renderer, m_pauseShadowTexture, nullptr, &pauseDst);
