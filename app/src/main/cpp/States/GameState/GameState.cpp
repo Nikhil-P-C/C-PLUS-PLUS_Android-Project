@@ -277,6 +277,7 @@ void GameState::update(float dt){
     for(int i =0;i<m_traps.size();i++)
     {
 
+
         //fire
         if(m_traps[i].type == TrapType::FIRE)
             m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
@@ -285,7 +286,11 @@ void GameState::update(float dt){
                                                                              m_player.w, m_player.h,
                                                                              m_previousY,m_velocityY);
 
-
+            if(side != gameMath::collisionSide::NONE&&(m_trapBuilder.trapHasPath(m_traps[i].type)||m_traps[i].type==TrapType::FALLING_PLATFORM)){
+                SDL_FPoint trapDelta =m_trapBuilder.getTrapDelta(i);
+                m_player.x+=trapDelta.x;
+                m_player.y+=trapDelta.y;
+            }
             switch (side) {
                 case gameMath::collisionSide::TOP:
                     if(m_traps[i].type == TrapType::FALLING_PLATFORM) {
