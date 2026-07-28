@@ -61,7 +61,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
-    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 1600, 720};
+    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
     for(const auto& level :m_levelWalls)
     {
@@ -276,6 +276,7 @@ void GameState::update(float dt){
     m_trapBuilder.updatePath(dt);
     for(int i =0;i<m_traps.size();i++)
     {
+
         //fire
         if(m_traps[i].type == TrapType::FIRE)
             m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
@@ -544,9 +545,9 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
-    m_levelWalls.emplace_back(0,0,1600,384,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
-    m_levelWalls.emplace_back(0,384,1600,384,SpriteType::MOSS_WALL,ColliderType::SOLID);
-    m_wallCollisionRect={0.00f,0.00f,1600.00f,768};
+    m_levelWalls.emplace_back(0,0,3200,768,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
+    m_levelWalls.emplace_back(0,768,3200,768,SpriteType::MOSS_WALL,ColliderType::SOLID);
+    m_wallCollisionRect={0.00f,0.00f,3200.00f,1536};
 //
 //    m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
 //    m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
@@ -572,48 +573,51 @@ void GameState::setLevel(int level) {
     m_fruits.emplace_back(200.00f,300.00f,FruitType::STRAWBERRY);
     m_fruits.emplace_back(200.00f,300.00f,FruitType::BANANA);
 
-    m_traps.emplace_back(200.00f,650.00f,TrapType::FAN,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(200.00f,1400.00f,TrapType::FAN,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(300.00f,650.00f,TrapType::FAN,TrapStatus::ON,0,0,
+    m_traps.emplace_back(300.00f,1300.00f,TrapType::FAN,TrapStatus::ON,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(400.00f,400.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,
+    m_traps.emplace_back(400.00f,1200.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
-    m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0,250.00f,
+    m_traps.emplace_back(100.00f,900.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0,250.00f,
                          PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
-    m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(200.00f,1400.00f,TrapType::FAN,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
+    m_traps.emplace_back(800.00f,1300.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(700.00f,200.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
+    m_traps.emplace_back(700.00f,300.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(100.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,500.00f,500.00f,
+    m_traps.emplace_back(100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,2000.00f,1300.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
-    m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,300,600,
+    m_traps.emplace_back(1100.00f,0.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,1200,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1000.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1000.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1060.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1060.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1120.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1120.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1180.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1180.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1240.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1240.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1300.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1300.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1360.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1360.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1420.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1420.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
-    m_traps.emplace_back(1480.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
+    m_traps.emplace_back(1480.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
 
-    m_traps.emplace_back(200.00f,400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,400.00f,100.00f,
-                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
-
-
-
+    m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,400.00f,1400.00f,
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
+    m_traps.emplace_back(400.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,400.00f,1400.00f,
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
+    m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,200.00f,1400.00f,
+                         250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
+    m_traps.emplace_back(300.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,300.00f,1400.00f,
+                         250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
 
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);

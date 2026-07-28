@@ -15,6 +15,7 @@ std::vector<Trap> &TrapBuilder::getTraps()
 }
 
 void TrapBuilder::init(const std::vector<Trap> &traps)
+
 {
     m_traps =traps;
     for(auto& trap:m_traps){
@@ -37,7 +38,6 @@ void TrapBuilder::render(SDL_Renderer *renderer)
         SDL_FRect Src{0.0f+info->frameW*trap.aniStartFrame,0.0f,
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
 
-        LOGI("texture type:%d , status:%d",trap.type,trap.status);
         SDL_RenderTexture(renderer,texture,&Src,&Dst);
     }
 }
@@ -261,8 +261,8 @@ float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, fl
         }
 
         if(trap.type != TrapType::FAN || trap.status != TrapStatus::ON) continue;
-        if(gameMath::checkcollision(playerX, playerY, sensorRect.x,sensorRect.x, playerH, playerW, sensorRect.h, sensorRect.w)) {
-
+        if(gameMath::checkcollision(playerX, playerY, sensorRect.x,sensorRect.y, playerH, playerW, sensorRect.h, sensorRect.w)) {
+            LOGI("within sensor");
             return FAN_FORCE;
         }
     }
@@ -387,12 +387,11 @@ void TrapBuilder::updatePath(float dt)
                 if(!trap.hasHitEnd)
                 {
                     trap.hasHitEnd =true;
-                    trap.status = TrapStatus::HIT;
+                    if(trap.type != TrapType::MOVING_PLATFORM_BROWN && trap.type!=TrapType::MOVING_PLATFORM_GREY)
+                        trap.status = TrapStatus::HIT;
                     trap.aniStartFrame = 0;
                     trap.aniDone = false;
-                    coord += 200*(-1*dir)*dt;
                 }
-                coord += 200*dir*dt;
                 if(now - trap.lastSwitchTime > m_rockHeadTimer)
                 {
                     trap.lastSwitchTime =now;
@@ -412,8 +411,9 @@ void TrapBuilder::updatePath(float dt)
 }
 
 SDL_FPoint TrapBuilder::getTrapDelta(int trapIndex) {
-
-    return SDL_FPoint();
+    if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return {0.0f,0.0f};
+    const Trap& trap = m_traps[trapIndex];
+    return { trap.x - trap.previousX, trap.y - trap.previousY };
 }
 
 
