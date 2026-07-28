@@ -117,14 +117,40 @@ void TrapBuilder::update(float dt)
 bool TrapBuilder::isSolid(int trapIndex) {
     auto& trap = m_traps[trapIndex];
 
-    return trapHasPath(trap.type)||trap.type==TrapType::FIRE||trap.type == TrapType::FALLING_PLATFORM;
+    return trapHasPath(trap.type)||trap.type==TrapType::FIRE ||trap.type == TrapType::FALLING_PLATFORM;
 }
-gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float &playerY, float playerW, float playerH){
+gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float& playerY,
+                                                          float playerW, float playerH,float previousY,float velocityY){
     auto& trap = m_traps[trapIndex];
-    SDL_FRect trapCollider= getTrapCollisionBox(trap);
-    gameMath::collisionSide collision = gameMath::checkcollisionXY(playerX,playerY,trapCollider.x,trapCollider.y,
-                                              playerH,playerW,trapCollider.h,trapCollider.w);
-    return collision;
+    if(trap.colliderType == ColliderType::SOLID)
+    {
+        SDL_FRect trapCollider = getTrapCollisionBox(trap);
+        gameMath::collisionSide collision = gameMath::checkcollisionXY(playerX, playerY,
+                                                                       trapCollider.x,
+                                                                       trapCollider.y,
+                                                                       playerH, playerW,
+                                                                       trapCollider.h,
+                                                                       trapCollider.w);
+        return collision;
+    }
+    if(trap.colliderType == ColliderType::ONE_WAY){
+        SDL_FRect trapCollider = getTrapCollisionBox(trap);
+        float previousBottom = previousY + playerH;
+        float currentBottom = playerY + playerH;
+        float platformTop = trapCollider.y;
+
+        if (velocityY > 0 && previousBottom <= platformTop
+            && currentBottom >= platformTop
+            && gameMath::checkcollisionX(playerX, playerY, trapCollider.x,
+                                             trapCollider.y,
+                                             playerH, playerW, trapCollider.h,
+                                             trapCollider.w)) {
+
+                playerY = platformTop - playerH;
+                return gameMath::collisionSide::TOP;
+            }
+    }
+    return gameMath::collisionSide::NONE;
 }
 SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
     auto* info = getTrapFrameInfo(trap.type,trap.status);
@@ -228,7 +254,8 @@ bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY,
     if(trap.type != TrapType::FIRE) return false;
     SDL_FRect trapSize = getTrapCollisionBox(trap);
     float w=trapSize.w,h =trapSize.h;
-    if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y, playerH, playerW, h, w)) return false;
+    if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y,
+                                 playerH, playerW, h, w)) return false;
     if(trap.status == TrapStatus::OFF)
     {
         trap.lastSwitchTime=SDL_GetTicks();
@@ -236,27 +263,31 @@ bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY,
         trap.aniStartFrame = 0;
         trap.aniDone = false;
     }
-    if(const auto* info = getTrapFrameInfo(trap.type, trap.status)) trap.aniEndFrame = info->frameCount-1;
+    if(const auto* info = getTrapFrameInfo(trap.type, trap.status))
+        trap.aniEndFrame = info->frameCount-1;
     return true;
 }
-bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playerY, float playerW, float playerH,ParticleSystem& particleSystem) {
+bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playerY,
+                                        float playerW, float playerH,ParticleSystem& particleSystem) {
     if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return false;
     Trap& trap = m_traps[trapIndex];
     if(trap.type != TrapType::TRAMPOLINE) return false;
     SDL_FRect trapSize = getTrapCollisionBox(trap);
     float w=trapSize.w,h =trapSize.h;
-    if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y, playerH, playerW, h, w)) return false;
+    if(!gameMath::checkcollision(playerX, playerY, trapSize.x, trapSize.y,
+                                 playerH, playerW, h, w)) return false;
     particleSystem.emitJumpDust(playerX , playerY+playerH-40.00f);
     trap.status = TrapStatus::TRIGGERED;
     trap.aniStartFrame = 0;
     trap.aniDone = false;
-    if(const auto* info = getTrapFrameInfo(trap.type, trap.status)) trap.aniEndFrame = info->frameCount-1;
+    if(const auto* info = getTrapFrameInfo(trap.type, trap.status))
+        trap.aniEndFrame = info->frameCount-1;
     return true;
 }
 
 
-Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath)
-        :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath)
+Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath,ColliderType colliderType)
+        :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath),colliderType(colliderType)
 {
 
 }
@@ -264,60 +295,81 @@ Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,f
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
     static std::unordered_map<uint32_t ,TrapFrameInfo> table{
             {trapKey(TrapType::FALLING_PLATFORM,TrapStatus::OFF),
-                    {TextureType::TRAP_FALLING_PLATFORM_OFF,32,10,1,50,false}},
+                    {TextureType::TRAP_FALLING_PLATFORM_OFF,
+                     32,10,1,50,false}},
             {trapKey(TrapType::FALLING_PLATFORM,TrapStatus::ON),
-                    {TextureType::TRAP_FALLING_PLATFORM_ON,32,10,4,50,true}},
+                    {TextureType::TRAP_FALLING_PLATFORM_ON,
+                     32,10,4,50,true}},
 
             {trapKey(TrapType::FAN,TrapStatus::OFF),
-                    {TextureType::TRAP_FAN_OFF,24,8,1,50,false}},
+                    {TextureType::TRAP_FAN_OFF,
+                     24,8,1,50,false}},
             {trapKey(TrapType::FAN,TrapStatus::ON),
-                    {TextureType::TRAP_FAN_ON,24,8,4,50,true}},
+                    {TextureType::TRAP_FAN_ON,
+                     24,8,4,50,true}},
 
             {trapKey(TrapType::FIRE,TrapStatus::OFF),
-                    {TextureType::TRAP_FIRE_OFF,16,32,1,50,false}},
+                    {TextureType::TRAP_FIRE_OFF,
+                     16,32,1,50,false}},
             {trapKey(TrapType::FIRE,TrapStatus::ON),
-                    {TextureType::TRAP_FIRE_ON,16,32,3,50,true}},
+                    {TextureType::TRAP_FIRE_ON,
+                     16,32,3,50,true}},
             {trapKey(TrapType::FIRE,TrapStatus::HIT),
-                    {TextureType::TRAP_FIRE_HIT,16,32,4,50,false}},
+                    {TextureType::TRAP_FIRE_HIT,
+                     16,32,4,50,false}},
 
 
             {trapKey(TrapType::MOVING_PLATFORM_BROWN,TrapStatus::OFF),
-                    {TextureType::TRAP_PLATFORM_BROWN_OFF,32,8,1,50,false}},
+                    {TextureType::TRAP_PLATFORM_BROWN_OFF,
+                     32,8,1,50,false}},
             {trapKey(TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON),
-                    {TextureType::TRAP_PLATFORM_BROWN_ON,32,8,8,50,true}},
+                    {TextureType::TRAP_PLATFORM_BROWN_ON,
+                     32,8,8,50,true}},
 
             {trapKey(TrapType::MOVING_PLATFORM_GREY,TrapStatus::OFF),
-                    {TextureType::TRAP_PLATFORM_GREY_OFF,32,8,1,50,false}},
+                    {TextureType::TRAP_PLATFORM_GREY_OFF,
+                     32,8,1,50,false}},
             {trapKey(TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON),
-                    {TextureType::TRAP_PLATFORM_GREY_ON,32,8,8,50,true}},
+                    {TextureType::TRAP_PLATFORM_GREY_ON,
+                     32,8,8,50,true}},
 
             {trapKey(TrapType::ROCK_HEAD,TrapStatus::IDLE),
-                    {TextureType::TRAP_ROCK_HEAD_BLINK,42,42,4,200,true}},
+                    {TextureType::TRAP_ROCK_HEAD_BLINK,
+                     42,42,4,200,true}},
             {trapKey(TrapType::ROCK_HEAD,TrapStatus::HIT),
-                    {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,42,42,4,200,true}},
+                    {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,
+                     42,42,4,200,true}},
 
             {trapKey(TrapType::SPIKE_HEAD,TrapStatus::IDLE),
-                    {TextureType::TRAP_ROCK_HEAD_BLINK,54,52,4,200,true}},
+                    {TextureType::TRAP_ROCK_HEAD_BLINK,
+                     54,52,4,200,true}},
             {trapKey(TrapType::SPIKE_HEAD,TrapStatus::HIT),
-                    {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,54,52,4,200,false}},
+                    {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,
+                     54,52,4,200,false}},
 
 
             {trapKey(TrapType::SAW,TrapStatus::OFF),
-                    {TextureType::TRAP_SAW_OFF,38,38,1,50,false}},
+                    {TextureType::TRAP_SAW_OFF,
+                     38,38,1,50,false}},
             {trapKey(TrapType::SAW,TrapStatus::ON),
-                    {TextureType::TRAP_SAW_ON,38,38,8,50,true}},
+                    {TextureType::TRAP_SAW_ON,
+                     38,38,8,50,true}},
 
             {trapKey(TrapType::SPIKE_BALL,TrapStatus::IDLE),
-                    {TextureType::TRAP_SPIKE_BALL,28,28,1,50,false}},
+                    {TextureType::TRAP_SPIKE_BALL,
+                     28,28,1,50,false}},
 
 
             {trapKey(TrapType::SPIKES,TrapStatus::IDLE),
-                    {TextureType::TRAP_SPIKE, 16, 16, 1,50, false}},
+                    {TextureType::TRAP_SPIKE,
+                     16, 16, 1,50, false}},
 
             {trapKey(TrapType::TRAMPOLINE,TrapStatus::IDLE),
-                    {TextureType::TRAP_TRAMPOLINE, 28, 28, 1,50, false}},
+                    {TextureType::TRAP_TRAMPOLINE,
+                     28, 28, 1,50, false}},
             {trapKey(TrapType::TRAMPOLINE,TrapStatus::TRIGGERED),
-                    {TextureType::TRAP_TRAMPOLINE_TRIGGER, 28, 28, 8,50, false}}
+                    {TextureType::TRAP_TRAMPOLINE_TRIGGER,
+                     28, 28, 8,50, false}}
 
     };
 

@@ -37,7 +37,7 @@ struct TrapFrameInfo{
     bool loop;
 };
 struct Trap{
-    Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath);
+    Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,ColliderType colliderType);
     float x ,y;
     TrapType type;
     TrapStatus status;
@@ -47,6 +47,7 @@ struct Trap{
     int aniStartFrame =0;
      int aniEndFrame=0;
     bool aniDone= false;
+    ColliderType colliderType;
 };
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status);
 class TrapBuilder{
@@ -69,9 +70,11 @@ public:
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,TrapType& outType);
     SDL_FRect getHazardHitBox(const Trap& trap);
     float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
-    bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
+    bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,
+                               float playerW,float playerH,ParticleSystem& particleSystem);
     bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
-    gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY, float playerW, float playerH);
+    gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY,
+                                                 float playerW, float playerH,float previousY,float velocityY);
 private:
     std::vector<Trap> m_traps;
     int m_fireTimer =3000;

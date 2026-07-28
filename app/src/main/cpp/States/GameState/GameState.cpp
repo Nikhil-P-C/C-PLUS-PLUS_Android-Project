@@ -273,29 +273,23 @@ void GameState::update(float dt){
     m_isGrounded=false;
 
     handleCollision();
-    int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
-    PlayerDetail::getInstance().addScore(score);
-    Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-    float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
-    if(Force <0)
-    {
-        m_velocityY=0.0f;
-        m_velocityY += Force;
-        m_isGrounded = false;
-    }
     for(int i =0;i<m_traps.size();i++)
     {
         //fire
         if(m_traps[i].type == TrapType::FIRE)
             m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
         if(m_trapBuilder.isSolid(i)){
-            gameMath::collisionSide side =m_trapBuilder.resolveTrapCollision(i, m_player.x, m_player.y, m_player.w, m_player.h);
+            gameMath::collisionSide side =m_trapBuilder.resolveTrapCollision(i, m_player.x, m_player.y,
+                                                                             m_player.w, m_player.h,
+                                                                             m_previousY,m_velocityY);
+
 
             switch (side) {
                 case gameMath::collisionSide::TOP:
                     if(m_traps[i].type == TrapType::FALLING_PLATFORM) {
                         m_trapBuilder.triggerFall(i);
-                        LOGI("trigger fall");
+                        m_isGrounded =true;
+                        m_velocityY =0.0f;
                     }
                     m_isGrounded =true;
                     m_velocityY =0.0f;
@@ -315,6 +309,17 @@ void GameState::update(float dt){
         }
 
     }
+    int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
+    PlayerDetail::getInstance().addScore(score);
+    Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
+    float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
+    if(Force <0)
+    {
+        m_velocityY=0.0f;
+        m_velocityY += Force;
+        m_isGrounded = false;
+    }
+
 
     updateAnimation();
     m_particleSystem.update(dt);
@@ -566,24 +571,24 @@ void GameState::setLevel(int level) {
     m_fruits.emplace_back(200.00f,300.00f,FruitType::STRAWBERRY);
     m_fruits.emplace_back(200.00f,300.00f,FruitType::BANANA);
 
-    m_traps.emplace_back(200.00f,650.00f,TrapType::FAN,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(300.00f,650.00f,TrapType::FAN,TrapStatus::ON,0,0);
-    m_traps.emplace_back(400.00f,400.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0);
-    m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
-    m_traps.emplace_back(700.00f,200.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0);
-    m_traps.emplace_back(300.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,300,500);
-    m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,0);
-    m_traps.emplace_back(1000.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1060.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1120.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1180.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1240.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1300.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1360.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1420.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
-    m_traps.emplace_back(1480.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0);
+    m_traps.emplace_back(200.00f,650.00f,TrapType::FAN,TrapStatus::OFF,0,0,ColliderType::TRIGGER);
+    m_traps.emplace_back(300.00f,650.00f,TrapType::FAN,TrapStatus::ON,0,0,ColliderType::TRIGGER);
+    m_traps.emplace_back(400.00f,400.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,ColliderType::ONE_WAY);
+    m_traps.emplace_back(100.00f,300.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0,ColliderType::ONE_WAY);
+    m_traps.emplace_back(200.00f,400.00f,TrapType::FAN,TrapStatus::OFF,0,0,ColliderType::TRIGGER);
+    m_traps.emplace_back(800.00f,600.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,ColliderType::TRIGGER);
+    m_traps.emplace_back(700.00f,200.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,ColliderType::TRIGGER);
+    m_traps.emplace_back(300.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,300,500,ColliderType::SOLID);
+    m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1000.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1060.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1120.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1180.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1240.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1300.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1360.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1420.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
+    m_traps.emplace_back(1480.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,ColliderType::SOLID);
 
 
 
