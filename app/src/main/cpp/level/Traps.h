@@ -61,6 +61,7 @@ struct Trap{
     float previousX =0.00f, previousY = 0.00f;
     int pathIndex = 1;
     bool isMovingForward =true;
+    bool hasHitEnd =false;
     unsigned int lastTime = 0.00f;
     unsigned int lastSwitchTime =0.00f;
     int aniStartFrame =0.00f;
@@ -100,4 +101,5 @@ private:
     std::vector<Trap> m_traps;
     int m_fireTimer =3000;
     int m_fanTimer =3000;
+    int m_rockHeadTimer =2000;
 };

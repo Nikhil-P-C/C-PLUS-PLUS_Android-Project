@@ -588,8 +588,8 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
     m_traps.emplace_back(100.00f,100.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,500.00f,500.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
-    m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,300,0,
-                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,300,600,
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);
     m_traps.emplace_back(1000.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
     m_traps.emplace_back(1060.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
@@ -609,6 +609,8 @@ void GameState::setLevel(int level) {
     m_traps.emplace_back(1480.00f,500.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
 
+    m_traps.emplace_back(200.00f,400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,400.00f,100.00f,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
 
 
 

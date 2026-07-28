@@ -31,10 +31,13 @@ void TrapBuilder::render(SDL_Renderer *renderer)
     for(const auto& trap:m_traps)
     {
         auto* info = getTrapFrameInfo(trap.type,trap.status);
+
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(info->texture);
         SDL_FRect Dst{trap.x - camX, trap.y - camY, info->frameW* SCALE, info->frameH * SCALE};
         SDL_FRect Src{0.0f+info->frameW*trap.aniStartFrame,0.0f,
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
+
+        LOGI("texture type:%d , status:%d",trap.type,trap.status);
         SDL_RenderTexture(renderer,texture,&Src,&Dst);
     }
 }
@@ -93,7 +96,15 @@ void TrapBuilder::update(float dt)
             }
 
         }
-
+        if(trap.aniDone && trap.type == TrapType::ROCK_HEAD)
+        {
+            if(trap.status == TrapStatus::HIT)
+            {
+                trap.status = TrapStatus::IDLE;
+                trap.aniDone=false;
+                trap.aniStartFrame=0;
+            }
+        }
         if(trap.aniDone)continue;
         const auto* info = getTrapFrameInfo(trap.type,trap.status);
         if(!info || info->frameCount<=1) continue;
@@ -122,8 +133,14 @@ bool TrapBuilder::isSolid(int trapIndex) {
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float& playerY,
                                                           float playerW, float playerH,float previousY,float velocityY){
     auto& trap = m_traps[trapIndex];
+    if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
+        LOGI("moving platform in resolve collision");
+    }
     if(trap.colliderType == ColliderType::SOLID)
     {
+        if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
+            LOGI("moving platform in solid resolve collision");
+        }
         SDL_FRect trapCollider = getTrapCollisionBox(trap);
         gameMath::collisionSide collision = gameMath::checkcollisionXY(playerX, playerY,
                                                                        trapCollider.x,
@@ -134,6 +151,9 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
         return collision;
     }
     if(trap.colliderType == ColliderType::ONE_WAY){
+        if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
+            LOGI("moving platform in one way resolve collision");
+        }
         SDL_FRect trapCollider = getTrapCollisionBox(trap);
         float previousBottom = previousY + playerH;
         float currentBottom = playerY + playerH;
@@ -285,13 +305,16 @@ bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playe
     return true;
 }
 
-void TrapBuilder::updatePath(float dt) {
-    for(auto& trap: m_traps){
+void TrapBuilder::updatePath(float dt)
+{
+    for(auto& trap: m_traps)
+    {
         trap.previousX=trap.x;
         trap.previousY=trap.y;
         if(!trapHasPath(trap.type))continue;
 
-        if(trap.pathShape == PathShape::RECT){
+        if(trap.pathShape == PathShape::RECT)
+        {
             SDL_FPoint paths[4]={
                     {trap.baseX,trap.baseY},
                     {trap.startPath,trap.baseY},
@@ -299,34 +322,89 @@ void TrapBuilder::updatePath(float dt) {
                     {trap.baseX,trap.endPath}
             };
             SDL_FPoint target = paths[trap.pathIndex];
-            if(trap.x != target.x){
+
+            float stepDist = trap.movingSpeed*dt;
+            if(trap.x != target.x)
+            {
                 float dir = (target.x > trap.x) ? 1.0f : -1.0f;
-                trap.x += (trap.movingSpeed*dir)*dt;
+                if(SDL_fabsf(target.x - trap.x) <= stepDist)
+                {
+                    trap.x = target.x;
+                }
+                else
+                {
+                    trap.x += stepDist*dir;
+                }
             }
-            if(trap.y != target.y){
+            if(trap.y != target.y)
+            {
                 float dir = (target.y > trap.y) ? 1.0f : -1.0f;
-                trap.y +=(trap.movingSpeed*dir)*dt;
+                if(SDL_fabsf(target.y - trap.y) <= stepDist)
+                {
+                    trap.y = target.y;
+                }
+                else
+                {
+                    trap.y += stepDist*dir;
+                }
             }
-            if(target.x == trap.x && target.y == trap.y){
-                trap.pathIndex =(trap.pathIndex+1)%4;
+            if(target.x == trap.x && target.y == trap.y)
+            {
+                unsigned int now = SDL_GetTicks();
+
+                if(!trap.hasHitEnd)
+                {
+                    trap.hasHitEnd =true;
+                    trap.status = TrapStatus::HIT;
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
+                }
+                if(now - trap.lastSwitchTime > m_rockHeadTimer)
+                {
+                    trap.lastSwitchTime = now;
+
+                    trap.pathIndex = (trap.pathIndex + 1) % 4;
+                }
+            }
+            else{
+                trap.hasHitEnd =false;
             }
             continue;
         }
 
-        if(trap.pathShape == PathShape::LINE){
-            float& coord = (trap.axis == PathAxis::VERTICAL)?trap.x:trap.y;
+        if(trap.pathShape == PathShape::LINE)
+        {
+            float& coord = (trap.axis == PathAxis::HORIZONTAL)?trap.x:trap.y;
             float target = (trap.isMovingForward)?trap.endPath:trap.startPath;
-            float dir = (coord > target) ? 1.00f : -1.00f;
-            coord += (trap.movingSpeed*dir)*dt;
-            bool reachedTarget = (dir > 0 && coord >= target) || (dir < 0 && coord <= target);
-//            if(reachedTarget){
-//                coord = target;
-//                trap.isMovingForward = !trap.isMovingForward;
-//            }
+            float dir = (coord < target) ? 1.00f : -1.00f;
 
-            if((dir>0 && coord >= target)|| dir<0 && coord <= target){
+            float stepDist = trap.movingSpeed*dt;
+
+            if(SDL_fabsf(target - coord) <= stepDist)
+            {
+                unsigned int now = SDL_GetTicks();
                 coord = target;
-                trap.isMovingForward =!trap.isMovingForward;
+                if(!trap.hasHitEnd)
+                {
+                    trap.hasHitEnd =true;
+                    trap.status = TrapStatus::HIT;
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
+                    coord += 200*(-1*dir)*dt;
+                }
+                coord += 200*dir*dt;
+                if(now - trap.lastSwitchTime > m_rockHeadTimer)
+                {
+                    trap.lastSwitchTime =now;
+
+                    trap.isMovingForward = !trap.isMovingForward;
+                }
+            }
+            else
+            {
+                trap.hasHitEnd =false;
+
+                coord += stepDist*dir;
 
             }
         }
@@ -393,14 +471,14 @@ const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
                      42,42,4,200,true}},
             {trapKey(TrapType::ROCK_HEAD,TrapStatus::HIT),
                     {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,
-                     42,42,4,200,true}},
+                     42,42,4,100,false}},
 
             {trapKey(TrapType::SPIKE_HEAD,TrapStatus::IDLE),
                     {TextureType::TRAP_ROCK_HEAD_BLINK,
                      54,52,4,200,true}},
             {trapKey(TrapType::SPIKE_HEAD,TrapStatus::HIT),
                     {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,
-                     54,52,4,200,false}},
+                     54,52,4,100,false}},
 
 
             {trapKey(TrapType::SAW,TrapStatus::OFF),
