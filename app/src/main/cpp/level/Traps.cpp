@@ -285,9 +285,64 @@ bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playe
     return true;
 }
 
+void TrapBuilder::updatePath(float dt) {
+    for(auto& trap: m_traps){
+        trap.previousX=trap.x;
+        trap.previousY=trap.y;
+        if(!trapHasPath(trap.type))continue;
 
-Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath,ColliderType colliderType)
-        :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath),colliderType(colliderType)
+        if(trap.pathShape == PathShape::RECT){
+            SDL_FPoint paths[4]={
+                    {trap.baseX,trap.baseY},
+                    {trap.startPath,trap.baseY},
+                    {trap.startPath,trap.endPath},
+                    {trap.baseX,trap.endPath}
+            };
+            SDL_FPoint target = paths[trap.pathIndex];
+            if(trap.x != target.x){
+                float dir = (target.x > trap.x) ? 1.0f : -1.0f;
+                trap.x += (trap.movingSpeed*dir)*dt;
+            }
+            if(trap.y != target.y){
+                float dir = (target.y > trap.y) ? 1.0f : -1.0f;
+                trap.y +=(trap.movingSpeed*dir)*dt;
+            }
+            if(target.x == trap.x && target.y == trap.y){
+                trap.pathIndex =(trap.pathIndex+1)%4;
+            }
+            continue;
+        }
+
+        if(trap.pathShape == PathShape::LINE){
+            float& coord = (trap.axis == PathAxis::VERTICAL)?trap.x:trap.y;
+            float target = (trap.isMovingForward)?trap.endPath:trap.startPath;
+            float dir = (coord > target) ? 1.00f : -1.00f;
+            coord += (trap.movingSpeed*dir)*dt;
+            bool reachedTarget = (dir > 0 && coord >= target) || (dir < 0 && coord <= target);
+//            if(reachedTarget){
+//                coord = target;
+//                trap.isMovingForward = !trap.isMovingForward;
+//            }
+
+            if((dir>0 && coord >= target)|| dir<0 && coord <= target){
+                coord = target;
+                trap.isMovingForward =!trap.isMovingForward;
+
+            }
+        }
+    }
+}
+
+SDL_FPoint TrapBuilder::getTrapDelta(int trapIndex) {
+
+    return SDL_FPoint();
+}
+
+
+Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath,
+           float speed,PathAxis axis,PathShape shape,ColliderType colliderType)
+        :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath),
+        movingSpeed(speed),axis(axis),pathShape(shape),baseX(x),baseY(y),colliderType(colliderType)
 {
 
 }

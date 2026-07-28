@@ -29,6 +29,15 @@ enum class TrapStatus{
     OFF,
     TRIGGERED,
 };
+enum class PathAxis{
+    AUTO=0,
+    VERTICAL,
+    HORIZONTAL
+};
+enum class PathShape{
+    RECT,
+    LINE
+};
 struct TrapFrameInfo{
     TextureType texture;
     int frameW, frameH;
@@ -37,15 +46,25 @@ struct TrapFrameInfo{
     bool loop;
 };
 struct Trap{
-    Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,ColliderType colliderType);
+    Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,
+         float speed,PathAxis axis,PathShape shape,ColliderType colliderType);
     float x ,y;
     TrapType type;
     TrapStatus status;
-    float startPath=0,endPath=0;
-    unsigned int lastTime = 0;
-    unsigned int lastSwitchTime =0;
-    int aniStartFrame =0;
-     int aniEndFrame=0;
+
+    PathAxis axis = PathAxis::AUTO;
+    PathShape pathShape = PathShape::LINE;
+
+    float startPath=0.00f,endPath=0.00f;
+    float baseX =0.00f,baseY =0.00f;
+    float movingSpeed = 150.00f;
+    float previousX =0.00f, previousY = 0.00f;
+    int pathIndex = 1;
+    bool isMovingForward =true;
+    unsigned int lastTime = 0.00f;
+    unsigned int lastSwitchTime =0.00f;
+    int aniStartFrame =0.00f;
+     int aniEndFrame=0.00f;
     bool aniDone= false;
     ColliderType colliderType;
 };
@@ -75,6 +94,8 @@ public:
     bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
     gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY,
                                                  float playerW, float playerH,float previousY,float velocityY);
+    void updatePath(float dt);
+    SDL_FPoint getTrapDelta(int trapIndex);
 private:
     std::vector<Trap> m_traps;
     int m_fireTimer =3000;
