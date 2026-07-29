@@ -16,7 +16,7 @@ namespace gameMath{
     };
     bool collisionXY(float &x1, float &y1, float x2, float y2, float h1, float w1,
                          float h2, float w2);
-    bool checkcollisionX(float &x1, float y1, float x2, float y2, float h1, float w1,
+    bool checkcollisionX(float x1, float y1, float x2, float y2, float h1, float w1,
                          float h2, float w2);
     collisionSide checkcollisionXY(float &x1, float &y1, float x2, float y2, float h1, float w1,
                                    float h2, float w2);

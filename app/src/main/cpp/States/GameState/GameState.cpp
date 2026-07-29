@@ -290,15 +290,13 @@ void GameState::update(float dt){
             if(side != gameMath::collisionSide::NONE&&(m_trapBuilder.trapHasPath(m_traps[i].type)||m_traps[i].type==TrapType::FALLING_PLATFORM)){
                 SDL_FPoint trapDelta =m_trapBuilder.getTrapDelta(i);
                 m_player.x+=trapDelta.x;
-                if(m_traps[i].type == TrapType::ROCK_HEAD||m_traps[i].type == TrapType::SPIKE_HEAD)
+                if(m_traps[i].colliderType != ColliderType::ONE_WAY)
                     m_player.y+=trapDelta.y;
              }
             switch (side) {
                 case gameMath::collisionSide::TOP:
                     if(m_traps[i].type == TrapType::FALLING_PLATFORM) {
                         m_trapBuilder.triggerFall(i);
-                        m_isGrounded =true;
-                        m_velocityY =0.0f;
                     }
                     m_isGrounded =true;
                     m_velocityY =0.0f;
@@ -586,7 +584,7 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
     m_traps.emplace_back(400.00f,1200.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
-    m_traps.emplace_back(100.00f,900.00f,TrapType::FALLING_PLATFORM,TrapStatus::OFF,0,0,250.00f,
+    m_traps.emplace_back(100.00f,900.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,250.00f,
                          PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
     m_traps.emplace_back(200.00f,1400.00f,TrapType::FAN,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);

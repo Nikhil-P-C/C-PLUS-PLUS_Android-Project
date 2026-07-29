@@ -82,9 +82,7 @@ void TrapBuilder::update(float dt)
             }
         }
         //falling platform
-        if(trap.type ==TrapType::FALLING_PLATFORM && trap.status ==TrapStatus::OFF){
-            trap.y += 300.00f *dt;
-        }
+
         if(trap.aniDone && trap.type ==TrapType::FIRE)
         {
             if(trap.status == TrapStatus::HIT)
@@ -133,14 +131,9 @@ bool TrapBuilder::isSolid(int trapIndex) {
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float& playerY,
                                                           float playerW, float playerH,float previousY,float velocityY){
     auto& trap = m_traps[trapIndex];
-    if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
-        LOGI("moving platform in resolve collision");
-    }
+
     if(trap.colliderType == ColliderType::SOLID)
     {
-        if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
-            LOGI("moving platform in solid resolve collision");
-        }
         SDL_FRect trapCollider = getTrapCollisionBox(trap);
         gameMath::collisionSide collision = gameMath::checkcollisionXY(playerX, playerY,
                                                                        trapCollider.x,
@@ -151,9 +144,7 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
         return collision;
     }
     if(trap.colliderType == ColliderType::ONE_WAY){
-        if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
-            LOGI("moving platform in one way resolve collision");
-        }
+
         SDL_FRect trapCollider = getTrapCollisionBox(trap);
         float previousBottom = previousY + playerH;
         float currentBottom = playerY + playerH;
@@ -171,7 +162,7 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
 
                 playerY = platformTop - playerH;
                 return gameMath::collisionSide::TOP;
-            }
+        }
     }
     return gameMath::collisionSide::NONE;
 }
@@ -317,6 +308,10 @@ void TrapBuilder::updatePath(float dt)
     {
         trap.previousX=trap.x;
         trap.previousY=trap.y;
+
+        if(trap.type ==TrapType::FALLING_PLATFORM && trap.status ==TrapStatus::OFF){
+            trap.y += 300.00f *dt;
+        }
         if(!trapHasPath(trap.type))continue;
 
         if(trap.pathShape == PathShape::RECT)
