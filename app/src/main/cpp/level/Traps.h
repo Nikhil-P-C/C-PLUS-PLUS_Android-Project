@@ -83,7 +83,11 @@ public:
     constexpr bool trapHasHit(TrapType type){
         return type == TrapType::FIRE || type ==TrapType::ROCK_HEAD|| type ==TrapType::SPIKE_HEAD;
     }
-
+    constexpr bool trapHasHazard(TrapType type,TrapStatus status){
+        return type ==TrapType::SPIKE_HEAD||type ==TrapType::SPIKES||
+        type == TrapType::SPIKE_BALL||type == TrapType::SAW||
+                (type == TrapType::ROCK_HEAD && status == TrapStatus::HIT);
+    }
     bool isSolid(int trapIndex);
     SDL_FRect getTrapCollisionBox(const Trap& trap);
     void triggerFall(int trapIndex);

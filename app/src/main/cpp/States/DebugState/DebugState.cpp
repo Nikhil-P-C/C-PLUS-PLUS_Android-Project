@@ -52,6 +52,7 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_RenderRect(renderer, &playerBorder);
     SDL_SetRenderDrawColor(renderer, 33, 31, 48, 255);
     //traps
+    SDL_SetRenderDrawColor(renderer,0,0,255,255);
     for(const auto trap:m_traps){
         SDL_FRect trapCollRect =m_trapBuilder.getTrapCollisionBox(trap);
         trapCollRect.x =trapCollRect.x-camX;
@@ -62,6 +63,8 @@ void DebugState::render(SDL_Renderer *renderer) {
         }
         SDL_RenderRect(renderer,&trapCollRect);
     }
+    SDL_SetRenderDrawColor(renderer, 33, 31, 48, 255);
+
 }
 
 void DebugState::update(float dt) {

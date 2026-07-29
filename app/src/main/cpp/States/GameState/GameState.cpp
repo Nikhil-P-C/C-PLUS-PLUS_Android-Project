@@ -286,11 +286,13 @@ void GameState::update(float dt){
                                                                              m_player.w, m_player.h,
                                                                              m_previousY,m_velocityY);
 
+
             if(side != gameMath::collisionSide::NONE&&(m_trapBuilder.trapHasPath(m_traps[i].type)||m_traps[i].type==TrapType::FALLING_PLATFORM)){
                 SDL_FPoint trapDelta =m_trapBuilder.getTrapDelta(i);
                 m_player.x+=trapDelta.x;
-                m_player.y+=trapDelta.y;
-            }
+                if(m_traps[i].type == TrapType::ROCK_HEAD||m_traps[i].type == TrapType::SPIKE_HEAD)
+                    m_player.y+=trapDelta.y;
+             }
             switch (side) {
                 case gameMath::collisionSide::TOP:
                     if(m_traps[i].type == TrapType::FALLING_PLATFORM) {
@@ -615,7 +617,7 @@ void GameState::setLevel(int level) {
     m_traps.emplace_back(1480.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
 
-    m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,400.00f,1400.00f,
+    m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,200.00f,1400.00f,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
     m_traps.emplace_back(400.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,400.00f,1400.00f,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);

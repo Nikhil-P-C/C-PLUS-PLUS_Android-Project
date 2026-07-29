@@ -158,9 +158,12 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
         float previousBottom = previousY + playerH;
         float currentBottom = playerY + playerH;
         float platformTop = trapCollider.y;
+        float platformTopPrev = platformTop - (trap.y - trap.previousY);
+        float sweptTopMin = (platformTopPrev < platformTop) ? platformTopPrev : platformTop;
+        float sweptTopMax = (platformTopPrev > platformTop) ? platformTopPrev : platformTop;
 
-        if (velocityY > 0 && previousBottom <= platformTop
-            && currentBottom >= platformTop
+        if (velocityY > 0 && previousBottom <= sweptTopMax
+            && currentBottom >= sweptTopMin
             && gameMath::checkcollisionX(playerX, playerY, trapCollider.x,
                                              trapCollider.y,
                                              playerH, playerW, trapCollider.h,
@@ -176,6 +179,9 @@ SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
     auto* info = getTrapFrameInfo(trap.type,trap.status);
     SDL_FRect rect{trap.x,trap.y,info->frameW*SCALE,info->frameH*SCALE};
     switch(trap.type){
+        case TrapType::MOVING_PLATFORM_BROWN:
+        case TrapType::MOVING_PLATFORM_GREY:
+            return { trap.x+3, trap.y+7 , ((info->frameW)*SCALE)-6,(info->frameH) *SCALE-10 };
         case TrapType::FAN:
             return { trap.x+3, trap.y , ((info->frameW)*SCALE)-3,(info->frameH) *SCALE };
         case TrapType::TRAMPOLINE:
@@ -374,6 +380,8 @@ void TrapBuilder::updatePath(float dt)
 
         if(trap.pathShape == PathShape::LINE)
         {
+            if(trap.status ==TrapStatus::OFF)
+                continue;
             float& coord = (trap.axis == PathAxis::HORIZONTAL)?trap.x:trap.y;
             float target = (trap.isMovingForward)?trap.endPath:trap.startPath;
             float dir = (coord < target) ? 1.00f : -1.00f;

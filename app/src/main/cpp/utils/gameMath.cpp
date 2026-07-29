@@ -56,9 +56,7 @@ namespace gameMath{
                                    float h2, float w2) {
 
         if (x1 < x2 + w2 &&
-            x1 + w1 > x2 &&
-            y1 < y2 + h2 &&
-            y1 + h1 > y2) {
+            x1 + w1 > x2) {
             float centerX1 = x1 + (w1 / 2);
             float centerY1 = y1 + (h1 / 2);
             float centerX2 = x2 + (w2 / 2);
