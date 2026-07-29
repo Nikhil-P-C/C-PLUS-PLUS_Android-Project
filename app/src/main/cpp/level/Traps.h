@@ -61,11 +61,12 @@ struct Trap{
     float previousX =0.00f, previousY = 0.00f;
     int pathIndex = 1;
     bool isMovingForward =true;
+    bool isActivated =false;
     bool hasHitEnd =false;
     unsigned int lastTime = 0.00f;
     unsigned int lastSwitchTime =0.00f;
     int aniStartFrame =0.00f;
-     int aniEndFrame=0.00f;
+    int aniEndFrame=0.00f;
     bool aniDone= false;
     ColliderType colliderType;
 };
@@ -73,37 +74,58 @@ const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status);
 class TrapBuilder{
 public:
     std::vector<Trap>& getTraps();
+
     void init(const std::vector<Trap>& traps);
+
     void render(SDL_Renderer* renderer);
+
     void update(float dt);
+
     constexpr bool trapHasPath(TrapType type){
         return type == TrapType::ROCK_HEAD || type == TrapType::SPIKE_HEAD ||
         type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN;
     }
+
     constexpr bool trapHasHit(TrapType type){
         return type == TrapType::FIRE || type ==TrapType::ROCK_HEAD|| type ==TrapType::SPIKE_HEAD;
     }
+
     constexpr bool trapHasHazard(TrapType type,TrapStatus status){
         return type ==TrapType::SPIKE_HEAD||type ==TrapType::SPIKES||
         type == TrapType::SPIKE_BALL||type == TrapType::SAW||
                 (type == TrapType::ROCK_HEAD && status == TrapStatus::HIT);
     }
+
     bool isSolid(int trapIndex);
+
     SDL_FRect getTrapCollisionBox(const Trap& trap);
+
     void triggerFall(int trapIndex);
+
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,TrapType& outType);
+
     SDL_FRect getHazardHitBox(const Trap& trap);
+
     float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
+
     bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,
                                float playerW,float playerH,ParticleSystem& particleSystem);
+
     bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
+
     gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY,
                                                  float playerW, float playerH,float previousY,float velocityY);
+
     void updatePath(float dt);
+
     SDL_FPoint getTrapDelta(int trapIndex);
+
+    void resetPlatforms(int trapIndex);
+
 private:
     std::vector<Trap> m_traps;
     int m_fireTimer =3000;
     int m_fanTimer =3000;
     int m_rockHeadTimer =2000;
+
 };

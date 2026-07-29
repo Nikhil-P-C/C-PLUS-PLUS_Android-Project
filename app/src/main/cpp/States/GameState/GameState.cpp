@@ -273,11 +273,8 @@ void GameState::update(float dt){
     m_isGrounded=false;
 
     handleCollision();
-    m_trapBuilder.updatePath(dt);
     for(int i =0;i<m_traps.size();i++)
     {
-
-
         //fire
         if(m_traps[i].type == TrapType::FIRE)
             m_trapBuilder.checkFireCollision(i,m_player.x,m_player.y,m_player.w,m_player.h);
@@ -292,7 +289,7 @@ void GameState::update(float dt){
                 m_player.x+=trapDelta.x;
                 if(m_traps[i].colliderType != ColliderType::ONE_WAY)
                     m_player.y+=trapDelta.y;
-             }
+            }
             switch (side) {
                 case gameMath::collisionSide::TOP:
                     if(m_traps[i].type == TrapType::FALLING_PLATFORM) {
@@ -316,6 +313,8 @@ void GameState::update(float dt){
         }
 
     }
+    m_trapBuilder.updatePath(dt);
+
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
@@ -617,9 +616,9 @@ void GameState::setLevel(int level) {
 
     m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,200.00f,1400.00f,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
-    m_traps.emplace_back(400.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,400.00f,1400.00f,
+    m_traps.emplace_back(400.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,1400.00f,100.00f,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
-    m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,200.00f,1400.00f,
+    m_traps.emplace_back(500.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,500.00f,1400.00f,
                          250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
     m_traps.emplace_back(300.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,300.00f,1400.00f,
                          250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);

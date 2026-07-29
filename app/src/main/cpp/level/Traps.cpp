@@ -33,7 +33,14 @@ void TrapBuilder::render(SDL_Renderer *renderer)
     {
         auto* info = getTrapFrameInfo(trap.type,trap.status);
 
+        if(!info)//this only fails if key combination is wrong its fatal crash deferencing nullptr,
+            LOGI("failed to load info type :%d ,status:%d",trap.type,trap.status);
+
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(info->texture);
+
+        if(!texture)
+            LOGI("failed to load texture type :%d ,status:%d",trap.type,trap.status);
+
         SDL_FRect Dst{trap.x - camX, trap.y - camY, info->frameW* SCALE, info->frameH * SCALE};
         SDL_FRect Src{0.0f+info->frameW*trap.aniStartFrame,0.0f,
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
@@ -41,11 +48,23 @@ void TrapBuilder::render(SDL_Renderer *renderer)
         SDL_RenderTexture(renderer,texture,&Src,&Dst);
     }
 }
+
+void TrapBuilder::resetPlatforms(int trapIndex){
+    for(auto &trap:m_traps)
+    {
+        if (trap.type == TrapType::MOVING_PLATFORM_BROWN) {
+            trap.isActivated = false;
+        }
+    }
+}
+
 void TrapBuilder::update(float dt)
 {
 
     for(auto &trap:m_traps)
     {
+
+
         //fire
         if(trap.type == TrapType::FIRE)
         {
@@ -101,6 +120,16 @@ void TrapBuilder::update(float dt)
                 trap.status = TrapStatus::IDLE;
                 trap.aniDone=false;
                 trap.aniStartFrame=0;
+            }
+        }
+        if(trap.type ==TrapType::MOVING_PLATFORM_BROWN)
+        {
+            TrapStatus newStatus = trap.isActivated ? TrapStatus::ON : TrapStatus::OFF;
+            if(newStatus != trap.status)
+            {
+                trap.status = newStatus;
+                trap.aniStartFrame = 0;
+                trap.aniDone = false;
             }
         }
         if(trap.aniDone)continue;
@@ -161,7 +190,12 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
                                              trapCollider.w)) {
 
                 playerY = platformTop - playerH;
+                if(trap.type == TrapType::MOVING_PLATFORM_BROWN)
+                    trap.isActivated =true;
                 return gameMath::collisionSide::TOP;
+        }
+        else if(trap.type == TrapType::MOVING_PLATFORM_BROWN){
+            trap.isActivated =false;
         }
     }
     return gameMath::collisionSide::NONE;
@@ -375,8 +409,14 @@ void TrapBuilder::updatePath(float dt)
 
         if(trap.pathShape == PathShape::LINE)
         {
-            if(trap.status ==TrapStatus::OFF)
-                continue;
+
+            if (trap.type == TrapType::MOVING_PLATFORM_BROWN)
+            {
+                LOGI("Trap is activated:%d",trap.isActivated);
+                if (!trap.isActivated)
+                    trap.isMovingForward = trap.isActivated;
+            }
+
             float& coord = (trap.axis == PathAxis::HORIZONTAL)?trap.x:trap.y;
             float target = (trap.isMovingForward)?trap.endPath:trap.startPath;
             float dir = (coord < target) ? 1.00f : -1.00f;
@@ -395,11 +435,25 @@ void TrapBuilder::updatePath(float dt)
                     trap.aniStartFrame = 0;
                     trap.aniDone = false;
                 }
-                if(now - trap.lastSwitchTime > m_rockHeadTimer)
+                if(trap.type ==TrapType::ROCK_HEAD)
                 {
-                    trap.lastSwitchTime =now;
+                    if (now - trap.lastSwitchTime > m_rockHeadTimer) {
+                        trap.lastSwitchTime = now;
 
+                        trap.isMovingForward = !trap.isMovingForward;
+                    }
+                }
+                else if(trap.type == TrapType::MOVING_PLATFORM_GREY)
+                {
+                    // always moving, immediate ping-pong, no timer
                     trap.isMovingForward = !trap.isMovingForward;
+                }
+                else if(trap.type == TrapType::MOVING_PLATFORM_BROWN)
+                {
+                    if(!trap.isActivated)
+                        trap.isMovingForward = true;   // parked at start, ready to go forward next ride
+                    else
+                        trap.isMovingForward = !trap.isMovingForward; // ping-pong while ridden
                 }
             }
             else
