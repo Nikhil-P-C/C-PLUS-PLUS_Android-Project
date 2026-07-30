@@ -28,15 +28,19 @@ enum class TrapStatus{
     ON,
     OFF,
     TRIGGERED,
+
 };
 enum class PathAxis{
     AUTO=0,
     VERTICAL,
-    HORIZONTAL
+    HORIZONTAL,
+    CIRCLE,
 };
 enum class PathShape{
     RECT,
-    LINE
+    LINE,
+    ARC,
+    CIRCLE
 };
 struct TrapFrameInfo{
     TextureType texture;
@@ -55,10 +59,11 @@ struct Trap{
     PathAxis axis = PathAxis::AUTO;
     PathShape pathShape = PathShape::LINE;
 
-    float startPath=0.00f,endPath=0.00f;
-    float baseX =0.00f,baseY =0.00f;
+    float startPath=0.00f,endPath=0.00f;//for RECT path this is used a opposite corner of starting corner
+    float baseX =0.00f,baseY =0.00f;// this is same as spawn for path RECT it use as the starting corner
     float movingSpeed = 150.00f;
     float previousX =0.00f, previousY = 0.00f;
+    float pathAngle = 0.00f; //only used for trap that should move in circle or swing arcs
     int pathIndex = 1;
     bool isMovingForward =true;
     bool isActivated =false;
@@ -83,7 +88,8 @@ public:
 
     constexpr bool trapHasPath(TrapType type){
         return type == TrapType::ROCK_HEAD || type == TrapType::SPIKE_HEAD ||
-        type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN;
+        type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN||
+        type == TrapType::SAW||type ==TrapType::SPIKE_BALL;
     }
 
     constexpr bool trapHasHit(TrapType type){

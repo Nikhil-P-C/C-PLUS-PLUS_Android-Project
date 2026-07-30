@@ -34,12 +34,12 @@ void TrapBuilder::render(SDL_Renderer *renderer)
         auto* info = getTrapFrameInfo(trap.type,trap.status);
 
         if(!info)//this only fails if key combination is wrong its fatal crash deferencing nullptr,
-            LOGI("failed to load info type :%d ,status:%d",trap.type,trap.status);
+        {
+            LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
+            continue;
+        }
 
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(info->texture);
-
-        if(!texture)
-            LOGI("failed to load texture type :%d ,status:%d",trap.type,trap.status);
 
         SDL_FRect Dst{trap.x - camX, trap.y - camY, info->frameW* SCALE, info->frameH * SCALE};
         SDL_FRect Src{0.0f+info->frameW*trap.aniStartFrame,0.0f,
@@ -155,7 +155,8 @@ void TrapBuilder::update(float dt)
 bool TrapBuilder::isSolid(int trapIndex) {
     auto& trap = m_traps[trapIndex];
 
-    return trapHasPath(trap.type)||trap.type==TrapType::FIRE ||trap.type == TrapType::FALLING_PLATFORM;
+    return trap.type == TrapType::MOVING_PLATFORM_GREY||trap.type == TrapType::MOVING_PLATFORM_BROWN||trap.type == TrapType::ROCK_HEAD||
+            trap.type==TrapType::FIRE ||trap.type == TrapType::FALLING_PLATFORM;
 }
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float& playerY,
                                                           float playerW, float playerH,float previousY,float velocityY){
@@ -293,7 +294,6 @@ float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, fl
 
         if(trap.type != TrapType::FAN || trap.status != TrapStatus::ON) continue;
         if(gameMath::checkcollision(playerX, playerY, sensorRect.x,sensorRect.y, playerH, playerW, sensorRect.h, sensorRect.w)) {
-            LOGI("within sensor");
             return FAN_FORCE;
         }
     }
@@ -386,20 +386,28 @@ void TrapBuilder::updatePath(float dt)
             if(target.x == trap.x && target.y == trap.y)
             {
                 unsigned int now = SDL_GetTicks();
-
+                if(trap.type == TrapType::SAW)
                 if(!trap.hasHitEnd)
                 {
-                    trap.hasHitEnd =true;
-                    trap.status = TrapStatus::HIT;
-                    trap.aniStartFrame = 0;
-                    trap.aniDone = false;
+                    if(trap.type == TrapType::ROCK_HEAD)
+                    {
+                        trap.hasHitEnd = true;
+                        trap.status = TrapStatus::HIT;
+                        trap.aniStartFrame = 0;
+                        trap.aniDone = false;
+                    }
                 }
-                if(now - trap.lastSwitchTime > m_rockHeadTimer)
+                if(trap.type == TrapType::ROCK_HEAD)
                 {
-                    trap.lastSwitchTime = now;
+                    if (now - trap.lastSwitchTime > m_rockHeadTimer) {
+                        trap.lastSwitchTime = now;
 
-                    trap.pathIndex = (trap.pathIndex + 1) % 4;
+                        trap.pathIndex = (trap.pathIndex + 1) % 4;
+                    }
                 }
+                else
+                    trap.pathIndex = (trap.pathIndex + 1) % 4;
+
             }
             else{
                 trap.hasHitEnd =false;
@@ -412,7 +420,6 @@ void TrapBuilder::updatePath(float dt)
 
             if (trap.type == TrapType::MOVING_PLATFORM_BROWN)
             {
-                LOGI("Trap is activated:%d",trap.isActivated);
                 if (!trap.isActivated)
                     trap.isMovingForward = trap.isActivated;
             }
@@ -430,7 +437,7 @@ void TrapBuilder::updatePath(float dt)
                 if(!trap.hasHitEnd)
                 {
                     trap.hasHitEnd =true;
-                    if(trap.type != TrapType::MOVING_PLATFORM_BROWN && trap.type!=TrapType::MOVING_PLATFORM_GREY)
+                    if(trap.type ==TrapType::ROCK_HEAD)
                         trap.status = TrapStatus::HIT;
                     trap.aniStartFrame = 0;
                     trap.aniDone = false;
@@ -443,11 +450,12 @@ void TrapBuilder::updatePath(float dt)
                         trap.isMovingForward = !trap.isMovingForward;
                     }
                 }
-                else if(trap.type == TrapType::MOVING_PLATFORM_GREY)
+                else if(trap.type == TrapType::MOVING_PLATFORM_GREY||trap.type == TrapType::SAW)
                 {
                     // always moving, immediate ping-pong, no timer
                     trap.isMovingForward = !trap.isMovingForward;
                 }
+
                 else if(trap.type == TrapType::MOVING_PLATFORM_BROWN)
                 {
                     if(!trap.isActivated)
@@ -463,6 +471,12 @@ void TrapBuilder::updatePath(float dt)
                 coord += stepDist*dir;
 
             }
+        }
+        if(trap.pathShape == PathShape::CIRCLE)
+        {
+            trap.pathAngle += trap.movingSpeed/trap.startPath *dt;
+            trap.x =trap.baseX +trap.startPath *cosf(trap.pathAngle);
+            trap.y =trap.baseY +trap.startPath * sinf(trap.pathAngle);
         }
     }
 }

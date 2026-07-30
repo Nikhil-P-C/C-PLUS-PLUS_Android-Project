@@ -583,8 +583,8 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
     m_traps.emplace_back(400.00f,1200.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
-    m_traps.emplace_back(100.00f,900.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,250.00f,
-                         PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
+    m_traps.emplace_back(100.00f,900.00f,TrapType::FALLING_PLATFORM,TrapStatus::ON,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::ONE_WAY);
     m_traps.emplace_back(200.00f,1400.00f,TrapType::FAN,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
     m_traps.emplace_back(800.00f,1300.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
@@ -622,6 +622,34 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
     m_traps.emplace_back(300.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,300.00f,1400.00f,
                          250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
+
+    m_traps.emplace_back(1000.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1060.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1120.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1180.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1240.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1300.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1360.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1405.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(1480.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
+                         250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
+
+
+    m_traps.emplace_back(1500.00f,1400.00f,TrapType::SAW,TrapStatus::ON,1400.00f,1100.00f,
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);
+    m_traps.emplace_back(2000.00f,300.00f,TrapType::SAW,TrapStatus::ON,3000.00f,1300.00f,
+                         250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
+    m_traps.emplace_back(2000.00f,1200.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,250.00f,0,
+                         400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID);
+
 
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
