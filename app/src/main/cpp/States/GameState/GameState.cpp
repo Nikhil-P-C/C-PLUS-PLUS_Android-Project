@@ -647,8 +647,10 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);
     m_traps.emplace_back(2000.00f,300.00f,TrapType::SAW,TrapStatus::ON,3000.00f,1300.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
-    m_traps.emplace_back(2000.00f,1200.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,250.00f,0,
-                         400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID);
+    m_traps.emplace_back(2000.00f,1100.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,0.00f,0,
+                         400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID,250.00f);
+    m_traps.emplace_back(2000.00f+600,1100.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,2.50,0.50,
+                         1000.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f);
 
 
     m_fruitBuilder.init(m_fruits);

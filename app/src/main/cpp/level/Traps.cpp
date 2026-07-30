@@ -459,9 +459,9 @@ void TrapBuilder::updatePath(float dt)
                 else if(trap.type == TrapType::MOVING_PLATFORM_BROWN)
                 {
                     if(!trap.isActivated)
-                        trap.isMovingForward = true;   // parked at start, ready to go forward next ride
+                        trap.isMovingForward = true;   // parked at start
                     else
-                        trap.isMovingForward = !trap.isMovingForward; // ping-pong while ridden
+                        trap.isMovingForward = !trap.isMovingForward;
                 }
             }
             else
@@ -473,10 +473,28 @@ void TrapBuilder::updatePath(float dt)
             }
         }
         if(trap.pathShape == PathShape::CIRCLE)
+        {// no target we just move endlessly
+            trap.pathAngle += trap.movingSpeed/trap.radius *dt;
+            trap.x =trap.baseX +trap.radius *cosf(trap.pathAngle);
+            trap.y =trap.baseY +trap.radius * sinf(trap.pathAngle);
+        }
+        if(trap.pathShape == PathShape::ARC)
         {
-            trap.pathAngle += trap.movingSpeed/trap.startPath *dt;
-            trap.x =trap.baseX +trap.startPath *cosf(trap.pathAngle);
-            trap.y =trap.baseY +trap.startPath * sinf(trap.pathAngle);
+            // endPath/startPath as angle bounds (radians)
+            float target = trap.isMovingForward ? trap.endPath : trap.startPath;
+
+            float dir = (trap.pathAngle < target) ? 1.0f : -1.0f;
+            float angularSpeed = trap.movingSpeed / trap.radius;
+            float step = angularSpeed * dt;
+
+            if(SDL_fabsf(target - trap.pathAngle) <= step) {
+                trap.pathAngle = target;
+                trap.isMovingForward = !trap.isMovingForward;
+            } else {
+                trap.pathAngle += step * dir;
+            }
+            trap.x = trap.baseX + trap.radius * cosf(trap.pathAngle);
+            trap.y = trap.baseY + trap.radius * sinf(trap.pathAngle);
         }
     }
 }
@@ -489,9 +507,10 @@ SDL_FPoint TrapBuilder::getTrapDelta(int trapIndex) {
 
 
 Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath,
-           float speed,PathAxis axis,PathShape shape,ColliderType colliderType)
+           float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius)
         :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath),
-        movingSpeed(speed),axis(axis),pathShape(shape),baseX(x),baseY(y),colliderType(colliderType)
+        movingSpeed(speed),axis(axis),pathShape(shape),baseX(x),baseY(y),colliderType(colliderType),
+        radius(radius)
 {
 
 }

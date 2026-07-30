@@ -51,7 +51,7 @@ struct TrapFrameInfo{
 };
 struct Trap{
     Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,
-         float speed,PathAxis axis,PathShape shape,ColliderType colliderType);
+         float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius =0);
     float x ,y;
     TrapType type;
     TrapStatus status;
@@ -64,6 +64,7 @@ struct Trap{
     float movingSpeed = 150.00f;
     float previousX =0.00f, previousY = 0.00f;
     float pathAngle = 0.00f; //only used for trap that should move in circle or swing arcs
+    float radius = 0.00f;
     int pathIndex = 1;
     bool isMovingForward =true;
     bool isActivated =false;
