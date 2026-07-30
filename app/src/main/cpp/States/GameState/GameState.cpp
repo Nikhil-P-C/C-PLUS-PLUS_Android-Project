@@ -231,6 +231,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 //
 //    }
     m_particleSystem.render(m_renderer);
+    m_trapBuilder.render(renderer);
     m_fruitBuilder.render(m_renderer);
 
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-camX,
@@ -262,7 +263,6 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);
-    m_trapBuilder.render(renderer);
 }
 
 void GameState::update(float dt){
@@ -552,7 +552,7 @@ void GameState::setLevel(int level) {
     m_levelWalls.emplace_back(0,0,3200,768,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
     m_levelWalls.emplace_back(0,768,3200,768,SpriteType::MOSS_WALL,ColliderType::SOLID);
     m_wallCollisionRect={0.00f,0.00f,3200.00f,1536};
-//
+// uncomment to render platform we re disabling it to test traps for now
 //    m_platforms.emplace_back(0,600,128,16,ColliderType::ONE_WAY,SpriteType::WOODEN_PLATFORM);
 //    m_platforms.emplace_back(320,520,208,16,ColliderType::ONE_WAY,SpriteType::STONE_PLATFORM);
 //    m_platforms.emplace_back(640,440,192,16,ColliderType::ONE_WAY,SpriteType::GOLD_PLATFORM);
@@ -615,13 +615,13 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
 
     m_traps.emplace_back(200.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,200.00f,1400.00f,
-                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY,0.0f,true);
     m_traps.emplace_back(400.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,1400.00f,100.00f,
-                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY);
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::ONE_WAY,0.0f,true);
     m_traps.emplace_back(500.00f,1400.00f,TrapType::MOVING_PLATFORM_BROWN,TrapStatus::ON,500.00f,1400.00f,
-                         250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
+                         250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY,0.0f,true);
     m_traps.emplace_back(300.00f,1400.00f,TrapType::MOVING_PLATFORM_GREY,TrapStatus::ON,300.00f,1400.00f,
-                         250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY);
+                         250.00f,PathAxis::HORIZONTAL,PathShape::LINE,ColliderType::ONE_WAY,0.0f,true);
 
     m_traps.emplace_back(1000.00f+600.00f,1405.00f,TrapType::SPIKES,TrapStatus::IDLE,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
@@ -644,13 +644,17 @@ void GameState::setLevel(int level) {
 
 
     m_traps.emplace_back(1500.00f,1400.00f,TrapType::SAW,TrapStatus::ON,1400.00f,1100.00f,
-                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID,0.0f
+                         ,true);
     m_traps.emplace_back(2000.00f,300.00f,TrapType::SAW,TrapStatus::ON,3000.00f,1300.00f,
-                         250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
+                         250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID,0.0f
+                         ,true);
     m_traps.emplace_back(2000.00f,1100.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,0.00f,0,
-                         400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID,250.00f);
+                         400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID,250.00f
+                         ,true);
     m_traps.emplace_back(2000.00f+600,1100.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,2.50,0.50,
-                         1000.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f);
+                         1000.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f
+                         ,true);
 
 
     m_fruitBuilder.init(m_fruits);

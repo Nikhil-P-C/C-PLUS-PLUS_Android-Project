@@ -51,7 +51,7 @@ struct TrapFrameInfo{
 };
 struct Trap{
     Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,
-         float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius =0);
+         float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius =0,bool showChain =false);
     float x ,y;
     TrapType type;
     TrapStatus status;
@@ -66,6 +66,7 @@ struct Trap{
     float pathAngle = 0.00f; //only used for trap that should move in circle or swing arcs
     float radius = 0.00f;
     int pathIndex = 1;
+    bool showChain =false;
     bool isMovingForward =true;
     bool isActivated =false;
     bool hasHitEnd =false;
@@ -77,6 +78,7 @@ struct Trap{
     ColliderType colliderType;
 };
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status);
+const TextureType getChainTexture(TrapType type);
 class TrapBuilder{
 public:
     std::vector<Trap>& getTraps();
@@ -102,6 +104,7 @@ public:
         type == TrapType::SPIKE_BALL||type == TrapType::SAW||
                 (type == TrapType::ROCK_HEAD && status == TrapStatus::HIT);
     }
+    void renderChain(SDL_Renderer *renderer, const Trap &trap, int camX, int camY);
 
     bool isSolid(int trapIndex);
 

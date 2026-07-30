@@ -31,6 +31,12 @@ void TrapBuilder::render(SDL_Renderer *renderer)
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     for(const auto& trap:m_traps)
     {
+        if(trap.showChain && trapHasPath(trap.type))
+            renderChain(renderer, trap, camX, camY);
+    }
+    for(const auto& trap:m_traps)
+    {
+
         auto* info = getTrapFrameInfo(trap.type,trap.status);
 
         if(!info)//this only fails if key combination is wrong its fatal crash deferencing nullptr,
@@ -151,7 +157,77 @@ void TrapBuilder::update(float dt)
 
     }
 }
+void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX, int camY) {
+    TextureType chainTex = getChainTexture(trap.type);
+    if(chainTex == TextureType::COUNT) return;
+    SDL_Texture* tex = Engine::Get().getAssetManager().getTexture(chainTex);
+    auto* info = getTrapFrameInfo(trap.type,trap.status);
+    const float LINK_SPACING = 40.0f; // px between links, tune to your sprite size
 
+    if(trap.pathShape == PathShape::LINE) {
+        SDL_FPoint a = (trap.axis == PathAxis::HORIZONTAL) ? SDL_FPoint{trap.startPath+(info->frameW*SCALE/2)-((8*SCALE)/2),
+                                                                        trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)}
+                                                           : SDL_FPoint{trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),
+                                                                        trap.startPath+(info->frameH*SCALE/2)-((8*SCALE)/2)};
+
+        SDL_FPoint b = (trap.axis == PathAxis::HORIZONTAL) ? SDL_FPoint{trap.endPath+(info->frameW*SCALE/2)-((8*SCALE)/2),
+                                                                        trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)}
+                                                           : SDL_FPoint{trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),
+                                                                        trap.endPath+(info->frameH*SCALE/2)-((8*SCALE)/2)};
+        float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
+        int count = (int)(len / LINK_SPACING);
+        for(int i = 0; i <= count; i++) {
+            float t = (float)i / count;
+            SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
+            SDL_RenderTexture(renderer, tex, nullptr, &dst);
+        }
+    }
+    else if(trap.pathShape == PathShape::RECT) {
+        auto* info = getTrapFrameInfo(trap.type,trap.status);
+        if(trap.type==TrapType::ROCK_HEAD||trap.type ==TrapType::SPIKE_HEAD)
+            return;
+        SDL_FPoint corners[4] = {
+                {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2), trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)},
+                {trap.startPath+(info->frameW*SCALE/2)-((8*SCALE)/2), trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)},
+                {trap.startPath+(info->frameW*SCALE/2)-((8*SCALE)/2), trap.endPath+(info->frameH*SCALE/2)-((8*SCALE)/2)},
+                {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2), trap.endPath+(info->frameH*SCALE/2)-((8*SCALE)/2)}
+        };
+        for(int c = 0; c < 4; c++) {
+            SDL_FPoint a = corners[c], b = corners[(c+1)%4];
+            float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
+            int count = (int)(len / LINK_SPACING);
+            for(int i = 0; i <= count; i++) {
+                float t = (float)i / count;
+                SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
+                SDL_RenderTexture(renderer, tex, nullptr, &dst);
+            }
+        }
+    }
+    else if(trap.pathShape == PathShape::CIRCLE) {
+        auto* info = getTrapFrameInfo(trap.type,trap.status);
+        SDL_FPoint a {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)};
+        SDL_FPoint b {trap.x+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.y+(info->frameH*SCALE/2)-((8*SCALE)/2)};
+        float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
+        int count = (int)(len / LINK_SPACING);
+        for(int i = 0; i <= count; i++) {
+            float t = (float)i / count;
+            SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
+            SDL_RenderTexture(renderer, tex, nullptr, &dst);
+        }
+    }
+    else if(trap.pathShape == PathShape::ARC) {
+        auto* info = getTrapFrameInfo(trap.type,trap.status);
+        SDL_FPoint a {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)};
+        SDL_FPoint b {trap.x+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.y+(info->frameH*SCALE/2)-((8*SCALE)/2)};
+        float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
+        int count = (int)(len / LINK_SPACING);
+        for(int i = 0; i <= count; i++) {
+            float t = (float)i / count;
+            SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
+            SDL_RenderTexture(renderer, tex, nullptr, &dst);
+        }
+    }
+}
 bool TrapBuilder::isSolid(int trapIndex) {
     auto& trap = m_traps[trapIndex];
 
@@ -507,14 +583,24 @@ SDL_FPoint TrapBuilder::getTrapDelta(int trapIndex) {
 
 
 Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath,
-           float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius)
+           float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius,
+           bool showChain)
         :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath),
         movingSpeed(speed),axis(axis),pathShape(shape),baseX(x),baseY(y),colliderType(colliderType),
-        radius(radius)
+        radius(radius),showChain(showChain)
 {
 
 }
 
+const TextureType getChainTexture(TrapType type) {
+    switch(type) {
+        case TrapType::SAW: return TextureType::TRAP_SAW_CHAIN;
+        case TrapType::MOVING_PLATFORM_BROWN:
+        case TrapType::MOVING_PLATFORM_GREY: return TextureType::TRAP_PLATFORM_CHAIN;
+        case TrapType::SPIKE_BALL: return TextureType::TRAP_SPIKE_BALL_CAHIN;
+        default: return TextureType::COUNT; // no chain for anything else
+    }
+}
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
     static std::unordered_map<uint32_t ,TrapFrameInfo> table{
             {trapKey(TrapType::FALLING_PLATFORM,TrapStatus::OFF),
