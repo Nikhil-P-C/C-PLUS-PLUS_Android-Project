@@ -27,7 +27,6 @@ TTF_Font *AssetManager::getFont(std::string fontName)
 
 void AssetManager::loadTexture(TextureType type, const std::string &filepath)
 {
-    LOGI("yo :%s",filepath.c_str());
     if(type >=TextureType::COUNT)
     {
         LOGI("out of bound");
@@ -47,7 +46,6 @@ void AssetManager::loadTexture(TextureType type, const std::string &filepath)
 
 AssetManager::~AssetManager()
 {
-    LOGI("all texture being destroyed");
     for(const auto& texture:m_textureTable){
         SDL_DestroyTexture(texture);
     }
@@ -58,7 +56,7 @@ AssetManager::~AssetManager()
 void AssetManager::init(SDL_Renderer *renderer) {
 
     if(!renderer) {
-        LOGI("render is null");
+        LOGI("(AssetManger)render is null");
         return;
     }
     m_renderer =renderer;
@@ -122,9 +120,6 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::TRAP_SPIKE,"Traps/Spikes/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE,"Traps/Trampoline/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE_TRIGGER,"Traps/Trampoline/Jump (28x28).png");
-
-
-
 
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);

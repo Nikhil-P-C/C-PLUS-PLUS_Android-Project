@@ -112,7 +112,6 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
             m_jumpFingerActive =false;
         }
         if(event.tfinger.fingerID == m_dFingerID){
-            LOGI("d finger up");
             m_dFingerActive =false;
         }
         return true;

@@ -16,7 +16,6 @@ void JoystickOverlay::render(SDL_Renderer *renderer) {
     SDL_FRect joystickHandle{ m_joystickHandle.x-m_joystickHandle.h/2,
                               m_joystickHandle.y-m_joystickHandle.h/2,
                               m_joystickHandle.w,m_joystickHandle.h};
-    LOGI("joystick hande X:%f ,Y:%f",m_joystickHandle.x,m_joystickHandle.y);
     SDL_RenderTexture(renderer,m_joystickHandleTexture,NULL,&joystickHandle);
 }
 
@@ -78,9 +77,7 @@ void JoystickOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingRight(false);
         InputDispatcher::getInstance().setInputReleased(true);
     }
-//    LOGI("joystick handle x:%f y:%f w:%f h:%f",m_joystickHandle.x,m_joystickHandle.y,m_joystickHandle.w,m_joystickHandle.h);
-//    LOGI("joystick x:%f y:%f w:%f h:%f",m_joystick.x,m_joystick.y,m_joystick.w,m_joystick.h);
-//    LOGI("center x:%f y:%f",centerX,centerY);
+
 
     if(!m_joystickFingerActive){
         gameMath::interpolate(m_joystickHandle.x,m_joystickHandle.y,centerX,centerY,0.5f);

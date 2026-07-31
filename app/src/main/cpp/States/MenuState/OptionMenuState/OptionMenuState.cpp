@@ -30,7 +30,6 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
         int count = (int)Engine::Get().getOverlayStateCount();
         while(count){
             count--;
-            LOGI("popping overlay state");
             Engine::Get().popOverlayState();
         }
         Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
@@ -45,7 +44,6 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
             int count = (int)Engine::Get().getOverlayStateCount();
             while(count){
                 count--;
-                LOGI("popping overlay state");
                 Engine::Get().popOverlayState();
             }
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));

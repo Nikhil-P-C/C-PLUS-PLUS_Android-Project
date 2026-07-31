@@ -101,6 +101,7 @@ public:
 
     constexpr bool trapHasHazard(TrapType type,TrapStatus status){
         return type ==TrapType::SPIKE_HEAD||type ==TrapType::SPIKES||
+        (type == TrapType::FIRE&& status == TrapStatus::ON)||
         type == TrapType::SPIKE_BALL||type == TrapType::SAW||
                 (type == TrapType::ROCK_HEAD && status == TrapStatus::HIT);
     }
@@ -136,6 +137,6 @@ private:
     std::vector<Trap> m_traps;
     int m_fireTimer =3000;
     int m_fanTimer =3000;
-    int m_rockHeadTimer =2000;
+    int m_rockHeadTimer =5000;
 
 };

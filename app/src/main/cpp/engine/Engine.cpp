@@ -18,7 +18,6 @@ void Engine::run(){
     int framedelay = 1000/60;
 
     GameData::getInstance().setSize(1600,720);
-    LOGI("height:%d,width:%d",GameData::getInstance().getWinHeight(),GameData::getInstance().getWinWidth());
 
 
     float lastMasterAudioScale = GameData::getInstance().getAudioScale();

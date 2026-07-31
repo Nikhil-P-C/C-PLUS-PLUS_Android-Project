@@ -39,7 +39,7 @@ void TrapBuilder::render(SDL_Renderer *renderer)
 
         auto* info = getTrapFrameInfo(trap.type,trap.status);
 
-        if(!info)//this only fails if key combination is wrong its fatal crash deferencing nullptr,
+        if(!info)//this only fails if key combination is wrong, it is fatal crash deferencing nullptr,
         {
             LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
             continue;
@@ -140,6 +140,10 @@ void TrapBuilder::update(float dt)
         }
         if(trap.aniDone)continue;
         const auto* info = getTrapFrameInfo(trap.type,trap.status);
+        if(!info) {
+            LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
+            continue;
+        }
         if(!info || info->frameCount<=1) continue;
 
         unsigned int now = SDL_GetTicks();
@@ -162,7 +166,11 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
     if(chainTex == TextureType::COUNT) return;
     SDL_Texture* tex = Engine::Get().getAssetManager().getTexture(chainTex);
     auto* info = getTrapFrameInfo(trap.type,trap.status);
-    const float LINK_SPACING = 40.0f; // px between links, tune to your sprite size
+    if(!info) {
+        LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
+        return;
+    }
+        const float LINK_SPACING = 40.0f; // px between links, tune to your sprite size
 
     if(trap.pathShape == PathShape::LINE) {
         SDL_FPoint a = (trap.axis == PathAxis::HORIZONTAL) ? SDL_FPoint{trap.startPath+(info->frameW*SCALE/2)-((8*SCALE)/2),
@@ -183,7 +191,6 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
         }
     }
     else if(trap.pathShape == PathShape::RECT) {
-        auto* info = getTrapFrameInfo(trap.type,trap.status);
         if(trap.type==TrapType::ROCK_HEAD||trap.type ==TrapType::SPIKE_HEAD)
             return;
         SDL_FPoint corners[4] = {
@@ -204,7 +211,6 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
         }
     }
     else if(trap.pathShape == PathShape::CIRCLE) {
-        auto* info = getTrapFrameInfo(trap.type,trap.status);
         SDL_FPoint a {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)};
         SDL_FPoint b {trap.x+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.y+(info->frameH*SCALE/2)-((8*SCALE)/2)};
         float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
@@ -216,7 +222,6 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
         }
     }
     else if(trap.pathShape == PathShape::ARC) {
-        auto* info = getTrapFrameInfo(trap.type,trap.status);
         SDL_FPoint a {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)};
         SDL_FPoint b {trap.x+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.y+(info->frameH*SCALE/2)-((8*SCALE)/2)};
         float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
@@ -279,6 +284,10 @@ gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &p
 }
 SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
     auto* info = getTrapFrameInfo(trap.type,trap.status);
+    if(!info) {
+        LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
+        return{0.0f,0.0f,0.0f,0.0f};
+    }
     SDL_FRect rect{trap.x,trap.y,info->frameW*SCALE,info->frameH*SCALE};
     switch(trap.type){
         case TrapType::MOVING_PLATFORM_BROWN:
@@ -307,24 +316,29 @@ void TrapBuilder::triggerFall(int trapIndex) {
     trap.status = TrapStatus::OFF;
     trap.aniStartFrame = 0;
     trap.aniDone = true;
-    if(const auto* info = getTrapFrameInfo(trap.type, trap.status)) trap.aniEndFrame = info->frameCount-1;
+    if(const auto* info = getTrapFrameInfo(trap.type, trap.status))
+        trap.aniEndFrame = info->frameCount-1;
 }
 
 SDL_FRect TrapBuilder::getHazardHitBox(const Trap &trap) {
     const auto* info = getTrapFrameInfo(trap.type,trap.status);
+    if(!info) {
+        LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
+        return{0.0f,0.0f,0.0f,0.0f};
+    }
     switch(trap.type){
         case TrapType::SPIKES:
-            return { trap.x, trap.y , 12*SCALE, 10*SCALE };
+            return { trap.x, trap.y +36, (info->frameW-1)*SCALE, (info->frameH-9)*SCALE };
         case TrapType::SAW:
-            return { trap.x , trap.y , (info->frameW-6)*SCALE, (info->frameH-6)*SCALE };
+            return { trap.x+10 , trap.y +10, (info->frameW-6)*SCALE, (info->frameH-6)*SCALE };
         case TrapType::FIRE:
-            return { trap.x , trap.y, (info->frameW-6)*SCALE, info->frameH*SCALE };
+            return { trap.x+12, trap.y+5, (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
         case TrapType::SPIKE_BALL:
-            return { trap.x , trap.y, (info->frameW-4)*SCALE, (info->frameH-4)*SCALE };
+            return { trap.x+20 , trap.y+20, (info->frameW-9)*SCALE, (info->frameH-9)*SCALE };
         case TrapType::ROCK_HEAD:
         case TrapType::SPIKE_HEAD:
             // only dangerous while actively hitting, not during the idle blink loop
-            return { trap.x, trap.y, (info->frameW-8)*SCALE, (info->frameH-8)*SCALE };
+            return { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
         default:
             return { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
     }
@@ -475,9 +489,11 @@ void TrapBuilder::updatePath(float dt)
                 }
                 if(trap.type == TrapType::ROCK_HEAD)
                 {
+                    trap.status = TrapStatus::HIT;
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
                     if (now - trap.lastSwitchTime > m_rockHeadTimer) {
                         trap.lastSwitchTime = now;
-
                         trap.pathIndex = (trap.pathIndex + 1) % 4;
                     }
                 }

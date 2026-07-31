@@ -159,7 +159,6 @@ bool MenuState::handleEvents(SDL_Event &event) {
         if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w){
             if(touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
                 m_transitioning =true;
-                LOGI("menu starts transitioning to game state");
                 Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
 
                 if(GameData::getInstance().getControlType() == JOYSTICK) {
@@ -192,7 +191,6 @@ bool MenuState::handleEvents(SDL_Event &event) {
         }
         if(touchX > m_quitButton.x && touchX < m_quitButton.x + m_quitButton.w){
             if(touchY > m_quitButton.y && touchY < m_quitButton.y + m_quitButton.h){
-                LOGI("menu starts transitioning to game state");
                 Engine::Get().exitEngine();
                 return true;
             }

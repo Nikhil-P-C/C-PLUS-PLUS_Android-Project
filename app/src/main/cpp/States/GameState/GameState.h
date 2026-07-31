@@ -84,7 +84,7 @@ public:
         return m_trapBuilder;
     }
     std::vector<Trap>& getTraps(){
-        return m_traps;
+        return m_trapBuilder.getTraps();
     }
 private:
 
@@ -142,6 +142,7 @@ private:
     bool m_running =true;
     bool m_isCompleted=false;
     bool m_transitioning=false;
+    int m_invincibilityTimer = 5000;
     //physics
     float m_previousY = 0.0f;
     float m_velocityY =0.0f;

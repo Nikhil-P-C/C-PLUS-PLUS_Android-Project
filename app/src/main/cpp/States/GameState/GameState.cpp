@@ -169,7 +169,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_RenderTexture(renderer,m_tileset,&src,&dst);
 
     }
-
+//uncomment to render platforms/grounds
 //    for(int i=0;i<10;i++){
 //        int tileSize =TILE_SIZE;
 //        const int platformWidth = (int)m_platforms[i].w;
@@ -314,7 +314,17 @@ void GameState::update(float dt){
 
     }
     m_trapBuilder.updatePath(dt);
+    TrapType type;
+    bool hazardColl =m_trapBuilder.checkHazard(m_player.x,m_player.y,
+                                               m_player.w,m_player.h,type);
+    unsigned int hitNow =SDL_GetTicks();
+    if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer&&hazardColl){
+        m_player.x=400.00f,m_player.y=800.0f;
+        PlayerDetail::getInstance().setLastHitTime(hitNow);
+        PlayerDetail::getInstance().subPlayerHP(1);
+    }
 
+    LOGI("player hp:%d",PlayerDetail::getInstance().getPlayerHP());
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
@@ -340,7 +350,6 @@ bool GameState::handleEvents(SDL_Event& event) {
         if(event.key.key == SDLK_AC_BACK){
             GameData::getInstance().setPaused(true);
             m_transitioning = true;
-            LOGI("game state transitions to menu state");
             Engine::Get().popOverlayState();
             if(GameData::getInstance().isDebugEnabled())
                 Engine::Get().popOverlayState();
@@ -391,7 +400,7 @@ void GameState::handleCollision() {
             m_velocityY = 0.0f;
         }
     }
-
+//uncomment for platform and ground collision;
 //platforms
 //    for(int i=0;i<10;i++) {
 //        if (m_platforms[i].colliderType == ColliderType::SOLID) {
@@ -643,8 +652,8 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);
 
 
-    m_traps.emplace_back(1500.00f,1400.00f,TrapType::SAW,TrapStatus::ON,1400.00f,1100.00f,
-                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID,0.0f
+    m_traps.emplace_back(1500.00f,1100.00f,TrapType::SAW,TrapStatus::ON,1100.00f,1400.00f,
+                         0.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID,0.0f
                          ,true);
     m_traps.emplace_back(2000.00f,300.00f,TrapType::SAW,TrapStatus::ON,3000.00f,1300.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID,0.0f
@@ -653,7 +662,7 @@ void GameState::setLevel(int level) {
                          400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID,250.00f
                          ,true);
     m_traps.emplace_back(2000.00f+600,1100.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,2.50,0.50,
-                         1000.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f
+                         0.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f
                          ,true);
 
 
@@ -711,7 +720,6 @@ bool GameState::hasWallLeft(float x, float y) {
 }
 
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
-//    LOGI("Lifecycle event: 0x%X", event->type);
     auto* gameState = static_cast<GameState*>(userdata);
     if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND && !GameData::getInstance().isPaused()) {
         gameState->m_transitioning = true;

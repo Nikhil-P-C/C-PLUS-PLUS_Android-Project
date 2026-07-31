@@ -26,10 +26,18 @@ public:
     int getScore(){
         return m_fruitCollectionScore;
     }
+    int getPlayerHP(){
+        return m_hp;
+    }
+    unsigned int getLastHitTime(){
+        return m_lastHit;
+    }
+    bool isInvincible(){
+        return m_isInvincible;
+    }
     void setPlayerSkin(PlayerSkin skin){
         m_playerSkin = skin;
     }
-
     void setPlayerName(const std::string& newName){
         m_name = newName;
     }
@@ -39,12 +47,27 @@ public:
     void setScore(int score){
         m_fruitCollectionScore = score;
     }
+    void setLastHitTime(unsigned int newTime){
+        m_lastHit=newTime;
+    }
+    void addPlayerHP(int factorRaise){
+        m_hp += factorRaise;
+    }
+    void subPlayerHP(int factorDeduct){
+        m_hp -= factorDeduct;
+    }
+    void setInvincibility(bool invincibility){
+        m_isInvincible = invincibility;
+    }
     static PlayerDetail& getInstance(){
         static PlayerDetail instance;
         return instance;
     }
 private:
     int m_fruitCollectionScore = 0;
+    unsigned int m_lastHit =0;
+    int m_hp =5;
+    bool m_isInvincible=false;
     std::string m_name = "Name";
     PlayerSkin m_playerSkin = PlayerSkin::YELLOW; //default:0(yellow) , 1(blue),2(red),3(green)
 };

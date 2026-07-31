@@ -15,7 +15,6 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_Surface *fpsSurface = TTF_RenderText_Solid(m_font, fps.c_str(), fps.length(),
                                                    {255, 255, 255});
     m_fpsTexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
-    SDL_Color fpsColor = {255, 255, 255, 255};
     SDL_FRect fpsrect{0, 0, 100, 100};
     SDL_RenderTexture(renderer, m_fpsTexture, nullptr, &fpsrect);
     SDL_DestroyTexture(m_fpsTexture);
@@ -52,9 +51,25 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_RenderRect(renderer, &playerBorder);
     SDL_SetRenderDrawColor(renderer, 33, 31, 48, 255);
     //traps
+    m_traps = m_gameState->getTraps();
+
+    SDL_SetRenderDrawColor(renderer,255,0,0,255);
+    for(const auto& trap:m_traps)
+    {
+        if(m_trapBuilder.trapHasHazard(trap.type,trap.status))
+        {
+            SDL_FRect trapCollRect =m_trapBuilder.getHazardHitBox(trap);
+            trapCollRect.x =trapCollRect.x-camX;
+            trapCollRect.y =trapCollRect.y-camY;
+            SDL_RenderRect(renderer,&trapCollRect);
+        }
+    }
     SDL_SetRenderDrawColor(renderer,0,0,255,255);
-    for(const auto trap:m_traps){
+    for(const auto& trap:m_traps)
+    {
         SDL_FRect trapCollRect =m_trapBuilder.getTrapCollisionBox(trap);
+        if(m_trapBuilder.trapHasHazard(trap.type,trap.status))
+            continue;
         trapCollRect.x =trapCollRect.x-camX;
         trapCollRect.y =trapCollRect.y-camY;
         if(trap.type == TrapType::FAN){

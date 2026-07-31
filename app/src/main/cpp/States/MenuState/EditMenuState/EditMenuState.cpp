@@ -158,7 +158,6 @@ bool EditMenuState::handleEvents(SDL_Event &event)
         }
         if(TouchX >= m_textbox.x && TouchX <= m_textbox.x + m_textbox.w &&
             TouchY >= m_textbox.y && TouchY <= m_textbox.y + m_textbox.h){
-            LOGI("active");
             SDL_StartTextInput(Engine::Get().getWindow());
             m_textboxActive=true;
         }
@@ -215,12 +214,9 @@ bool EditMenuState::handleEvents(SDL_Event &event)
                 }
                 break;
             case SDL_EVENT_TEXT_INPUT:
-                LOGI("name:%s",m_editName.c_str());
-                LOGI("text text:%s",event.text.text);
-                LOGI("name:%s",m_editName.c_str());
+
                 if(m_editName.length() <9)
                 {
-                    LOGI("str length:%d",m_editName.length());
                     m_editName += event.text.text[0];
                     bool success =SDL_SetTextInputArea(Engine::Get().getWindow(),
                                                        reinterpret_cast<const SDL_Rect *>(&m_textbox),  m_editName.length());
@@ -229,8 +225,7 @@ bool EditMenuState::handleEvents(SDL_Event &event)
                 }
                 return true;
                 break;
-            case SDL_EVENT_TEXT_EDITING:
-                LOGI("text edit:%s",event.edit.text);
+
         }
 
 

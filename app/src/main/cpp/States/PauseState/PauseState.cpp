@@ -49,7 +49,6 @@ void PauseState::init(SDL_Renderer *renderer) {
     SDL_SetTextureScaleMode(m_pauseShadowTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_exitTexture,SDL_SCALEMODE_NEAREST);
     SDL_SetTextureScaleMode(m_exitShadowTexture,SDL_SCALEMODE_NEAREST);
-    LOGI("Pause init completed");
 }
 
 void PauseState::render(SDL_Renderer *renderer) {
@@ -89,7 +88,6 @@ bool PauseState::handleEvents(SDL_Event &event) {
             PlayerDetail::getInstance().setScore(0);
             GameData::getInstance().setPaused(false);
             m_transitioning = true;
-            LOGI("should close");
             Engine::Get().popState();
             if(GameData::getInstance().isDebugEnabled())
                 Engine::Get().popOverlayState();
@@ -100,7 +98,6 @@ bool PauseState::handleEvents(SDL_Event &event) {
     if(event.type == SDL_EVENT_FINGER_DOWN &&!shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)){
         GameData::getInstance().setPaused(false);
         m_transitioning =true;
-        LOGI("back to game state");
         Engine::Get().popState();
         if(GameData::getInstance().isDebugEnabled())
             Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
