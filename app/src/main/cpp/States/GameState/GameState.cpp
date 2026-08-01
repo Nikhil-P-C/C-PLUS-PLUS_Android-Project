@@ -324,7 +324,7 @@ void GameState::update(float dt){
         PlayerDetail::getInstance().subPlayerHP(1);
     }
 
-    LOGI("player hp:%d",PlayerDetail::getInstance().getPlayerHP());
+//    LOGI("player hp:%d",PlayerDetail::getInstance().getPlayerHP());
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
@@ -653,7 +653,7 @@ void GameState::setLevel(int level) {
 
 
     m_traps.emplace_back(1500.00f,1100.00f,TrapType::SAW,TrapStatus::ON,1100.00f,1400.00f,
-                         0.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID,0.0f
+                         250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID,0.0f
                          ,true);
     m_traps.emplace_back(2000.00f,300.00f,TrapType::SAW,TrapStatus::ON,3000.00f,1300.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID,0.0f
@@ -662,7 +662,7 @@ void GameState::setLevel(int level) {
                          400.00f,PathAxis::CIRCLE,PathShape::CIRCLE,ColliderType::SOLID,250.00f
                          ,true);
     m_traps.emplace_back(2000.00f+600,1100.00f,TrapType::SPIKE_BALL,TrapStatus::IDLE,2.50,0.50,
-                         0.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f
+                         250.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f
                          ,true);
 
 

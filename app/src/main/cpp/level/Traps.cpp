@@ -18,6 +18,14 @@ void TrapBuilder::init(const std::vector<Trap> &traps)
 
 {
     m_traps =traps;
+    unsigned int now = SDL_GetTicks();
+    for(auto& trap : m_traps){
+        trap.lastSwitchTime = now;
+        trap.lastTime = now;
+        if(const auto* info = getTrapFrameInfo(trap.type, trap.status)){
+            trap.aniEndFrame = info->frameCount - 1;
+        }
+    }
     for(auto& trap:m_traps){
         if(const auto* info = getTrapFrameInfo(trap.type,trap.status)){
             trap.aniEndFrame = info->frameCount-1;
@@ -119,7 +127,7 @@ void TrapBuilder::update(float dt)
             }
 
         }
-        if(trap.aniDone && trap.type == TrapType::ROCK_HEAD)
+        if(trap.aniDone && trap.type == TrapType::ROCK_HEAD && !trap.hasHitEnd)
         {
             if(trap.status == TrapStatus::HIT)
             {
@@ -236,7 +244,7 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
 bool TrapBuilder::isSolid(int trapIndex) {
     auto& trap = m_traps[trapIndex];
 
-    return trap.type == TrapType::MOVING_PLATFORM_GREY||trap.type == TrapType::MOVING_PLATFORM_BROWN||trap.type == TrapType::ROCK_HEAD||
+    return trap.type == TrapType::MOVING_PLATFORM_GREY||trap.type == TrapType::MOVING_PLATFORM_BROWN||(trap.type == TrapType::ROCK_HEAD && trap.status != TrapStatus::HIT)||
             trap.type==TrapType::FIRE ||trap.type == TrapType::FALLING_PLATFORM;
 }
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float& playerY,
@@ -352,8 +360,7 @@ bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float
         switch(trap.type){
             case TrapType::FIRE:   live = trap.status == TrapStatus::ON; break;
             case TrapType::SAW:    live = trap.status == TrapStatus::ON; break;
-            case TrapType::ROCK_HEAD:
-            case TrapType::SPIKE_HEAD: live = trap.status == TrapStatus::HIT; break;
+            case TrapType::ROCK_HEAD:live = trap.status == TrapStatus::HIT; break;
             default: live = true; break; // Spikes / Spike Ball are always hazardous
         }
         if(!live) continue;
@@ -476,22 +483,18 @@ void TrapBuilder::updatePath(float dt)
             if(target.x == trap.x && target.y == trap.y)
             {
                 unsigned int now = SDL_GetTicks();
-                if(trap.type == TrapType::SAW)
                 if(!trap.hasHitEnd)
                 {
-                    if(trap.type == TrapType::ROCK_HEAD)
-                    {
-                        trap.hasHitEnd = true;
+                    trap.hasHitEnd =true;
+                    trap.lastSwitchTime=now;
+                    if(trap.type ==TrapType::ROCK_HEAD)
                         trap.status = TrapStatus::HIT;
-                        trap.aniStartFrame = 0;
-                        trap.aniDone = false;
-                    }
+                    trap.aniStartFrame = 0;
+                    trap.aniDone = false;
                 }
                 if(trap.type == TrapType::ROCK_HEAD)
                 {
-                    trap.status = TrapStatus::HIT;
-                    trap.aniStartFrame = 0;
-                    trap.aniDone = false;
+                    LOGI("last time :%u,now time:%u, corner:%d",trap.lastSwitchTime,now,trap.pathIndex);
                     if (now - trap.lastSwitchTime > m_rockHeadTimer) {
                         trap.lastSwitchTime = now;
                         trap.pathIndex = (trap.pathIndex + 1) % 4;
@@ -529,6 +532,7 @@ void TrapBuilder::updatePath(float dt)
                 if(!trap.hasHitEnd)
                 {
                     trap.hasHitEnd =true;
+                    trap.lastSwitchTime=now;
                     if(trap.type ==TrapType::ROCK_HEAD)
                         trap.status = TrapStatus::HIT;
                     trap.aniStartFrame = 0;
@@ -538,7 +542,6 @@ void TrapBuilder::updatePath(float dt)
                 {
                     if (now - trap.lastSwitchTime > m_rockHeadTimer) {
                         trap.lastSwitchTime = now;
-
                         trap.isMovingForward = !trap.isMovingForward;
                     }
                 }
