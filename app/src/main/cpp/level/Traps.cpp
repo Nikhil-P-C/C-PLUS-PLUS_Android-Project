@@ -241,6 +241,7 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
         }
     }
 }
+
 bool TrapBuilder::isSolid(int trapIndex) {
     auto& trap = m_traps[trapIndex];
 
@@ -353,7 +354,8 @@ SDL_FRect TrapBuilder::getHazardHitBox(const Trap &trap) {
 }
 
 
-bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float playerH,TrapType& outType) {
+bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float playerH,
+                              TrapType& outType,gameMath::collisionSide& outSide) {
     for(const auto& trap:m_traps){
         if(!trapHasHit(trap.type))continue;
         bool live;
@@ -366,10 +368,17 @@ bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float
         if(!live) continue;
 
         SDL_FRect box = getHazardHitBox(trap);
-        if(gameMath::checkcollision(playerX, playerY, box.x, box.y, playerH, playerW, box.h, box.w)){
-            outType = trap.type;
+        gameMath::collisionSide side =gameMath::checkHazardCollision(playerX,playerY,playerW,playerH,box);
+        if(side!=gameMath::collisionSide::NONE)
+        {
+            outType=trap.type;
+            outSide=side;
             return true;
         }
+//        if(gameMath::checkcollision(playerX, playerY, box.x, box.y, playerH, playerW, box.h, box.w)){
+//            outType = trap.type;
+//            return true;
+//        }
 
     }
     return false;
@@ -494,7 +503,6 @@ void TrapBuilder::updatePath(float dt)
                 }
                 if(trap.type == TrapType::ROCK_HEAD)
                 {
-                    LOGI("last time :%u,now time:%u, corner:%d",trap.lastSwitchTime,now,trap.pathIndex);
                     if (now - trap.lastSwitchTime > m_rockHeadTimer) {
                         trap.lastSwitchTime = now;
                         trap.pathIndex = (trap.pathIndex + 1) % 4;

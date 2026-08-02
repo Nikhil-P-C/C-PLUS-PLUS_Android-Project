@@ -19,7 +19,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(400.00f,0.00f,m_windowH,SPRITE_HEIGHT,P_scale);
+    m_player.setPosition(400.00f,0.00f,P_scale);
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
@@ -239,11 +239,16 @@ void GameState::render(SDL_Renderer* renderer)  {
                      m_player.spriteW,m_player.spriteH};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
+    SDL_SetTextureAlphaMod(m_playerTexture, PlayerDetail::getInstance().isInvincible() ? 80 : 255);
     if(!m_isPlayerfacingRight)
-        SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst,0.0f,NULL,
-                             SDL_FLIP_HORIZONTAL);
+    {
+        SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, NULL,
+                                 SDL_FLIP_HORIZONTAL);
+    }
     else
-        SDL_RenderTexture(renderer,m_playerTexture,&src,&dst);
+    {
+        SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
+    }
     SDL_SetRenderDrawColor(renderer,33,31,48,255);
     //player name rendering
     SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-camX+(12.50f*P_scale)
@@ -315,13 +320,12 @@ void GameState::update(float dt){
     }
     m_trapBuilder.updatePath(dt);
     TrapType type;
+    gameMath::collisionSide side =gameMath::collisionSide::NONE;
     bool hazardColl =m_trapBuilder.checkHazard(m_player.x,m_player.y,
-                                               m_player.w,m_player.h,type);
+                                               m_player.w,m_player.h,type ,side);
     unsigned int hitNow =SDL_GetTicks();
     if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer&&hazardColl){
-        m_player.x=400.00f,m_player.y=800.0f;
-        PlayerDetail::getInstance().setLastHitTime(hitNow);
-        PlayerDetail::getInstance().subPlayerHP(1);
+        handlePlayerHit(type,side,hitNow);
     }
 
 //    LOGI("player hp:%d",PlayerDetail::getInstance().getPlayerHP());
@@ -462,7 +466,29 @@ void GameState::handleCollision() {
     }
 }
 
+void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide side, unsigned int now) {
+    PlayerDetail::getInstance().setLastHitTime(now);
+    PlayerDetail::getInstance().subPlayerHP(1);
+    m_hurtAnimEndTime = now + HURT_ANIM_MS;
+    m_knockbackEndTime = now + KNOCKBACK_MS;
+    LOGI("player HP:%d",PlayerDetail::getInstance().getPlayerHP());
+    const float KNOCK_H = 600.0f, KNOCK_V = 600.0f;
+    switch(side){
+        case gameMath::collisionSide::TOP:    m_velocityY = -KNOCK_V; break; // pushed up
+        case gameMath::collisionSide::BOTTOM: m_velocityY =  KNOCK_V; break; // pushed down
+        case gameMath::collisionSide::LEFT:   m_velocityX = -KNOCK_H; break; // pushed left
+        case gameMath::collisionSide::RIGHT:  m_velocityX =  KNOCK_H; break; // pushed right
+        default: break;
+    }
+    m_isGrounded = false;
+
+    if(PlayerDetail::getInstance().getPlayerHP() <= 0){
+        PlayerDetail::getInstance().addPlayerHP(5);
+        m_player.setPosition(109.00f,1387.00f,P_scale);
+    }
+}
 void GameState::updateAnimation() {
+    if(SDL_GetTicks() < m_hurtAnimEndTime) m_playerAction = PlayerAction::HURT;
     switch(m_playerAction){
         case IDLE:
             m_Animation.startIndex=0;
@@ -505,15 +531,21 @@ void GameState::handlePhysicAndInput(float dt) {
                                       m_player.x-40.00f, m_player.y+m_player.h-50.00f);
         m_wasGrounded =false;
     }
-    if(!InputDispatcher::getInstance().movingLeft&&!InputDispatcher::getInstance().movingRight){
-        m_playerAction=PlayerAction::IDLE;
+    bool inKnockback = SDL_GetTicks() < m_knockbackEndTime;
+
+    if(!inKnockback)
+    {
+        if (!InputDispatcher::getInstance().movingLeft &&
+            !InputDispatcher::getInstance().movingRight) {
+            m_playerAction = PlayerAction::IDLE;
+            m_velocityX = 0.0f;
+        }
     }
     if(InputDispatcher::getInstance().movingLeft){
         m_isPlayerfacingRight =false;
         m_playerAction=PlayerAction::MOVINGLEFT;
-        m_player.x -= 400.00f* dt;
+        m_velocityX = -400.00f;
         m_walkTimer += dt;
-
         if(m_isGrounded){
             if(m_walkTimer >0.2){
                 m_walkTimer =0.00f;
@@ -529,7 +561,8 @@ void GameState::handlePhysicAndInput(float dt) {
     if(InputDispatcher::getInstance().movingRight){
         m_isPlayerfacingRight =true;
         m_playerAction=PlayerAction::MOVINGRIGHT;
-        m_player.x +=400.00f * dt;
+        m_velocityX=400.00f;
+
         m_walkTimer += dt;
         if(m_isGrounded){
             if(m_walkTimer >0.2){
@@ -552,7 +585,7 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
-
+    m_player.x +=m_velocityX * dt;
     m_velocityY+=m_gravity*dt;
     m_player.y +=m_velocityY*dt;
 }
@@ -738,6 +771,7 @@ bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event)
     }
     return true; // Return true to keep the event in the queue for other systems
 }
+
 
 
 

@@ -114,7 +114,8 @@ public:
 
     void triggerFall(int trapIndex);
 
-    bool checkHazard(float playerX ,float playerY,float playerW,float playerH,TrapType& outType);
+    bool checkHazard(float playerX ,float playerY,float playerW,float playerH,
+                     TrapType& outType,gameMath::collisionSide& outSide);
 
     SDL_FRect getHazardHitBox(const Trap& trap);
 

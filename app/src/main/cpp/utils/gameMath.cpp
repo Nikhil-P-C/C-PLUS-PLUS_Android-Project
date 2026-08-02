@@ -7,6 +7,24 @@
 #include <vector>
 
 namespace gameMath{
+    collisionSide checkHazardCollision(float playerX,float playerY,float playerW,float playerH,const SDL_FRect& box){
+        if(!(playerX < box.x + box.w &&
+             playerX + playerW > box.x &&
+             playerY < box.y + box.h &&
+             playerY + playerH > box.y)){
+            return collisionSide::NONE;        // no overlap test existed before
+        }
+        float overlapT = (playerY+playerH)-box.y;
+        float overlapB = (box.y+box.h)-playerY;
+        float overlapR = (box.x+box.w)-playerX;
+        float overlapL = (playerX+playerW)-box.x;
+
+        float minOverlap = SDL_min(SDL_min(overlapL,overlapR), SDL_min(overlapT,overlapB));
+        if(minOverlap == overlapT)return collisionSide::TOP;
+        if(minOverlap == overlapB)return collisionSide::BOTTOM;
+        if(minOverlap == overlapL)return collisionSide::LEFT;
+        return collisionSide::RIGHT;
+    }
     collisionSide checkcollisionXY(float &x1, float &y1, float x2, float y2, float h1, float w1,
                                   float h2, float w2) {
         collisionSide side = collisionSide::NONE;

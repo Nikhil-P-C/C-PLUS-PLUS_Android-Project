@@ -23,7 +23,8 @@
 
 const float SCALE = 4;
 const int TILE_SIZE =16;
-
+const int HURT_ANIM_MS =300;
+const int KNOCKBACK_MS =300;
 struct Animation{
     int startIndex=0;
     int lastIndex=0;
@@ -37,6 +38,7 @@ enum PlayerAction{
     JUMP=5,
 
 };
+
 class GameState : public State{
 public:
     GameState(SDL_Renderer* renderer);
@@ -45,7 +47,6 @@ public:
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
-
 
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
     }
@@ -65,6 +66,7 @@ public:
     bool handleEvents(SDL_Event& event) override;
     static bool HandleBackgroundEvents(void *userdata, SDL_Event *event);
 
+    void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
     Player getPlayer(){
         return m_player;
     }
@@ -91,6 +93,7 @@ private:
     //animation and texture
     Animation m_Animation;
     PlayerAction m_playerAction = IDLE;
+    unsigned int m_hurtAnimEndTime =0;
     int m_currentFrame=0;
     int m_aniframeDelay =50;//delayed by 50ms
     unsigned int m_aniNowTime =0;
@@ -143,9 +146,11 @@ private:
     bool m_isCompleted=false;
     bool m_transitioning=false;
     int m_invincibilityTimer = 5000;
+    unsigned int m_knockbackEndTime =0;
     //physics
     float m_previousY = 0.0f;
     float m_velocityY =0.0f;
+    float m_velocityX =0.0f;
     float m_gravity =1800.00f;
     float m_jumpVelocity =1000.00f;
     bool  m_isGrounded =true;
