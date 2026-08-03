@@ -297,7 +297,7 @@ void GameState::update(float dt){
             if(side != gameMath::collisionSide::NONE&&(m_trapBuilder.trapHasPath(m_traps[i].type)||m_traps[i].type==TrapType::FALLING_PLATFORM)){
                 SDL_FPoint trapDelta =m_trapBuilder.getTrapDelta(i);
                 m_player.x+=trapDelta.x;
-                if(m_traps[i].colliderType != ColliderType::ONE_WAY)
+                if(m_traps[i].colliderType != ColliderType::ONE_WAY && side ==gameMath::collisionSide::TOP)
                     m_player.y+=trapDelta.y;
             }
             switch (side) {

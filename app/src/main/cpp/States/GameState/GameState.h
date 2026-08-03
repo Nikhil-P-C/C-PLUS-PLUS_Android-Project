@@ -47,7 +47,7 @@ public:
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
-
+        SDL_SetTextureAlphaMod(m_playerTexture,255);
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
     }
     bool hasWallAbove(float x,float y);
