@@ -65,7 +65,7 @@ public:
 
     bool handleEvents(SDL_Event& event) override;
     static bool HandleBackgroundEvents(void *userdata, SDL_Event *event);
-
+    bool isBlinkFrame() const;
     void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
     Player getPlayer(){
         return m_player;
@@ -138,7 +138,6 @@ private:
     //scaling and window
     constexpr static const float P_scale =5.0f;
     int m_windowH =0,m_windowW=0;
-
     SDL_Renderer* m_renderer = nullptr;
 
     //mechanics
@@ -146,6 +145,7 @@ private:
     bool m_isCompleted=false;
     bool m_transitioning=false;
     int m_invincibilityTimer = 5000;
+    int m_blinkTimer =500;
     unsigned int m_knockbackEndTime =0;
     //physics
     float m_previousY = 0.0f;

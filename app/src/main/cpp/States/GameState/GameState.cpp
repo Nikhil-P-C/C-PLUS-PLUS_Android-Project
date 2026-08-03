@@ -239,7 +239,11 @@ void GameState::render(SDL_Renderer* renderer)  {
                      m_player.spriteW,m_player.spriteH};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
-    SDL_SetTextureAlphaMod(m_playerTexture, PlayerDetail::getInstance().isInvincible() ? 80 : 255);
+    if(PlayerDetail::getInstance().isInvincible())
+        SDL_SetTextureAlphaMod(m_playerTexture, isBlinkFrame() ? 80 : 150);
+    else
+        SDL_SetTextureAlphaMod(m_playerTexture,255);
+
     if(!m_isPlayerfacingRight)
     {
         SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, NULL,
@@ -272,12 +276,13 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 void GameState::update(float dt){
     m_fruitBuilder.update(dt);
+
     m_previousY =m_player.y;
     handlePhysicAndInput(dt);
-
     m_isGrounded=false;
 
     handleCollision();
+
     for(int i =0;i<m_traps.size();i++)
     {
         //fire
@@ -324,8 +329,12 @@ void GameState::update(float dt){
     bool hazardColl =m_trapBuilder.checkHazard(m_player.x,m_player.y,
                                                m_player.w,m_player.h,type ,side);
     unsigned int hitNow =SDL_GetTicks();
-    if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer&&hazardColl){
-        handlePlayerHit(type,side,hitNow);
+    if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer){
+        PlayerDetail::getInstance().setInvincibility(false);
+        if(hazardColl)
+        {
+            handlePlayerHit(type, side, hitNow);
+        }
     }
 
 //    LOGI("player hp:%d",PlayerDetail::getInstance().getPlayerHP());
@@ -340,8 +349,8 @@ void GameState::update(float dt){
         m_isGrounded = false;
     }
 
-
     updateAnimation();
+
     m_particleSystem.update(dt);
     m_fruitBuilder.update(dt);
     m_trapBuilder.update(dt);
@@ -469,6 +478,7 @@ void GameState::handleCollision() {
 void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide side, unsigned int now) {
     PlayerDetail::getInstance().setLastHitTime(now);
     PlayerDetail::getInstance().subPlayerHP(1);
+    PlayerDetail::getInstance().setInvincibility(true);
     m_hurtAnimEndTime = now + HURT_ANIM_MS;
     m_knockbackEndTime = now + KNOCKBACK_MS;
     LOGI("player HP:%d",PlayerDetail::getInstance().getPlayerHP());
@@ -751,7 +761,10 @@ bool GameState::hasWallLeft(float x, float y) {
     }
     return false;
 }
-
+bool GameState::isBlinkFrame() const {
+    unsigned int elapsed = SDL_GetTicks() - PlayerDetail::getInstance().getLastHitTime();
+    return (elapsed / m_blinkTimer) % 2 == 0;
+}
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
     auto* gameState = static_cast<GameState*>(userdata);
     if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND && !GameData::getInstance().isPaused()) {
