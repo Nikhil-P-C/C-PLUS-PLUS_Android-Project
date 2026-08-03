@@ -643,9 +643,9 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
     m_traps.emplace_back(700.00f,300.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,2000.00f,1300.00f,
+    m_traps.emplace_back(100.00f,300.00f,TrapType::SPIKE_HEAD,TrapStatus::IDLE,2000.00f,1300.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
-    m_traps.emplace_back(1100.00f,0.00f,TrapType::ROCK_HEAD,TrapStatus::HIT,0,1200,
+    m_traps.emplace_back(1100.00f,0.00f,TrapType::SPIKE_HEAD,TrapStatus::HIT,0,1200,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);
     m_traps.emplace_back(1000.00f,1400.00f,TrapType::FIRE,TrapStatus::OFF,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::SOLID);

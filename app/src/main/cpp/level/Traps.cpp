@@ -127,7 +127,7 @@ void TrapBuilder::update(float dt)
             }
 
         }
-        if(trap.aniDone && trap.type == TrapType::ROCK_HEAD && !trap.hasHitEnd)
+        if(trap.aniDone && (trap.type == TrapType::ROCK_HEAD||trap.type == TrapType::SPIKE_HEAD) && !trap.hasHitEnd)
         {
             if(trap.status == TrapStatus::HIT)
             {
@@ -345,9 +345,9 @@ SDL_FRect TrapBuilder::getHazardHitBox(const Trap &trap) {
         case TrapType::SPIKE_BALL:
             return { trap.x+20 , trap.y+20, (info->frameW-9)*SCALE, (info->frameH-9)*SCALE };
         case TrapType::ROCK_HEAD:
-        case TrapType::SPIKE_HEAD:
-            // only dangerous while actively hitting, not during the idle blink loop
             return { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
+        case TrapType::SPIKE_HEAD:
+            return { trap.x+40, trap.y+40, (info->frameW-20)*SCALE, (info->frameH-20)*SCALE };
         default:
             return { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
     }
@@ -375,11 +375,6 @@ bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float
             outSide=side;
             return true;
         }
-//        if(gameMath::checkcollision(playerX, playerY, box.x, box.y, playerH, playerW, box.h, box.w)){
-//            outType = trap.type;
-//            return true;
-//        }
-
     }
     return false;
 }
@@ -496,12 +491,12 @@ void TrapBuilder::updatePath(float dt)
                 {
                     trap.hasHitEnd =true;
                     trap.lastSwitchTime=now;
-                    if(trap.type ==TrapType::ROCK_HEAD)
+                    if(trap.type ==TrapType::ROCK_HEAD||trap.type == TrapType::SPIKE_HEAD)
                         trap.status = TrapStatus::HIT;
                     trap.aniStartFrame = 0;
                     trap.aniDone = false;
                 }
-                if(trap.type == TrapType::ROCK_HEAD)
+                if(trap.type == TrapType::ROCK_HEAD || trap.type == TrapType::SPIKE_HEAD)
                 {
                     if (now - trap.lastSwitchTime > m_rockHeadTimer) {
                         trap.lastSwitchTime = now;
@@ -541,12 +536,12 @@ void TrapBuilder::updatePath(float dt)
                 {
                     trap.hasHitEnd =true;
                     trap.lastSwitchTime=now;
-                    if(trap.type ==TrapType::ROCK_HEAD)
+                    if(trap.type ==TrapType::ROCK_HEAD||trap.type==TrapType::SPIKE_HEAD)
                         trap.status = TrapStatus::HIT;
                     trap.aniStartFrame = 0;
                     trap.aniDone = false;
                 }
-                if(trap.type ==TrapType::ROCK_HEAD)
+                if(trap.type ==TrapType::ROCK_HEAD||trap.type == TrapType::SPIKE_HEAD)
                 {
                     if (now - trap.lastSwitchTime > m_rockHeadTimer) {
                         trap.lastSwitchTime = now;
@@ -677,10 +672,10 @@ const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
                      42,42,4,100,false}},
 
             {trapKey(TrapType::SPIKE_HEAD,TrapStatus::IDLE),
-                    {TextureType::TRAP_ROCK_HEAD_BLINK,
+                    {TextureType::TRAP_SPIKE_HEAD_BLINK,
                      54,52,4,200,true}},
             {trapKey(TrapType::SPIKE_HEAD,TrapStatus::HIT),
-                    {TextureType::TRAP_ROCK_HEAD_HIT_BOTTOM,
+                    {TextureType::TRAP_SPIKE_HEAD_HIT_BOTTOM,
                      54,52,4,100,false}},
 
 
