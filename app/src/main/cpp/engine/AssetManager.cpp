@@ -120,7 +120,7 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::TRAP_SPIKE,"Traps/Spikes/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE,"Traps/Trampoline/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE_TRIGGER,"Traps/Trampoline/Jump (28x28).png");
-
+    loadTexture(TextureType::HUD_HEALTH_HEART,"HUD/heart-health.png");
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

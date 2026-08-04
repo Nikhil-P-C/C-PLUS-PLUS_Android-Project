@@ -44,6 +44,7 @@ public:
     GameState(SDL_Renderer* renderer);
     ~GameState() override{
         LOGI("gamestate destructor:%p",this);
+        Engine::Get().popState();
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);

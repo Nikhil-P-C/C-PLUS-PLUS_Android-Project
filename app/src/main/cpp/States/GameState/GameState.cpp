@@ -3,6 +3,7 @@
 #include "States/MenuState/TitleScreenState.h"
 #include "States/PauseState/PauseState.h"
 #include "States/DebugState/DebugState.h"
+#include "States/HUDOverlayState/HUDOverlayState.h"
 #include "utils/utils.h"
 #include <cmath>
 
@@ -24,6 +25,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
 
+    Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(renderer));
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
@@ -643,7 +645,7 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
     m_traps.emplace_back(700.00f,300.00f,TrapType::TRAMPOLINE,TrapStatus::IDLE,0,0,
                          250.00f,PathAxis::AUTO,PathShape::LINE,ColliderType::TRIGGER);
-    m_traps.emplace_back(100.00f,300.00f,TrapType::SPIKE_HEAD,TrapStatus::IDLE,2000.00f,1300.00f,
+    m_traps.emplace_back(100.00f,300.00f,TrapType::ROCK_HEAD,TrapStatus::IDLE,2000.00f,1300.00f,
                          250.00f,PathAxis::AUTO,PathShape::RECT,ColliderType::SOLID);
     m_traps.emplace_back(1100.00f,0.00f,TrapType::SPIKE_HEAD,TrapStatus::HIT,0,1200,
                          250.00f,PathAxis::VERTICAL,PathShape::LINE,ColliderType::SOLID);

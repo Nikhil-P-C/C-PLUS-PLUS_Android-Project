@@ -73,6 +73,7 @@ enum class TextureType{
     TRAP_SPIKE,
     TRAP_TRAMPOLINE,
     TRAP_TRAMPOLINE_TRIGGER,
+    HUD_HEALTH_HEART,
     COUNT
 };
 class AssetManager{
