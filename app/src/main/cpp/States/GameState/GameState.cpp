@@ -25,8 +25,6 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize(m_windowW,m_windowH);
 
-    Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(renderer));
-
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
     //background sprite loading;
@@ -277,6 +275,11 @@ void GameState::render(SDL_Renderer* renderer)  {
 }
 
 void GameState::update(float dt){
+    if(PlayerDetail::getInstance().getPlayerHP() <= 0){
+        //respawn
+        PlayerDetail::getInstance().addPlayerHP(5);
+        m_player.setPosition(109.00f,1387.00f,P_scale);
+    }
     m_fruitBuilder.update(dt);
 
     m_previousY =m_player.y;
@@ -365,7 +368,8 @@ bool GameState::handleEvents(SDL_Event& event) {
         if(event.key.key == SDLK_AC_BACK){
             GameData::getInstance().setPaused(true);
             m_transitioning = true;
-            Engine::Get().popOverlayState();
+            Engine::Get().popOverlayState();//controls
+            Engine::Get().popOverlayState();//HUD
             if(GameData::getInstance().isDebugEnabled())
                 Engine::Get().popOverlayState();
             Engine::Get().pushState(std::make_unique<PauseState>(m_renderer,this));
@@ -478,8 +482,11 @@ void GameState::handleCollision() {
 }
 
 void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide side, unsigned int now) {
+
     PlayerDetail::getInstance().setLastHitTime(now);
+
     PlayerDetail::getInstance().subPlayerHP(1);
+
     PlayerDetail::getInstance().setInvincibility(true);
     m_hurtAnimEndTime = now + HURT_ANIM_MS;
     m_knockbackEndTime = now + KNOCKBACK_MS;
@@ -494,10 +501,7 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
     }
     m_isGrounded = false;
 
-    if(PlayerDetail::getInstance().getPlayerHP() <= 0){
-        PlayerDetail::getInstance().addPlayerHP(5);
-        m_player.setPosition(109.00f,1387.00f,P_scale);
-    }
+
 }
 void GameState::updateAnimation() {
     if(SDL_GetTicks() < m_hurtAnimEndTime) m_playerAction = PlayerAction::HURT;
@@ -715,7 +719,9 @@ void GameState::setLevel(int level) {
     m_trapBuilder.init(m_traps);
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,SCALE);
-    if(GameData::getInstance().isDebugEnabled()){
+    //TODO : find a work around to push debug state from menustate without passing gamestate to it
+    if(GameData::getInstance().isDebugEnabled())//had to push here , cant have gamestate being passed everywhere,
+    {
         Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,this));
     }
 }

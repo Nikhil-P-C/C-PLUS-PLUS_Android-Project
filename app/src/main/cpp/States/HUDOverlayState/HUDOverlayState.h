@@ -34,8 +34,8 @@ public:
 private:
     SDL_Renderer* m_renderer = nullptr;
     std::vector<Heart> m_hearts;
-    int m_lastHeart =5;
-    int m_prevHealth=5;
+    int m_lastHeart =0;
+    int m_prevHealth=0;
     int m_aniFrameDelay = 50;
     int m_spriteHeight =29, m_spriteWidth=30;
 

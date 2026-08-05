@@ -14,31 +14,26 @@ void HUDOverlayState::render(SDL_Renderer *renderer) {
 }
 
 void HUDOverlayState::update(float dt) {
-    LOGI("prev=%d current=%d lastHeart=%d",m_prevHealth,PlayerDetail::getInstance().getPlayerHP(),
+    LOGI("prev=%d current=%d lastHeart=%d", m_prevHealth, PlayerDetail::getInstance().getPlayerHP(),
          m_lastHeart);
     updateAnimation();
-    if(m_lastHeart ==0)
-    {
-        m_lastHeart=5;
-        for(size_t i = 0;i<5;i++) {
+    if (PlayerDetail::getInstance().getPlayerHP() == 0) {
+        m_lastHeart = 5;
+        for (size_t i = 0; i < 5; i++) {
 
             m_hearts[i].heartAniType = HeartAniType::IDLE;
-            m_hearts[i].currentFrame=0;
+            m_hearts[i].currentFrame = 0;
         }
         return;
     }
-    if(m_prevHealth >PlayerDetail::getInstance().getPlayerHP()){
-
-        m_hearts[m_lastHeart-1].heartAniType=HeartAniType::HURT;
-        m_lastHeart--;
+    if (m_prevHealth > PlayerDetail::getInstance().getPlayerHP()) {
+        m_hearts[m_lastHeart - 1].heartAniType = HeartAniType::HURT;
+    } else if (m_prevHealth < PlayerDetail::getInstance().getPlayerHP()) {
+        if (m_lastHeart > 5) m_lastHeart = 5;
+        m_hearts[m_lastHeart - 1].heartAniType = HeartAniType::IDLE;
     }
-    else if(m_prevHealth <PlayerDetail::getInstance().getPlayerHP()){
-        m_lastHeart++;
-        if(m_lastHeart >4) m_lastHeart=4;
-        m_hearts[m_lastHeart-1].heartAniType=HeartAniType::IDLE;
-    }
-    m_prevHealth =PlayerDetail::getInstance().getPlayerHP();
-    return;
+    m_prevHealth = PlayerDetail::getInstance().getPlayerHP();
+    m_lastHeart = m_prevHealth;
 }
 
 bool HUDOverlayState::handleEvents(SDL_Event &event) {
@@ -46,7 +41,6 @@ bool HUDOverlayState::handleEvents(SDL_Event &event) {
     return false;
 }
 void HUDOverlayState::updateAnimation() {
-//    if(SDL_GetTicks() < m_hurtAnimEndTime) m_playerAction = PlayerAction::HURT;
     for (auto& heart : m_hearts)
     {
         switch (heart.heartAniType) {
@@ -91,7 +85,12 @@ HUDOverlayState::HUDOverlayState(SDL_Renderer *renderer) {
     m_hearts.emplace_back(SDL_FRect{235.00f,0.00f,75.00f,75.00f});
     m_hearts.emplace_back(SDL_FRect{305.00f,0.00f,75.00f,75.00f});
 
-
+    m_lastHeart=PlayerDetail::getInstance().getPlayerHP();
+    m_prevHealth=m_lastHeart;
+    for (int i = 0; i <5; ++i) {
+        if(i >= m_lastHeart)
+            m_hearts[i].heartAniType = HeartAniType::LOST;
+    }
 }
 HUDOverlayState::~HUDOverlayState() {
 

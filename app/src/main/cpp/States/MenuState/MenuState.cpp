@@ -13,6 +13,7 @@
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
 #include "States/MenuState/EditMenuState/EditMenuState.h"
+#include "States/HUDOverlayState/HUDOverlayState.h"
 
 MenuState::MenuState(SDL_Renderer *renderer) {
     LOGI("menu construct:%p",this);
@@ -160,6 +161,7 @@ bool MenuState::handleEvents(SDL_Event &event) {
             if(touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
                 m_transitioning =true;
                 Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
+                Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
 
                 if(GameData::getInstance().getControlType() == JOYSTICK) {
                     Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));

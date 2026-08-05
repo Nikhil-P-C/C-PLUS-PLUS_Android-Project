@@ -56,6 +56,9 @@ public:
     void subPlayerHP(int factorDeduct){
         m_hp -= factorDeduct;
     }
+    void setPlayerHP(int value){
+        m_hp = value;
+    }
     void setInvincibility(bool invincibility){
         m_isInvincible = invincibility;
     }

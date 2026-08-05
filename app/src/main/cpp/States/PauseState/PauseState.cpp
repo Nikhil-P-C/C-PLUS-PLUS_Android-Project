@@ -15,6 +15,7 @@
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/DebugState/DebugState.h"
+#include "States/HUDOverlayState/HUDOverlayState.h"
 
 PauseState::PauseState(SDL_Renderer *renderer, GameState* gameState) {
     LOGI("Pause construct:%p",this);
@@ -78,14 +79,14 @@ void PauseState::update(float dt) {
 
 }
 bool PauseState::shouldClose(float x ,float y) const{
-    if(x >= m_exit.x && x <= m_exit.x + m_exit.w && y >= m_exit.y && y <= m_exit.y + m_exit.h)return true;
-    return false;
+    return  (x >= m_exit.x && x <= m_exit.x + m_exit.w && y >= m_exit.y && y <= m_exit.y + m_exit.h);
 }
 bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
     if(event.type == SDL_EVENT_FINGER_DOWN){
         if (shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)) {
             PlayerDetail::getInstance().setScore(0);
+            PlayerDetail::getInstance().setPlayerHP(5);
             GameData::getInstance().setPaused(false);
             m_transitioning = true;
             Engine::Get().popState();
@@ -98,7 +99,8 @@ bool PauseState::handleEvents(SDL_Event &event) {
     if(event.type == SDL_EVENT_FINGER_DOWN &&!shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)){
         GameData::getInstance().setPaused(false);
         m_transitioning =true;
-        Engine::Get().popState();
+        Engine::Get().popState();//remove pause state
+        Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
         if(GameData::getInstance().isDebugEnabled())
             Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
         if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
@@ -107,6 +109,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
             Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
         if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
             Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
+
         return true;
     }
     if(event.type == SDL_EVENT_KEY_DOWN){
