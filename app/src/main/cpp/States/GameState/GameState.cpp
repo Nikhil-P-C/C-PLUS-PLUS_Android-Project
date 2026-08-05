@@ -23,7 +23,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_player.setPosition(400.00f,0.00f,P_scale);
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
-    Camera::getInstance().setSize(m_windowW,m_windowH);
+    Camera::getInstance().setSize((float)m_windowW,(float)m_windowH);
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
@@ -65,16 +65,16 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
     for(const auto& level :m_levelWalls)
     {
-        int tileSize =(TILE_SIZE*SCALE);
+        int tileSize =(int)(TILE_SIZE*SCALE);
         const int platformWidth = (int)level.w;
         const int platformHeight = (int)level.h;
-        int widthTiles = static_cast<int>(std::ceil(platformWidth  / (float)tileSize));
-        int heightTiles = static_cast<int>(std::ceil(platformHeight / (float)tileSize));
+        int widthTiles = static_cast<int>(std::ceil((float)platformWidth  / (float)tileSize));
+        int heightTiles = static_cast<int>(std::ceil((float)platformHeight / (float)tileSize));
         for (int i = 0; i < heightTiles; i++) {
             for (int j = 0; j < widthTiles; j++) {
                 SDL_FRect src;
-                float x =level.x + j * (TILE_SIZE * SCALE);
-                float y =level.y + i* (TILE_SIZE * SCALE);
+                float x =level.x + (float)j * (TILE_SIZE * SCALE);
+                float y =level.y + (float)i* (TILE_SIZE * SCALE);
                 bool left = (j == 0);
                 bool right = (j == widthTiles - 1);
                 bool top = (i == 0);
@@ -147,8 +147,8 @@ void GameState::render(SDL_Renderer* renderer)  {
                 }
 
                 SDL_FRect dst = {
-                        x - camX,
-                        y - camY,
+                        x - (float)camX,
+                        y - (float)camY,
                         TILE_SIZE * SCALE, TILE_SIZE * SCALE};
 
                 if ((top || bottom || left || right )&& !edge) {
@@ -162,10 +162,8 @@ void GameState::render(SDL_Renderer* renderer)  {
         }
     }
     for(auto const& tile:m_wallShape.tiles){
-        float  srcX,srcY,srcW,srcH;
-
         SDL_FRect src = tile.src;
-        SDL_FRect dst{tile.x-camX,tile.y-camY,tile.w,tile.h};
+        SDL_FRect dst{tile.x-(float)camX,tile.y-(float)camY,tile.w,tile.h};
         SDL_RenderTexture(renderer,m_tileset,&src,&dst);
 
     }
@@ -234,8 +232,8 @@ void GameState::render(SDL_Renderer* renderer)  {
     m_trapBuilder.render(renderer);
     m_fruitBuilder.render(m_renderer);
 
-    SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-camX,
-                     m_player.y+m_player.spriteOffsetY-camY,
+    SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-(float)camX,
+                     m_player.y+m_player.spriteOffsetY-(float)camY,
                      m_player.spriteW,m_player.spriteH};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
@@ -246,7 +244,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     if(!m_isPlayerfacingRight)
     {
-        SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, NULL,
+        SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, nullptr,
                                  SDL_FLIP_HORIZONTAL);
     }
     else
@@ -255,9 +253,9 @@ void GameState::render(SDL_Renderer* renderer)  {
     }
     SDL_SetRenderDrawColor(renderer,33,31,48,255);
     //player name rendering
-    SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-camX+(12.50f*P_scale)
+    SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-(float)camX+(12.50f*P_scale)
                             -(50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()))/2,
-                            m_player.y+m_player.spriteOffsetY-camY-(2.00f*P_scale) -10,
+                            m_player.y+m_player.spriteOffsetY-(float)camY-(2.00f*P_scale) -10,
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
@@ -366,6 +364,7 @@ bool GameState::handleEvents(SDL_Event& event) {
     if(event.type == SDL_EVENT_KEY_DOWN)
     {
         if(event.key.key == SDLK_AC_BACK){
+            InputDispatcher::getInstance().setInputReleased(true);
             GameData::getInstance().setPaused(true);
             m_transitioning = true;
             Engine::Get().popOverlayState();//controls
@@ -596,9 +595,7 @@ void GameState::handlePhysicAndInput(float dt) {
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
         m_wasGrounded =true;
-        if(m_isGrounded){
-            m_particleSystem.emitJumpDust(m_player.x , m_player.y+m_player.h-40.00f);
-        }
+        m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
     }
 
     m_player.x +=m_velocityX * dt;
@@ -718,7 +715,7 @@ void GameState::setLevel(int level) {
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
     GroundShapeBuilder builder;
-    m_wallShape = builder.build(m_grounds,TILE_SIZE,SCALE);
+    m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
     //TODO : find a work around to push debug state from menustate without passing gamestate to it
     if(GameData::getInstance().isDebugEnabled())//had to push here , cant have gamestate being passed everywhere,
     {

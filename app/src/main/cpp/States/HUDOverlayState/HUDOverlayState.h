@@ -18,7 +18,6 @@ struct Heart {
     Animation animation{0,0};
     int currentFrame =animation.startIndex;
     unsigned int aniLastTime =0;
-    bool aniDone;
 };
 class HUDOverlayState:public State{
 public:

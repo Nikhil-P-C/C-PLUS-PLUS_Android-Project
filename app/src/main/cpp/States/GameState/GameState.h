@@ -109,15 +109,12 @@ private:
     SDL_Texture* m_greenSkin         = nullptr;
     SDL_Texture* m_tileset           = nullptr;
     SDL_Texture* m_backGround        = nullptr;
-    SDL_Texture* m_endTexture        = nullptr;
     TTF_Font*    m_font              = nullptr;
 
     //sprites
     static const int SPRITE_HEIGHT =24;
     static const int SPRITE_WIDTH  =24;
-    static const int TILE_HEIGHT   =16;
-    static const int TILE_WIDTH    =16;
-    SpriteCollection m_sprite;
+
     //player and platform
     bool m_isPlayerfacingRight =true;
     std::vector<Platform> m_platforms;
@@ -126,7 +123,7 @@ private:
     std::vector<Fruit> m_fruits;
     std::vector<Trap> m_traps;
 
-    SDL_FRect  m_wallCollisionRect;
+    SDL_FRect  m_wallCollisionRect{0.00f};
     FruitBuilder m_fruitBuilder;
     TrapBuilder m_trapBuilder;
     GroundShape m_wallShape;
@@ -141,7 +138,6 @@ private:
     SDL_Renderer* m_renderer = nullptr;
 
     //mechanics
-    bool m_running =true;
     bool m_isCompleted=false;
     bool m_transitioning=false;
     int m_invincibilityTimer = 5000;
@@ -155,14 +151,6 @@ private:
     float m_jumpVelocity =1000.00f;
     bool  m_isGrounded =true;
     bool  m_wasGrounded =false;
-
-    //input
-    Button m_JumpButton;
-    Button m_LeftButton;
-    Button m_RightButton;
-    Button m_CrouchButton;
-
-
 
 };
 

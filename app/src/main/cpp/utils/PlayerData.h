@@ -14,8 +14,6 @@ enum PlayerSkin{
 class PlayerDetail{
 private:
     PlayerDetail() = default;
-    PlayerDetail(const PlayerDetail&) = delete;
-    PlayerDetail operator=(const PlayerDetail&) = delete;
 public:
     PlayerSkin getPlayerSkin(){
         return m_playerSkin;
@@ -23,16 +21,16 @@ public:
     std::string& getPlayerName(){
         return m_name;
     }
-    int getScore(){
+    int getScore() const{
         return m_fruitCollectionScore;
     }
-    int getPlayerHP(){
+    int getPlayerHP() const{
         return m_hp;
     }
-    unsigned int getLastHitTime(){
+    unsigned int getLastHitTime() const{
         return m_lastHit;
     }
-    bool isInvincible(){
+    bool isInvincible() const{
         return m_isInvincible;
     }
     void setPlayerSkin(PlayerSkin skin){

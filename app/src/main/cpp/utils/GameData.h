@@ -31,6 +31,9 @@ public:
     float getSFXAudioScale()const{
         return m_sfxAudioScale;
     }
+    bool isSinglePlayer()const{
+        return m_singlePlayer;
+    }
     bool isPaused() const{
         return m_paused;
     }
@@ -81,6 +84,7 @@ private:
     int m_winHeight;
     bool m_debug=true;
     bool m_paused=false;
+    bool m_singlePlayer =true;
     float m_masterAudioScale= 1.0f;
     float m_musicAudioScale= 1.0f;
     float m_sfxAudioScale= 1.0f;

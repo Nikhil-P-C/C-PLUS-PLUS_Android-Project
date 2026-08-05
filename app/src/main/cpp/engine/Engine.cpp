@@ -87,13 +87,20 @@ void Engine::run(){
         //updating states
 
 
-        for(const auto &state : m_OverlayStates){
+        for(const auto &state : m_OverlayStates)
+        {
             state->update(deltaTime);
         }
 
-        if (!m_States.empty())
+        if (!m_States.empty()&&GameData::getInstance().isSinglePlayer())
             m_States.back()->update(deltaTime);
-
+        else
+        {
+            for(const auto &state : m_States)
+            {
+                state->update(deltaTime);
+            }
+        }
 
         unsigned int frametime = SDL_GetTicks() - currentTime;
         if(frametime < framedelay){

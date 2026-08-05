@@ -6,7 +6,7 @@ void HUDOverlayState::render(SDL_Renderer *renderer) {
     m_renderer =renderer;
     for(int i = 0;i< 5; i++){
         SDL_FRect dst = m_hearts[i].heartRect;
-        SDL_FRect src{0.00f + m_hearts[i].currentFrame * m_spriteWidth,0.0f,
+        SDL_FRect src{0.00f + (float)m_hearts[i].currentFrame * m_spriteWidth,0.0f,
                       (float)m_spriteWidth,(float)m_spriteHeight};
         SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::HUD_HEALTH_HEART),
                           &src,&dst);
@@ -78,6 +78,7 @@ void HUDOverlayState::updateAnimation() {
 }
 
 HUDOverlayState::HUDOverlayState(SDL_Renderer *renderer) {
+    m_renderer =renderer;
     m_hearts.reserve(5);
     m_hearts.emplace_back(SDL_FRect{25.00f,0.00f,75.00f,75.00f});
     m_hearts.emplace_back(SDL_FRect{95.00f,0.00f,75.00f,75.00f});
@@ -93,7 +94,7 @@ HUDOverlayState::HUDOverlayState(SDL_Renderer *renderer) {
     }
 }
 HUDOverlayState::~HUDOverlayState() {
-
+    LOGI("HUD overlay state destructor:%p",this);
 }
 
 
