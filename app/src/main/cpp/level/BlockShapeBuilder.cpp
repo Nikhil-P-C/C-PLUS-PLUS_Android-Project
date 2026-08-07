@@ -44,7 +44,6 @@ void BlockBuilder::render(SDL_Renderer *renderer) {
         if(!texture)
             continue;
         SDL_FRect dst{block.rect.x-camX,block.rect.y-camY,block.rect.w,block.rect.h};
-        SDL_RenderTexture(renderer,texture,
-                          &block.src,&dst);
+        SDL_RenderTexture(renderer,texture,&block.src,&dst);
     }
 }

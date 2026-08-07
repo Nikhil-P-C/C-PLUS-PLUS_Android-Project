@@ -462,7 +462,8 @@ void GameState::handleCollision() {
 //    }
 
     //ground
-    for(const auto& ground : m_grounds){
+    for(const auto& ground : m_grounds)
+    {
         gameMath::collisionSide groundCollisionSide=
                 gameMath::checkcollisionXY(m_player.x,m_player.y,ground.x,ground.y,
                                            m_player.h,m_player.w,ground.h*SCALE,ground.w*SCALE);
@@ -473,6 +474,19 @@ void GameState::handleCollision() {
         }
 
         if(groundCollisionSide == gameMath::collisionSide::BOTTOM){
+            m_velocityY =0.0f;
+        }
+    }
+    for(const auto& block : m_blocks)
+    {
+        gameMath::collisionSide blockCollisionSide=
+                gameMath::checkcollisionXY(m_player.x,m_player.y,block.rect.x,block.rect.y,
+                                           m_player.h,m_player.w,block.rect.h,block.rect.w);
+        if (blockCollisionSide == gameMath::collisionSide::TOP) {
+            m_isGrounded = true;
+            m_velocityY = 0.0f;
+        }
+        if(blockCollisionSide == gameMath::collisionSide::BOTTOM){
             m_velocityY =0.0f;
         }
     }
