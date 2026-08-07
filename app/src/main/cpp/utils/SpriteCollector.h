@@ -5,45 +5,43 @@
 #pragma once
 #include <array>
 #include <SDL3/SDL.h>
-enum SpriteVariant{
+enum class SpriteVariant{
+//for ground and wall
     CENTER=0,
-    TOP=1,
-    BOTTOM=2,
-    LEFT=3,
-    RIGHT=4,
-    TOP_LEFT=5,
-    TOP_RIGHT=6,
-    BOTTOM_LEFT=7,
-    BOTTOM_RIGHT=8,
-    NONE=9,
+    TOP,
+    BOTTOM,
+    LEFT,
+    RIGHT,
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+//for blocks
+    VERTICAL,
+    HORIZONTAL,
+    SINGLE,
+    BLOCK,
+    NONE,
 };
-enum SpriteType{
+enum class SpriteType{
     STONE_BRICK_WALL =0,
-    WOODEN_SHAFT_WALL =1,
-    MOSS_WALL =2,
-    GREEN_GRASS_GROUND =3,
-    ORANGE_GRASS_GROUND =4,
-    PINK_GRASS_GROUND =5,
-    BRICK_GROUND =6,
-    CLAY_BLOCK =7,
-    CLAY_BLOCK_HORIZONTAL =8,
-    CLAY_BLOCK_VERTICAL =9,
-    CLAY_BLOCK_SINGLE =10,
-    STONE_BLOCK =11,
-    STONE_BLOCK_HORIZONTAL =12,
-    STONE_BLOCK_VERTICAL =13,
-    STONE_BLOCK_SINGLE =14,
-    WAX_BLOCK =15,
-    WAX_BLOCK_HORIZONTAL =16,
-    WAX_BLOCK_VERTICAL =17,
-    WAX_BLOCK_SINGLE =18,
-    GOLD_BLOCK =19,
-    GOLD_BLOCK_HORIZONTAL =20,
-    GOLD_BLOCK_VERTICAL =21,
-    GOLD_BLOCK_SINGLE =22,
-    GOLD_PLATFORM =23,
-    WOODEN_PLATFORM =24,
-    STONE_PLATFORM =25,
+    WOODEN_SHAFT_WALL,
+    MOSS_WALL,
+
+    GREEN_GRASS_GROUND ,
+    ORANGE_GRASS_GROUND,
+    PINK_GRASS_GROUND,
+    BRICK_GROUND,
+
+    CLAY_BLOCK,
+    STONE_BLOCK,
+    WAX_BLOCK,
+    GOLD_BLOCK,
+
+    GOLD_PLATFORM,
+    WOODEN_PLATFORM,
+    STONE_PLATFORM,
+    COUNT
 };
 struct SpriteValue{
     SpriteType type;
@@ -60,6 +58,7 @@ public:
     static SDL_FRect getSrcRect(SpriteType type, SpriteVariant variant, float tileSize, float scale);
 private:
     static bool isSpriteTypeGroundAndWall(SpriteType type);
+    static bool isSpriteTypeBlock(SpriteType type);
 public:
     static constexpr SpriteValue stoneBrickWall{SpriteType::STONE_BRICK_WALL,
                                             0.0f,0.0f,48.00f,48.00f};
@@ -96,41 +95,18 @@ public:
     static constexpr SpriteValue brickGroundEdges{SpriteType::BRICK_GROUND,
                                                   336.00f,64.00f,32.00f,32.00f};
 
-    static constexpr SpriteValue horizontalClayBlock{SpriteType::CLAY_BLOCK,
-                                                     192.00f,0.00f,16.00f,48.00f};
-    static constexpr SpriteValue verticalClayBlock{SpriteType::CLAY_BLOCK,
-                                                   240.00f,0.00f,48.00f,16.00f};
-    static constexpr SpriteValue singleClayBlock{SpriteType::CLAY_BLOCK,
-                                                 192.00f,16.00f,16.00f,16.00f};
     static constexpr SpriteValue clayBlock{SpriteType::CLAY_BLOCK,
-                                           208.00f,16.00f,32.00f,32.00f};
+                                           192.00f,0.00f,64.00f,48.00f};
 
-    static constexpr SpriteValue horizontalStoneBlock{SpriteType::STONE_BLOCK,
-                                                      192.00f,64.00f,16.00f,48.00f};
-    static constexpr SpriteValue verticalStoneBlock{SpriteType::STONE_BLOCK,
-                                                    240.00f,64.00f,48.00f,16.00f};
-    static constexpr SpriteValue singleStoneBlock{SpriteType::STONE_BLOCK,
-                                                  192.00f,72.00f,16.00f,16.00f};
     static constexpr SpriteValue stoneBlock{SpriteType::STONE_BLOCK,
-                                            208.00f,72.00f,32.00f,32.00f};
+                                            192.00f,64.00f,64.00f,48.00f};
 
-    static constexpr SpriteValue horizontalWaxBlock{SpriteType::WAX_BLOCK,
-                                                    192.00f,128.00f,16.00f,48.00f};
-    static constexpr SpriteValue verticalWaxBlock{SpriteType::WAX_BLOCK,
-                                                  240.00f,128.00f,48.00f,16.00f};
-    static constexpr SpriteValue singleWaxBlock{SpriteType::WAX_BLOCK,
-                                                192.00f,128.00f,16.00f,16.00f};
     static constexpr SpriteValue waxBlock{SpriteType::WAX_BLOCK,
-                                          208.00f,128.00f,32.00f,32.00f};
+                                          192.00f,128.00f,64.00f,48.00f};
 
-    static constexpr SpriteValue horizontalGoldBlock{SpriteType::GOLD_BLOCK,
-                                                     288.00f,128.00f,16.00f,48.00f};
-    static constexpr SpriteValue verticalGoldBlock{SpriteType::GOLD_BLOCK,
-                                                   336.00f,128.00f,48.00f,16.00f};
-    static constexpr SpriteValue singleGoldBlock{SpriteType::GOLD_BLOCK,
-                                                 288.00f,128.00f,16.00f,16.00f};
+
     static constexpr SpriteValue goldBlock{SpriteType::GOLD_BLOCK,
-                                           304.00f,128.00f,32.00f,32.00f};
+                                           272.00f,128.00f,64.00f,48.00f};
 
     static constexpr SpriteValue goldPlatform{SpriteType::GOLD_PLATFORM,
                                               272.00f,0.0f,16.00f,48.00f};
@@ -138,7 +114,7 @@ public:
                                                 272.00f,16.00f,16.00f,48.00f};
     static constexpr SpriteValue stonePlatform{SpriteType::STONE_PLATFORM,
                                                272.00f,32.00f,16.00f,48.00f};
-    static constexpr std::array<SpriteValue,26> spriteValueTable{
+    static constexpr std::array<SpriteValue,(unsigned int)SpriteType::COUNT> spriteValueTable{
             stoneBrickWall,
             woodenShaftWall,
             mossWall,
@@ -149,21 +125,10 @@ public:
             brickGround,
 
             clayBlock,
-            horizontalClayBlock,
-            verticalClayBlock,
-            singleClayBlock,
             stoneBlock,
-            horizontalStoneBlock,
-            verticalStoneBlock,
-            singleStoneBlock,
             waxBlock,
-            horizontalWaxBlock,
-            verticalWaxBlock,
-            singleWaxBlock,
             goldBlock,
-            horizontalGoldBlock,
-            verticalGoldBlock,
-            singleGoldBlock,
+
             goldPlatform,
             woodenPlatform,
             stonePlatform

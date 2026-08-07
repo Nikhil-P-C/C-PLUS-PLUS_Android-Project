@@ -35,6 +35,21 @@ SDL_FRect SpriteCollection::getSrcRect(SpriteType type, SpriteVariant variant,fl
             src = {value.x+(tileSize*2) , value.y+(tileSize*2), tileSize, tileSize};
         }
     }
+    if(isSpriteTypeBlock(type))
+    {
+        if(variant == SpriteVariant::SINGLE){
+            src = {value.x,value.y+tileSize,tileSize,tileSize};
+        }
+        if(variant == SpriteVariant::VERTICAL){
+            src = {value.x+(tileSize*3),value.y,tileSize,tileSize*3};
+        }
+        if(variant == SpriteVariant::HORIZONTAL){
+            src = {value.x,value.y,tileSize*3,tileSize};
+        }
+        if(variant == SpriteVariant::BLOCK){
+            src = {value.x+tileSize,value.y+tileSize,tileSize*2,tileSize*2};
+        }
+    }
     return src;
 }
 
@@ -50,5 +65,11 @@ bool SpriteCollection::isSpriteTypeGroundAndWall(SpriteType type) {
 
     return false;
 }
-
+bool SpriteCollection::isSpriteTypeBlock(SpriteType type){
+    if(type == SpriteType::CLAY_BLOCK) return true;
+    if(type == SpriteType::STONE_BLOCK) return true;
+    if(type == SpriteType::WAX_BLOCK) return true;
+    if(type == SpriteType::GOLD_BLOCK) return true;
+    return false;
+}
 

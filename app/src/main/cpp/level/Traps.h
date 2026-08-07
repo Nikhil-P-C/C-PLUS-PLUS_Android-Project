@@ -89,51 +89,54 @@ public:
 
     void update(float dt);
 
-    constexpr bool trapHasPath(TrapType type){
-        return type == TrapType::ROCK_HEAD || type == TrapType::SPIKE_HEAD ||
-        type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN||
-        type == TrapType::SAW||type ==TrapType::SPIKE_BALL;
-    }
-
-    constexpr bool trapHasHit(TrapType type){
-        return type == TrapType::FIRE || type ==TrapType::ROCK_HEAD|| type ==TrapType::SPIKE_HEAD ||
-        type == TrapType::SAW|| type ==TrapType::SPIKE_BALL|| type == TrapType::SPIKES;
-    }
-
-    constexpr bool trapHasHazard(TrapType type,TrapStatus status){
-        return type ==TrapType::SPIKE_HEAD||type ==TrapType::SPIKES||
-        (type == TrapType::FIRE&& status == TrapStatus::ON)||
-        type == TrapType::SPIKE_BALL||type == TrapType::SAW||
-                (type == TrapType::ROCK_HEAD && status == TrapStatus::HIT);
-    }
     void renderChain(SDL_Renderer *renderer, const Trap &trap, int camX, int camY);
 
-    bool isSolid(int trapIndex);
+    void triggerFall(int trapIndex);
+
+    void updatePath(float dt);
+
+    void resetPlatforms(int trapIndex);
 
     SDL_FRect getTrapCollisionBox(const Trap& trap);
 
-    void triggerFall(int trapIndex);
+    SDL_FRect getHazardHitBox(const Trap& trap);
+
+    SDL_FPoint getTrapDelta(int trapIndex);
+
+    float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
+
+    bool isSolid(int trapIndex);
+
+    bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
 
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,
                      TrapType& outType,gameMath::collisionSide& outSide);
 
-    SDL_FRect getHazardHitBox(const Trap& trap);
-
-    float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
-
     bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,
                                float playerW,float playerH,ParticleSystem& particleSystem);
 
-    bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
+    constexpr bool trapHasPath(TrapType type){
+        return type == TrapType::ROCK_HEAD || type == TrapType::SPIKE_HEAD ||
+               type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN||
+               type == TrapType::SAW||type ==TrapType::SPIKE_BALL;
+    }
+
+    constexpr bool trapHasHit(TrapType type){
+        return type == TrapType::FIRE || type ==TrapType::ROCK_HEAD|| type ==TrapType::SPIKE_HEAD ||
+               type == TrapType::SAW|| type ==TrapType::SPIKE_BALL|| type == TrapType::SPIKES;
+    }
+
+    constexpr bool trapHasHazard(TrapType type,TrapStatus status){
+        return type ==TrapType::SPIKE_HEAD||type ==TrapType::SPIKES||
+               (type == TrapType::FIRE&& status == TrapStatus::ON)||
+               type == TrapType::SPIKE_BALL||type == TrapType::SAW||
+               (type == TrapType::ROCK_HEAD && status == TrapStatus::HIT);
+    }
 
     gameMath::collisionSide resolveTrapCollision(int trapIndex,float& playerX, float& playerY,
                                                  float playerW, float playerH,float previousY,float velocityY);
 
-    void updatePath(float dt);
 
-    SDL_FPoint getTrapDelta(int trapIndex);
-
-    void resetPlatforms(int trapIndex);
 
 private:
     std::vector<Trap> m_traps;

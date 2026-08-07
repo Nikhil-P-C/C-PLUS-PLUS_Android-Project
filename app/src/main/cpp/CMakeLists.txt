@@ -85,15 +85,19 @@ add_library(main SHARED
         States/MenuState/OptionMenuState/AudioMenuState.cpp
         States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
+
         engine/Engine.cpp
         engine/AssetManager.cpp
+
         utils/Camera.cpp
         utils/gameMath.cpp
         utils/SpriteCollector.cpp
+
         level/GroundShapeBuilder.cpp
+        level/BlockShapeBuilder.cpp
         level/Fruits.cpp
         level/Traps.cpp
-
+        level/LevelLoader/LevelLoader.cpp
 )
 
 target_compile_definitions(main PRIVATE SDL_DISABLE_HIDAPI)

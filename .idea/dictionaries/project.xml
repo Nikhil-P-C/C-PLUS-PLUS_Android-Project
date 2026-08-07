@@ -27,6 +27,7 @@
       <w>jumpforce</w>
       <w>lasttime</w>
       <w>maxfruit</w>
+      <w>menustate</w>
       <w>menutile</w>
       <w>movingleft</w>
       <w>movingright</w>
@@ -37,6 +38,7 @@
       <w>optionstate</w>
       <w>playerfacing</w>
       <w>playersurface</w>
+      <w>sdlcall</w>
       <w>sdlttf</w>
       <w>tilesurface</w>
     </words>

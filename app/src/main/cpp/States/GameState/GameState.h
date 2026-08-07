@@ -16,6 +16,7 @@
 #include "ParticleSystem.h"
 #include "level/Fruits.h"
 #include "level/Traps.h"
+#include "level/BlockShapeBuilder.h"
 
 #define LOG_TAG "GameState"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -122,11 +123,13 @@ private:
     std::vector<LevelGround> m_levelWalls;
     std::vector<Fruit> m_fruits;
     std::vector<Trap> m_traps;
+    std::vector<Block> m_blocks;
 
     SDL_FRect  m_wallCollisionRect{0.00f};
     FruitBuilder m_fruitBuilder;
     TrapBuilder m_trapBuilder;
     GroundShape m_wallShape;
+    BlockBuilder m_blockBuilder;
     ParticleSystem m_particleSystem;
     float m_walkTimer=0.0f;
 

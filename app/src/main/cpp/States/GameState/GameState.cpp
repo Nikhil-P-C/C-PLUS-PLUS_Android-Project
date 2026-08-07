@@ -229,7 +229,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 //
 //    }
     m_particleSystem.render(m_renderer);
-    m_trapBuilder.render(renderer);
+    m_trapBuilder.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
 
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-(float)camX,
@@ -267,6 +267,9 @@ void GameState::render(SDL_Renderer* renderer)  {
                                                            fruitCounter.length(),{255,255,255,255});
     SDL_Texture* fruitCounterTexture= SDL_CreateTextureFromSurface(renderer,fruitCounterSurface);
     SDL_FRect fruitCounterDst{1420.00f,0.00f,160.00f,100.00f};
+
+
+    m_blockBuilder.render(m_renderer);
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);
@@ -457,17 +460,12 @@ void GameState::handleCollision() {
 //        }
 //
 //    }
-    //ground
 
+    //ground
     for(const auto& ground : m_grounds){
-        gameMath::collisionSide groundCollisionSide = gameMath::checkcollisionXY(m_player.x,
-                                                                               m_player.y,
-                                                                               ground.x,
-                                                                               ground.y,
-                                                                               m_player.h,
-                                                                               m_player.w,
-                                                                               ground.h*SCALE,
-                                                                               ground.w*SCALE);
+        gameMath::collisionSide groundCollisionSide=
+                gameMath::checkcollisionXY(m_player.x,m_player.y,ground.x,ground.y,
+                                           m_player.h,m_player.w,ground.h*SCALE,ground.w*SCALE);
 
         if (groundCollisionSide == gameMath::collisionSide::TOP) {
             m_isGrounded = true;
@@ -604,6 +602,8 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
+
+
     m_levelWalls.emplace_back(0,0,3200,768,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
     m_levelWalls.emplace_back(0,768,3200,768,SpriteType::MOSS_WALL,ColliderType::SOLID);
     m_wallCollisionRect={0.00f,0.00f,3200.00f,1536};
@@ -711,12 +711,22 @@ void GameState::setLevel(int level) {
                          250.00f,PathAxis::CIRCLE,PathShape::ARC,ColliderType::SOLID,250.00f
                          ,true);
 
+    m_blocks.emplace_back(1000.00f, 1200.00f, 16 * SCALE, 48 * SCALE,
+                          BlockVariant::VERTICAL,BlockType::GOLD);
+    m_blocks.emplace_back(200.00f, 1200.00f, 48 * SCALE, 16 * SCALE,
+                          BlockVariant::HORIZONTAL,BlockType::WAX);
+    m_blocks.emplace_back(500.00f, 800.00f, 16 * SCALE, 16 * SCALE,
+                          BlockVariant::SINGLE,BlockType::STONE);
+    m_blocks.emplace_back(1000.00f, 800.00f, 32 * SCALE, 32 * SCALE,
+                          BlockVariant::BLOCK,BlockType::CLAY);
 
+
+    m_blockBuilder.init(m_blocks);
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
-    //TODO : find a work around to push debug state from menustate without passing gamestate to it
+    //TODO : find a work around to push debug state from menustate without passing gamestate to menustate
     if(GameData::getInstance().isDebugEnabled())//had to push here , cant have gamestate being passed everywhere,
     {
         Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,this));

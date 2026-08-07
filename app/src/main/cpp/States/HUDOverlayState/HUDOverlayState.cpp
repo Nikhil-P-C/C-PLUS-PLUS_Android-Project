@@ -14,8 +14,6 @@ void HUDOverlayState::render(SDL_Renderer *renderer) {
 }
 
 void HUDOverlayState::update(float dt) {
-    LOGI("prev=%d current=%d lastHeart=%d", m_prevHealth, PlayerDetail::getInstance().getPlayerHP(),
-         m_lastHeart);
     updateAnimation();
     if (PlayerDetail::getInstance().getPlayerHP() == 0) {
         m_lastHeart = 5;
