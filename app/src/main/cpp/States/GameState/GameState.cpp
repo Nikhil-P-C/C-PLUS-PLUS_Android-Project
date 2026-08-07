@@ -500,6 +500,7 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
 
 
 }
+
 void GameState::updateAnimation() {
     if(SDL_GetTicks() < m_hurtAnimEndTime) m_playerAction = PlayerAction::HURT;
     switch(m_playerAction){
@@ -721,7 +722,7 @@ void GameState::setLevel(int level) {
                           BlockVariant::BLOCK,BlockType::CLAY);
 
 
-    m_blockBuilder.init(m_blocks);
+    m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
     GroundShapeBuilder builder;

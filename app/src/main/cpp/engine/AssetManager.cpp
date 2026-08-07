@@ -30,6 +30,7 @@ void AssetManager::loadTexture(TextureType type, const std::string &filepath)
     if(type >=TextureType::COUNT)
     {
         LOGI("out of bound");
+        return;
     }
     SDL_IOStream* ioStream =SDL_IOFromFile(filepath.c_str(),"rb");
     SDL_Surface* surface = IMG_Load_IO(ioStream, false);

@@ -63,14 +63,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_mixer EXCLUDE_FROM_ALL)
 # --- Your main native library ---
 add_library(main SHARED
         main.cpp
-#        game.cpp
-#        input.cpp
-#        gameUtils.cpp
-#        gameUtils.h
-#        input.h
-#        Player.h
-#        platform.h
-#        camera.h
         States/inputOverlayState/JoystickOverlay.cpp
         States/inputOverlayState/ButtonOverlay.cpp
         States/inputOverlayState/SepJoysticknButton.cpp

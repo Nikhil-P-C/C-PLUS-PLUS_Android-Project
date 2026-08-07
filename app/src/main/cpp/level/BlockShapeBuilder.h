@@ -35,7 +35,7 @@ class BlockBuilder{
 public:
     void render(SDL_Renderer* renderer);
 
-    void init(std::vector<Block>& blocks);
+    void init(std::vector<Block>& blocks,int tileSize,float scale);
 
 
 private:

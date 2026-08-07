@@ -169,6 +169,7 @@ void TrapBuilder::update(float dt)
 
     }
 }
+
 void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX, int camY) {
     TextureType chainTex = getChainTexture(trap.type);
     if(chainTex == TextureType::COUNT) return;
@@ -248,6 +249,7 @@ bool TrapBuilder::isSolid(int trapIndex) {
     return trap.type == TrapType::MOVING_PLATFORM_GREY||trap.type == TrapType::MOVING_PLATFORM_BROWN||(trap.type == TrapType::ROCK_HEAD && trap.status != TrapStatus::HIT)||
             trap.type==TrapType::FIRE ||trap.type == TrapType::FALLING_PLATFORM;
 }
+
 gameMath::collisionSide TrapBuilder::resolveTrapCollision(int trapIndex,float &playerX, float& playerY,
                                                           float playerW, float playerH,float previousY,float velocityY){
     auto& trap = m_traps[trapIndex];
@@ -623,6 +625,7 @@ const TextureType getChainTexture(TrapType type) {
         default: return TextureType::COUNT; // no chain for anything else
     }
 }
+
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status){
     static std::unordered_map<uint32_t ,TrapFrameInfo> table{
             {trapKey(TrapType::FALLING_PLATFORM,TrapStatus::OFF),
