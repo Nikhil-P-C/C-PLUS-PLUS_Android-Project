@@ -9,7 +9,6 @@
 #include <SDL3_image/SDL_image.h>
 
 #include "State/State.h"
-#include "Player.h"
 #include "engine/Engine.h"
 #include "utils/utils.h"
 #include "level/GroundShapeBuilder.h"

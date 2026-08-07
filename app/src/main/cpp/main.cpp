@@ -2,7 +2,6 @@
 #include <android/log.h>
 #include <enet/enet.h>
 #include <cmath>
-#include "game.h"
 #include "engine/Engine.h"
 #define LOG_TAG "MYSDLAPP"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
