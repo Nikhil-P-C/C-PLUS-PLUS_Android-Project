@@ -71,6 +71,7 @@ void Engine::run(){
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 
+        SDL_SetRenderDrawColor(m_renderer,33,31,48,255);
 
         SDL_RenderPresent(m_renderer);
 

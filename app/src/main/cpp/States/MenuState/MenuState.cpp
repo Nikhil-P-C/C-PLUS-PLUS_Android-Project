@@ -106,6 +106,7 @@ MenuState::~MenuState() {
 }
 
 void MenuState::render(SDL_Renderer* renderer) {
+    m_renderer=renderer;
     SDL_FRect backgroundDst{0, 0, 1600, 720};
     SDL_RenderTexture(renderer, m_background, nullptr, &backgroundDst);
     //button pixels 594 x 282
@@ -154,9 +155,23 @@ void MenuState::update(float dt) {
 }
 
 bool MenuState::handleEvents(SDL_Event &event) {
-    if(m_transitioning)return true;
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-        float touchX =event.tfinger.x * 1600, touchY =event.tfinger.y*720;
+    if(m_transitioning)
+        return true;
+    if(event.type ==SDL_EVENT_KEY_DOWN){
+        if(event.key.key == SDLK_ESCAPE)
+        {
+             Engine::Get().exitEngine();
+                return true;
+        }
+    }
+    if(event.type == SDL_EVENT_FINGER_DOWN|| event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            touchX =event.button.x , touchY =event.button.y;
+        }
+            
         if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w){
             if(touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
                 m_transitioning =true;

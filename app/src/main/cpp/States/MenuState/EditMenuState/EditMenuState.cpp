@@ -121,11 +121,23 @@ void EditMenuState::update(float dt)
 
 bool EditMenuState::handleEvents(SDL_Event &event)
 {
-
-    if(event.type == SDL_EVENT_FINGER_DOWN)
+    if(event.type ==SDL_EVENT_KEY_DOWN){
+        if(event.key.key == SDLK_ESCAPE)
+        {
+            SDL_StopTextInput(Engine::Get().getWindow());
+            Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+            return true;
+        }
+        
+    }
+    if(event.type == SDL_EVENT_FINGER_DOWN||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
         float TouchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            TouchX =event.button.x , TouchY =event.button.y;
+        }
         if(TouchX >= m_backButton.x && TouchX <= m_backButton.x + m_backButton.w &&
             TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h)
         {

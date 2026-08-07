@@ -36,9 +36,27 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
         return true;
     }
 
-    if(event.type == SDL_EVENT_FINGER_DOWN){
+    if(event.type == SDL_EVENT_FINGER_DOWN||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
         float TouchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.type == SDL_EVENT_FINGER_DOWN|| event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+                SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+                TouchX =event.button.x , TouchY =event.button.y;
+            }
+        }
+        if(event.type ==SDL_EVENT_KEY_DOWN){
+            if(event.key.key == SDLK_ESCAPE)
+            {
+                int count = (int)Engine::Get().getOverlayStateCount();
+                while(count){
+                    count--;
+                    Engine::Get().popOverlayState();
+                }
+                Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+                return true;
+            }
+        }
         if(TouchX >= m_backButton.x && TouchX <= m_backButton.x + m_backButton.w &&
             TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h){
             int count = (int)Engine::Get().getOverlayStateCount();
@@ -47,6 +65,7 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
                 Engine::Get().popOverlayState();
             }
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+            return true;
         }
         if(TouchX >= m_controlButton.x && TouchX <= m_controlButton.x + m_controlButton.w &&
             TouchY >= m_controlButton.y && TouchY <= m_controlButton.y + m_controlButton.h){
@@ -62,7 +81,7 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
             Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));
             return true;
         }
-        return true;
+        
     }
     return false;
 

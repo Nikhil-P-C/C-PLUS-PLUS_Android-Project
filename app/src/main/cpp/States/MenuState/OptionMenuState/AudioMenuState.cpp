@@ -91,11 +91,14 @@ void AudioMenuState::update(float dt) {
 bool AudioMenuState::handleEvents(SDL_Event &event) {
     float startTouchX=-0.0f;
     float startTouchY=0.0f;
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-
+    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
         float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-//        LOGI("touch x:%f y:%f",touchX,touchY);
+        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            touchX =event.button.x , touchY =event.button.y;
+        }
+            
         if(touchX >= m_masterSlidebar.x && touchX <= m_masterSlidebar.x + m_masterSlidebar.w &&
             touchY >= m_masterSlidebar.y && touchY <= m_masterSlidebar.y + m_masterSlidebar.h){
             m_scaleType =ScaleType::MASTER;
@@ -124,10 +127,14 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
             startTouchY=0.0f;
         }
     }
-    if(event.type == SDL_EVENT_FINGER_MOTION && m_sliderFingerID == event.tfinger.fingerID){
+    if((event.type == SDL_EVENT_FINGER_MOTION && m_sliderFingerID == event.tfinger.fingerID)||
+    (event.type == SDL_EVENT_MOUSE_MOTION &&event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)){
         float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-
+        if(event.type == SDL_EVENT_MOUSE_MOTION){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            touchX =event.motion.x , touchY =event.motion.y;
+        }
         float diffX = touchX - startTouchX;
         float diffY = touchY - startTouchY;
         if(diffX > 0){

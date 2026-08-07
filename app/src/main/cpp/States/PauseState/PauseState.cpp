@@ -1,7 +1,6 @@
 //
 // Created by LENOVO on 01-05-2026.
 //
-#include <android/log.h>
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_image/SDL_image.h>
@@ -83,8 +82,14 @@ bool PauseState::shouldClose(float x ,float y) const{
 }
 bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-        if (shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)) {
+    if(event.type == SDL_EVENT_FINGER_DOWN|| event.type == SDL_EVENT_KEY_DOWN ||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            touchX =event.button.x , touchY =event.button.y;
+        }
+        if (shouldClose(touchX, touchY)|| event.key.key ==SDLK_ESCAPE) {
             PlayerDetail::getInstance().setScore(0);
             PlayerDetail::getInstance().setPlayerHP(5);
             GameData::getInstance().setPaused(false);
@@ -96,8 +101,15 @@ bool PauseState::handleEvents(SDL_Event &event) {
             return true;
         }
     }
-    if(event.type == SDL_EVENT_FINGER_DOWN &&!shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)){
-        GameData::getInstance().setPaused(false);
+    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_KEY_DOWN||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            touchX =event.button.x , touchY =event.button.y;
+        }
+        if(!shouldClose(touchX,touchY)|| event.key.key != SDLK_ESCAPE)
+        {GameData::getInstance().setPaused(false);
         m_transitioning =true;
         Engine::Get().popState();//remove pause state
         Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
@@ -110,7 +122,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
         if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
             Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
 
-        return true;
+        return true;}
     }
     if(event.type == SDL_EVENT_KEY_DOWN){
         if(event.key.key == SDLK_AC_BACK){

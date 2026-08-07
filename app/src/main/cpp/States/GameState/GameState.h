@@ -4,7 +4,6 @@
 
 #pragma once
 #include <SDL3/SDL.h>
-#include <android/log.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_image/SDL_image.h>
 
@@ -18,8 +17,8 @@
 #include "level/BlockShapeBuilder.h"
 
 #define LOG_TAG "GameState"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGI(...)
+#define LOGE(...)
 
 const float SCALE = 4;
 const int TILE_SIZE =16;

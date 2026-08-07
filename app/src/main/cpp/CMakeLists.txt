@@ -3,15 +3,10 @@ project(MyApp LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+if(ANDROID)
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+endif()
 
-
-# --- Android build hints ---
-set(ANDROID TRUE CACHE BOOL "Building for Android" FORCE)
-set(SDL_USE_ANDROID_TOOLCHAIN TRUE CACHE BOOL "" FORCE)
-# --- Enable Android platform in SDL ---
-set(SDL_SYSTEM_ANDROID ON CACHE BOOL "" FORCE)
-set(SDL_PLATFORM "android" CACHE STRING "SDL platform" FORCE)
 
 # --- Disable host-only SDL3 features ---
 set(SDL_HIDAPI OFF CACHE BOOL "Disable HIDAPI" FORCE)
@@ -23,9 +18,7 @@ set(SDL_AVX512F OFF CACHE BOOL "Disable AVX512F" FORCE)
 set(SDL_TEST OFF CACHE BOOL "Disable SDL test" FORCE)
 
 # --- SDL build type ---
-set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libs" FORCE)
-set(SDL_STATIC OFF CACHE BOOL "Disable static SDL" FORCE)
-set(SDL_SHARED ON CACHE BOOL "Enable shared SDL" FORCE)
+
 
 # --- Add SDL3 ---
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL3 EXCLUDE_FROM_ALL)
@@ -61,7 +54,7 @@ set(BUILD_TESTING OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_mixer EXCLUDE_FROM_ALL)
 
 # --- Your main native library ---
-add_library(main SHARED
+add_executable(main 
         main.cpp
         States/inputOverlayState/JoystickOverlay.cpp
         States/inputOverlayState/ButtonOverlay.cpp
@@ -116,12 +109,9 @@ target_include_directories(main PRIVATE
 
 # --- Link libraries ---
 target_link_libraries(main
-
         SDL3_mixer::SDL3_mixer
         SDL3_ttf::SDL3_ttf
         SDL3_image::SDL3_image
         SDL3::SDL3
         enet
-        android
-        log
 )

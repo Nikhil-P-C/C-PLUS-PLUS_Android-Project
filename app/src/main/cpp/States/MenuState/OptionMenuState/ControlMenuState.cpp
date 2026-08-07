@@ -87,9 +87,13 @@ void ControlMenuState::update(float dt) {
 
 bool ControlMenuState::handleEvents(SDL_Event &event) {
     float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-    float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-
-    if(event.type == SDL_EVENT_FINGER_DOWN){
+    float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();       
+    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+        
+        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
+            touchX =event.button.x , touchY =event.button.y;
+        }
         if(touchX >= m_joystickButton.x && touchX <= m_joystickButton.x + m_joystickButton.w &&
             touchY >= m_joystickButton.y && touchY <= m_joystickButton.y + m_joystickButton.h){
             m_controlType = ControlType::JOYSTICK;

@@ -30,12 +30,13 @@ void TitleScreenState::update(float dt) {
 }
 bool TitleScreenState::handleEvents(SDL_Event &event){
 
-    if(event.type == SDL_EVENT_FINGER_DOWN){
+    if(event.type == SDL_EVENT_FINGER_DOWN||event.type == SDL_EVENT_KEY_DOWN||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
 
         Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
         return true;
 
     }
+   
     return false;
 }
 TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
