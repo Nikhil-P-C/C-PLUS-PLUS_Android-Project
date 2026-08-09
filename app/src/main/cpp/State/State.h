@@ -10,7 +10,7 @@ public:
     State() =default;
     virtual void render(SDL_Renderer* renderer){};
     virtual void update(float dt){};
-    virtual bool handleEvents(SDL_Event& event){};
+    virtual bool handleEvents(SDL_Event& event){return false;};
     virtual ~State() =default;
 
 };

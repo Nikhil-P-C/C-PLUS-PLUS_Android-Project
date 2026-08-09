@@ -1,7 +1,6 @@
 //
 // Created by LENOVO on 01-05-2026.
 //
-#include <android/log.h>
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_image/SDL_image.h>
@@ -83,8 +82,12 @@ bool PauseState::shouldClose(float x ,float y) const{
 }
 bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-        if (shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)) {
+
+    if(InputUtils::IsPointerDown(event)){
+        float x, y;
+        InputUtils::GetPointerPosition(event, m_renderer, x, y);
+
+        if(shouldClose(x, y)){
             PlayerDetail::getInstance().setScore(0);
             PlayerDetail::getInstance().setPlayerHP(5);
             GameData::getInstance().setPaused(false);
@@ -95,8 +98,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
             return true;
         }
-    }
-    if(event.type == SDL_EVENT_FINGER_DOWN &&!shouldClose(event.tfinger.x * 1600, event.tfinger.y * 720)){
+
         GameData::getInstance().setPaused(false);
         m_transitioning =true;
         Engine::Get().popState();//remove pause state
@@ -112,10 +114,20 @@ bool PauseState::handleEvents(SDL_Event &event) {
 
         return true;
     }
-    if(event.type == SDL_EVENT_KEY_DOWN){
-        if(event.key.key == SDLK_AC_BACK){
-            return true;
-        }
+    if(InputUtils::IsBackKey(event)){
+        GameData::getInstance().setPaused(false);
+        m_transitioning =true;
+        Engine::Get().popState();
+        Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
+        if(GameData::getInstance().isDebugEnabled())
+            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
+        if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
+            Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)
+            Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
+            Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
+        return true;
     }
 
     return false;

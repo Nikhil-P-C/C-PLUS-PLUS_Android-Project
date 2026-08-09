@@ -20,7 +20,7 @@
 
 #include <cstdio>
 
-#define LOGI(...) std::printf("[INFO] " __VA_ARGS__ "\n")
-#define LOGE(...) std::printf("[ERROR] " __VA_ARGS__ "\n")
+#define LOGI(...) std::printf("[INFO] " __VA_ARGS__ ,"\n")
+#define LOGE(...) std::printf("[ERROR] " __VA_ARGS__ ,"\n")
 
 #endif

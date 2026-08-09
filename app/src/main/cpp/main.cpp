@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
-#include <android/log.h>
+#include <SDL3/SDL_main.h>
 #include <enet/enet.h>
+#include "utils/utils.h"
 #include <cmath>
 #include "engine/Engine.h"
 #define LOG_TAG "MYSDLAPP"
