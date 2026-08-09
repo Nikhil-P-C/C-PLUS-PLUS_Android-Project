@@ -364,20 +364,17 @@ void GameState::update(float dt){
 
 bool GameState::handleEvents(SDL_Event& event) {
 //    if (m_transitioning)return true;
-    if(event.type == SDL_EVENT_KEY_DOWN)
-    {
-        if(event.key.key == SDLK_AC_BACK||event.key.key ==SDLK_ESCAPE){
-            InputDispatcher::getInstance().setInputReleased(true);
-            GameData::getInstance().setPaused(true);
-            m_transitioning = true;
-            Engine::Get().popOverlayState();//controls
-            Engine::Get().popOverlayState();//HUD
-            if(GameData::getInstance().isDebugEnabled())
-                Engine::Get().popOverlayState();
-            Engine::Get().pushState(std::make_unique<PauseState>(m_renderer,this));
-            return true;
-        }
 
+    if(InputUtils::IsBackKey(event)) {
+        InputDispatcher::getInstance().setInputReleased(true);
+        GameData::getInstance().setPaused(true);
+        m_transitioning = true;
+        Engine::Get().popOverlayState();//controls
+        Engine::Get().popOverlayState();//HUD
+        if (GameData::getInstance().isDebugEnabled())
+            Engine::Get().popOverlayState();
+        Engine::Get().pushState(std::make_unique<PauseState>(m_renderer, this));
+        return true;
     }
 
     return false;

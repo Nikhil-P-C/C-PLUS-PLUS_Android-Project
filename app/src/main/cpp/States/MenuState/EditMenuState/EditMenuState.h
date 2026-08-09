@@ -8,8 +8,8 @@
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #define LOG_TAG "EditMenuState"
-#define LOGI(...) 
-#define LOGE(...)
+
+
 class EditMenuState :public State{
 public:
     EditMenuState(SDL_Renderer* renderer);

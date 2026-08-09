@@ -1,17 +1,16 @@
 //
 // Created by LENOVO on 17-04-2026.
 //
-#pragma once
 
+#pragma once
+#include "utils/utils.h"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "State/State.h"
 #include "engine/Engine.h"
 
-
 #define LOG_TAG "TitleScreenState"
-#define LOGI(...) 
-#define LOGE(...) 
+
 class TitleScreenState : public State{
 public:
 

@@ -4,6 +4,7 @@
 
 #pragma once
 #include <SDL3/SDL.h>
+
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_image/SDL_image.h>
 
@@ -17,8 +18,6 @@
 #include "level/BlockShapeBuilder.h"
 
 #define LOG_TAG "GameState"
-#define LOGI(...)
-#define LOGE(...)
 
 const float SCALE = 4;
 const int TILE_SIZE =16;

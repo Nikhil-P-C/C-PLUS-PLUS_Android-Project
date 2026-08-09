@@ -4,14 +4,13 @@
 
 #include "State/State.h"
 #include "AssetManager.h"
+#include "utils/utils.h"
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3/SDL.h>
 #include <vector>
 #include <memory>
 
 #define LOG_TAG "Engine"
-#define LOGI(...)
-#define LOGE(...)
 #pragma once//MY_APP_ENGINE_H
 enum class commandType{
     PUSH,

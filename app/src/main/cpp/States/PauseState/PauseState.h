@@ -3,13 +3,13 @@
 //
 
 #pragma once
+#include "utils/utils.h"
 #include "SDL3/SDL.h"
 #include "State/State.h"
 #include "States/GameState/GameState.h"
 
 #define LOG_TAG "PauseState"
-#define LOGI(...)
-#define LOGE(...) 
+
 class PauseState : public State{
 public:
     PauseState(SDL_Renderer* renderer, GameState* gameState);

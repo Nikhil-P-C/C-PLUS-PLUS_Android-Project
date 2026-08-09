@@ -7,8 +7,7 @@
 #include "States/GameState/GameState.h"
 
 #define LOG_TAG "DebugState"
-#define LOGI(...) 
-#define LOGE(...)
+
 class DebugState : public State{
 public:
     DebugState(SDL_Renderer* renderer, GameState *gameState);

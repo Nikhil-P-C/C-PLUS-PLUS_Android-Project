@@ -5,8 +5,6 @@
 #include <vector>
 #include "utils/utils.h"
 #define LOG_TAG "GroundShapeBuilder"
-#define LOGI(...)
-#define LOGE(...)
 
 struct LevelGround{
     float x;

@@ -34,6 +34,8 @@ private:
     Button m_sfxSlidebar{930.00f, m_masterSlidebar.y+(150.00f+20.00f)*2, 450.00f, 25.00f};
 
     SDL_FingerID m_sliderFingerID =0;
+    bool m_isMouseDrag =false;
+    bool m_dragActive =false;
 
     SDL_IOStream* m_fontfile       = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
 

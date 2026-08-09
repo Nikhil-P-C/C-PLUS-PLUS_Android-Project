@@ -3,14 +3,14 @@
 //
 #pragma once
 #include <SDL3/SDL.h>
+#include "utils/utils.h"
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <array>
 #include <string>
 
 #define LOG_TAG "AssetManager"
-#define LOGI(...)
-#define LOGE(...)
+
 enum class TextureType{
     YELLOW_SKIN=0,
     BLUE_SKIN,

@@ -4,8 +4,6 @@
 #include <SDL3/SDL.h>
 #pragma once
 #define LOG_TAG "State"
-#define LOGI(...) 
-#define LOGE(...) 
 
 class State{
 public:

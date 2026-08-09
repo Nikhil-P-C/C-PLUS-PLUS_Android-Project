@@ -82,14 +82,12 @@ bool PauseState::shouldClose(float x ,float y) const{
 }
 bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
-    if(event.type == SDL_EVENT_FINGER_DOWN|| event.type == SDL_EVENT_KEY_DOWN ||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
-            touchX =event.button.x , touchY =event.button.y;
-        }
-        if (shouldClose(touchX, touchY)|| event.key.key ==SDLK_ESCAPE) {
+
+    if(InputUtils::IsPointerDown(event)){
+        float x, y;
+        InputUtils::GetPointerPosition(event, m_renderer, x, y);
+
+        if(shouldClose(x, y)){
             PlayerDetail::getInstance().setScore(0);
             PlayerDetail::getInstance().setPlayerHP(5);
             GameData::getInstance().setPaused(false);
@@ -100,16 +98,8 @@ bool PauseState::handleEvents(SDL_Event &event) {
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
             return true;
         }
-    }
-    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_KEY_DOWN||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-        if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-            SDL_ConvertEventToRenderCoordinates(m_renderer, &event);
-            touchX =event.button.x , touchY =event.button.y;
-        }
-        if(!shouldClose(touchX,touchY)|| event.key.key != SDLK_ESCAPE)
-        {GameData::getInstance().setPaused(false);
+
+        GameData::getInstance().setPaused(false);
         m_transitioning =true;
         Engine::Get().popState();//remove pause state
         Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
@@ -122,12 +112,22 @@ bool PauseState::handleEvents(SDL_Event &event) {
         if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
             Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
 
-        return true;}
+        return true;
     }
-    if(event.type == SDL_EVENT_KEY_DOWN){
-        if(event.key.key == SDLK_AC_BACK){
-            return true;
-        }
+    if(InputUtils::IsBackKey(event)){
+        GameData::getInstance().setPaused(false);
+        m_transitioning =true;
+        Engine::Get().popState();
+        Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
+        if(GameData::getInstance().isDebugEnabled())
+            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
+        if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
+            Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)
+            Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
+            Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
+        return true;
     }
 
     return false;

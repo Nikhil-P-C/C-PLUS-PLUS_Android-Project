@@ -29,19 +29,22 @@ void TitleScreenState::update(float dt) {
     }
 }
 bool TitleScreenState::handleEvents(SDL_Event &event){
+    if(InputUtils::IsPointerDown(event)){
+        Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+        return true;
 
-    if(event.type == SDL_EVENT_FINGER_DOWN||event.type == SDL_EVENT_KEY_DOWN||event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+    }
+
+    if(event.type == SDL_EVENT_KEY_DOWN){
 
         Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
         return true;
 
     }
-   
     return false;
 }
 TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
     m_renderer = renderer;
-
 
     m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI_ANIMATED);
 

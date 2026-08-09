@@ -5,6 +5,12 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include "State/state.h"
 #include "utils/utils.h"
+enum class MenuButton{
+    PLAY =0,
+    OPTION =1,
+    QUIT =2,
+    EDIT =3
+};
 class MenuState:public State{
 public:
     MenuState(SDL_Renderer* renderer);
@@ -13,12 +19,15 @@ public:
     void update(float dt)override;
     bool handleEvents(SDL_Event& event)override;
 private:
+    void activateSelection();
+
     Button m_playButton{150,100,350,150};
     Button m_optionButton{150,270,350,150};
     Button m_quitButton{150,440,350,150};
     Button m_editButton{1100,350,350,150};
-    bool m_transitioning =false;
 
+    bool m_transitioning =false;
+    MenuButton m_selectedButton =MenuButton::PLAY;
 
     SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
     SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");

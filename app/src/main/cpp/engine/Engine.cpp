@@ -71,7 +71,6 @@ void Engine::run(){
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 
-        SDL_SetRenderDrawColor(m_renderer,33,31,48,255);
 
         SDL_RenderPresent(m_renderer);
 
@@ -134,7 +133,7 @@ Engine::Engine(){
     if (!m_renderer) {
         LOGE("Renderer creation failed: %s", SDL_GetError());
     }
-    SDL_SetRenderLogicalPresentation(m_renderer,1600,720,SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    SDL_SetRenderLogicalPresentation(m_renderer,1600,720,SDL_LOGICAL_PRESENTATION_STRETCH);
     m_mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (!m_mixer) {
         LOGE("Mixer creation failed: %s", SDL_GetError());
