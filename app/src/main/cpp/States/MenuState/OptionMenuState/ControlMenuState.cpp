@@ -115,7 +115,7 @@ bool ControlMenuState::handleEvents(SDL_Event &event) {
 }
 
 ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
-
+    m_renderer =renderer;
 
     m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
     m_optionBlockTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);
