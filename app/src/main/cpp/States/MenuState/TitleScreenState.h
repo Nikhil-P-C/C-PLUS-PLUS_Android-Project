@@ -3,16 +3,14 @@
 //
 
 #pragma once
-#include <android/log.h>
+#include "utils/utils.h"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "State/State.h"
 #include "engine/Engine.h"
 
-
 #define LOG_TAG "TitleScreenState"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
 class TitleScreenState : public State{
 public:
 

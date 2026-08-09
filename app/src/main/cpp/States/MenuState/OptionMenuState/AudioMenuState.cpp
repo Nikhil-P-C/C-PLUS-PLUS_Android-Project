@@ -91,42 +91,58 @@ void AudioMenuState::update(float dt) {
 bool AudioMenuState::handleEvents(SDL_Event &event) {
     float startTouchX=-0.0f;
     float startTouchY=0.0f;
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-
-        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+    if(InputUtils::IsPointerDown(event)){
+        bool isTouch = event.type == SDL_EVENT_FINGER_DOWN;
+        float touchX, touchY;
+        InputUtils::GetPointerPosition(event, m_renderer, touchX, touchY);
 //        LOGI("touch x:%f y:%f",touchX,touchY);
         if(touchX >= m_masterSlidebar.x && touchX <= m_masterSlidebar.x + m_masterSlidebar.w &&
-            touchY >= m_masterSlidebar.y && touchY <= m_masterSlidebar.y + m_masterSlidebar.h){
+           touchY >= m_masterSlidebar.y && touchY <= m_masterSlidebar.y + m_masterSlidebar.h){
             m_scaleType =ScaleType::MASTER;
-            m_sliderFingerID =event.tfinger.fingerID;
+            m_sliderFingerID =isTouch ? event.tfinger.fingerID : 0;
+            m_isMouseDrag = !isTouch;
+            m_dragActive =true;
             startTouchX=touchX;
             startTouchY=touchY;
         }
         else if(touchX >= m_musicSlidebar.x && touchX <= m_musicSlidebar.x + m_musicSlidebar.w &&
-            touchY >= m_musicSlidebar.y && touchY <= m_musicSlidebar.y + m_musicSlidebar.h){
+                touchY >= m_musicSlidebar.y && touchY <= m_musicSlidebar.y + m_musicSlidebar.h){
             m_scaleType =ScaleType::MUSIC;
-            m_sliderFingerID =event.tfinger.fingerID;
+            m_sliderFingerID =isTouch ? event.tfinger.fingerID : 0;
+            m_isMouseDrag = !isTouch;
+            m_dragActive =true;
             startTouchX=touchX;
             startTouchY=touchY;
         }
         else if(touchX >= m_sfxSlidebar.x && touchX <= m_sfxSlidebar.x + m_sfxSlidebar.w &&
-            touchY >= m_sfxSlidebar.y && touchY <= m_sfxSlidebar.y + m_sfxSlidebar.h){
+                touchY >= m_sfxSlidebar.y && touchY <= m_sfxSlidebar.y + m_sfxSlidebar.h){
             m_scaleType =ScaleType::SFX;
-            m_sliderFingerID =event.tfinger.fingerID;
+            m_sliderFingerID =isTouch ? event.tfinger.fingerID : 0;
+            m_isMouseDrag = !isTouch;
+            m_dragActive =true;
             startTouchX=touchX;
             startTouchY=touchY;
         }
 
         else{
             m_sliderFingerID =0;
+            m_dragActive =false;
             startTouchX=0.0f;
             startTouchY=0.0f;
         }
     }
-    if(event.type == SDL_EVENT_FINGER_MOTION && m_sliderFingerID == event.tfinger.fingerID){
-        float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+    if(InputUtils::IsPointerUp(event)){
+        m_dragActive =false;
+    }
+    if(InputUtils::IsPointerMotion(event) && m_dragActive){
+        bool isTouchMotion = event.type == SDL_EVENT_FINGER_MOTION;
+        // Ignore touch motion from a finger we aren't tracking, and ignore
+        // mouse motion while we're tracking a finger drag (or vice versa).
+        if(isTouchMotion && (m_isMouseDrag || m_sliderFingerID != event.tfinger.fingerID)) return false;
+        if(!isTouchMotion && !m_isMouseDrag) return false;
+
+        float touchX, touchY;
+        InputUtils::GetPointerPosition(event, m_renderer, touchX, touchY);
 
         float diffX = touchX - startTouchX;
         float diffY = touchY - startTouchY;

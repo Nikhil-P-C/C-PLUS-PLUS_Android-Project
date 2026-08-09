@@ -86,27 +86,29 @@ void ControlMenuState::update(float dt) {
 }
 
 bool ControlMenuState::handleEvents(SDL_Event &event) {
-    float touchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-    float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
-
-    if(event.type == SDL_EVENT_FINGER_DOWN){
+    if(InputUtils::IsPointerDown(event)){
+        float touchX, touchY;
+        InputUtils::GetPointerPosition(event, m_renderer, touchX, touchY);
         if(touchX >= m_joystickButton.x && touchX <= m_joystickButton.x + m_joystickButton.w &&
-            touchY >= m_joystickButton.y && touchY <= m_joystickButton.y + m_joystickButton.h){
+           touchY >= m_joystickButton.y && touchY <= m_joystickButton.y + m_joystickButton.h){
             m_controlType = ControlType::JOYSTICK;
             return true;
         }
         if(touchX >= m_buttonButton.x && touchX <= m_buttonButton.x + m_buttonButton.w &&
-            touchY >= m_buttonButton.y && touchY <= m_buttonButton.y + m_buttonButton.h){
+           touchY >= m_buttonButton.y && touchY <= m_buttonButton.y + m_buttonButton.h){
             m_controlType = ControlType::BUTTONS;
             return true;
         }
         if(touchX >= m_joystickWButtons.x && touchX <= m_joystickWButtons.x + m_joystickWButtons.w &&
-            touchY >= m_joystickWButtons.y && touchY <= m_joystickWButtons.y + m_joystickWButtons.h){
+           touchY >= m_joystickWButtons.y && touchY <= m_joystickWButtons.y + m_joystickWButtons.h){
             m_controlType = ControlType::SEP_JUMP_W_JOYSTICK;
+            return true;
         }
         if(touchX >= m_debugButton.x && touchX <= m_debugButton.x + m_debugButton.w &&
-            touchY >= m_debugButton.y && touchY <= m_debugButton.y + m_debugButton.h){
+           touchY >= m_debugButton.y && touchY <= m_debugButton.y + m_debugButton.h){
             GameData::getInstance().toggleDebug();
+            LOGI("toggle debug:%d",GameData::getInstance().isDebugEnabled());
+            return true;
         }
     }
     return false;

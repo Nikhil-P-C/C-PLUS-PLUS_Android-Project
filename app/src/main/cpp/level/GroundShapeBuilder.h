@@ -3,11 +3,8 @@
 //
 #pragma once
 #include <vector>
-#include <android/log.h>
 #include "utils/utils.h"
 #define LOG_TAG "GroundShapeBuilder"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 struct LevelGround{
     float x;

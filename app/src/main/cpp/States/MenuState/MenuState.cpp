@@ -11,6 +11,7 @@
 #include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
+#include "States/InputOverlayState/KeyboardOverlay.h"
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
 #include "States/MenuState/EditMenuState/EditMenuState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
@@ -155,50 +156,87 @@ void MenuState::update(float dt) {
 
 bool MenuState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-        float touchX =event.tfinger.x * 1600, touchY =event.tfinger.y*720;
-        if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w){
-            if(touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
-                m_transitioning =true;
-                Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
-                Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
 
-                if(GameData::getInstance().getControlType() == JOYSTICK) {
-                    Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
-                }
-                if(GameData::getInstance().getControlType() == BUTTONS){
-                    Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
-                }
-                if(GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK){
-                    Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
-                }
-                return true;
+    if(InputUtils::IsPointerDown(event)){
+        float touchX, touchY;
+        InputUtils::GetPointerPosition(event, m_renderer, touchX, touchY);
 
-            }
-
+        if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w &&
+           touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
+            m_selectedButton = MenuButton::PLAY;
+            activateSelection();
+            return true;
         }
-        if(touchX > m_optionButton.x && touchX < m_optionButton.x + m_optionButton.w){
-            if(touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
-                m_transitioning =true;
-                Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
-                return true;
-            }
+        if(touchX > m_optionButton.x && touchX < m_optionButton.x + m_optionButton.w &&
+           touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
+            m_selectedButton = MenuButton::OPTION;
+            activateSelection();
+            return true;
         }
-        if(touchX >m_editButton.x && touchX < m_editButton.x+m_editButton.w){
-            if(touchY>m_editButton.y&& touchY<m_editButton.y + m_editButton.h){
-                m_transitioning =true;
-                Engine::Get().changeState(std::make_unique<EditMenuState>(m_renderer));
-                return true;
-            }
+        if(touchX >m_editButton.x && touchX < m_editButton.x+m_editButton.w &&
+           touchY>m_editButton.y&& touchY<m_editButton.y + m_editButton.h){
+            m_selectedButton = MenuButton::EDIT;
+            activateSelection();
+            return true;
         }
-        if(touchX > m_quitButton.x && touchX < m_quitButton.x + m_quitButton.w){
-            if(touchY > m_quitButton.y && touchY < m_quitButton.y + m_quitButton.h){
-                Engine::Get().exitEngine();
-                return true;
-            }
-
+        if(touchX > m_quitButton.x && touchX < m_quitButton.x + m_quitButton.w &&
+           touchY > m_quitButton.y && touchY < m_quitButton.y + m_quitButton.h){
+            m_selectedButton = MenuButton::QUIT;
+            activateSelection();
+            return true;
         }
         return true;
     }
+
+    if(event.type == SDL_EVENT_KEY_DOWN){
+        switch(event.key.key){
+            case SDLK_UP:
+            case SDLK_LEFT:
+                m_selectedButton = static_cast<MenuButton>((static_cast<int>(m_selectedButton) + 3) % 4);
+                return true;
+            case SDLK_DOWN:
+            case SDLK_RIGHT:
+                m_selectedButton = static_cast<MenuButton>((static_cast<int>(m_selectedButton) + 1) % 4);
+                return true;
+            case SDLK_RETURN:
+            case SDLK_RETURN2:
+            case SDLK_KP_ENTER:
+                activateSelection();
+                return true;
+            default:
+                return false;
+        }
+    }
     return false;
+}
+
+void MenuState::activateSelection() {
+    switch (m_selectedButton) {
+        case MenuButton::PLAY:
+            m_transitioning = true;
+            Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
+            Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
+
+            if (GameData::getInstance().getControlType() == JOYSTICK) {
+                Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
+            }
+            if (GameData::getInstance().getControlType() == BUTTONS) {
+                Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
+            }
+            if (GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK) {
+                Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
+            }
+            break;
+        case MenuButton::OPTION:
+            m_transitioning = true;
+            Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
+            break;
+        case MenuButton::EDIT:
+            m_transitioning = true;
+            Engine::Get().changeState(std::make_unique<EditMenuState>(m_renderer));
+            break;
+        case MenuButton::QUIT:
+            Engine::Get().exitEngine();
+            break;
+    }
 }

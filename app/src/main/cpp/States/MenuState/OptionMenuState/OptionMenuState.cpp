@@ -26,7 +26,7 @@ void OptionMenuState::update(float dt) {
 }
 
 bool OptionMenuState::handleEvents(SDL_Event &event) {
-    if(event.key.key == SDLK_AC_BACK) {
+    if(InputUtils::IsBackKey(event)) {
         int count = (int)Engine::Get().getOverlayStateCount();
         while(count){
             count--;
@@ -36,11 +36,11 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
         return true;
     }
 
-    if(event.type == SDL_EVENT_FINGER_DOWN){
-        float TouchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        float TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+    if(InputUtils::IsPointerDown(event)){
+        float TouchX, TouchY;
+        InputUtils::GetPointerPosition(event, m_renderer, TouchX, TouchY);
         if(TouchX >= m_backButton.x && TouchX <= m_backButton.x + m_backButton.w &&
-            TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h){
+           TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h){
             int count = (int)Engine::Get().getOverlayStateCount();
             while(count){
                 count--;
@@ -49,14 +49,14 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
         }
         if(TouchX >= m_controlButton.x && TouchX <= m_controlButton.x + m_controlButton.w &&
-            TouchY >= m_controlButton.y && TouchY <= m_controlButton.y + m_controlButton.h){
+           TouchY >= m_controlButton.y && TouchY <= m_controlButton.y + m_controlButton.h){
             if(Engine::Get().getOverlayStateCount()>0)
                 Engine::Get().popOverlayState();
             Engine::Get().pushOverlayState(std::make_unique<ControlMenuState>(m_renderer));
             return true;
         }
         if(TouchX >= m_audioButton.x && TouchX <= m_audioButton.x + m_audioButton.w &&
-            TouchY >= m_audioButton.y && TouchY <= m_audioButton.y + m_audioButton.h){
+           TouchY >= m_audioButton.y && TouchY <= m_audioButton.y + m_audioButton.h){
             if(Engine::Get().getOverlayStateCount()>0)
                 Engine::Get().popOverlayState();
             Engine::Get().pushOverlayState(std::make_unique<AudioMenuState>(m_renderer));

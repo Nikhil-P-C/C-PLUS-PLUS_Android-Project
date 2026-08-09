@@ -121,13 +121,12 @@ void EditMenuState::update(float dt)
 
 bool EditMenuState::handleEvents(SDL_Event &event)
 {
-
-    if(event.type == SDL_EVENT_FINGER_DOWN)
+    if(InputUtils::IsPointerDown(event))
     {
-        float TouchX = event.tfinger.x * (float)GameData::getInstance().getWinWidth();
-        float TouchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        float TouchX, TouchY;
+        InputUtils::GetPointerPosition(event, m_renderer, TouchX, TouchY);
         if(TouchX >= m_backButton.x && TouchX <= m_backButton.x + m_backButton.w &&
-            TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h)
+           TouchY >= m_backButton.y && TouchY <= m_backButton.y + m_backButton.h)
         {
             SDL_StopTextInput(Engine::Get().getWindow());
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
@@ -157,7 +156,7 @@ bool EditMenuState::handleEvents(SDL_Event &event)
             m_playerSkin =PlayerSkin::GREEN;
         }
         if(TouchX >= m_textbox.x && TouchX <= m_textbox.x + m_textbox.w &&
-            TouchY >= m_textbox.y && TouchY <= m_textbox.y + m_textbox.h){
+           TouchY >= m_textbox.y && TouchY <= m_textbox.y + m_textbox.h){
             SDL_StartTextInput(Engine::Get().getWindow());
             m_textboxActive=true;
         }
@@ -170,7 +169,7 @@ bool EditMenuState::handleEvents(SDL_Event &event)
 
         return true;
     }
-    if(event.type == SDL_EVENT_FINGER_UP)
+    if(InputUtils::IsPointerUp(event))
     {
         m_saveButtonActive =false;
     }
@@ -191,7 +190,7 @@ bool EditMenuState::handleEvents(SDL_Event &event)
                     }
                     return true;
                 }
-                if(event.key.key ==SDLK_AC_BACK) {
+                if(event.key.key ==SDLK_AC_BACK || event.key.key == SDLK_ESCAPE) {
                     m_textboxActive = false;
                     SDL_StopTextInput(Engine::Get().getWindow());
                     return true;
@@ -232,14 +231,16 @@ bool EditMenuState::handleEvents(SDL_Event &event)
     }
     if(event.type == SDL_EVENT_KEY_DOWN)
     {
-        if(event.key.key == SDLK_AC_BACK)
+        if(event.key.key == SDLK_AC_BACK || event.key.key == SDLK_ESCAPE)
         {
+            SDL_StopTextInput(Engine::Get().getWindow());
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
             return true;
         }
         return true;
     }
     return false;
+
 }
 
 EditMenuState::EditMenuState(SDL_Renderer *renderer)

@@ -11,6 +11,8 @@
 #include "Camera.h"
 #include "GameData.h"
 #include "InputDispatcher.h"
+#include "InputUtils.h"
 #include "gameMath.h"
 #include "SpriteCollector.h"
+#include "Log.h"
 #endif //MY_APP_UTILS_H

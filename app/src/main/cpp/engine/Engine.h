@@ -4,15 +4,13 @@
 
 #include "State/State.h"
 #include "AssetManager.h"
+#include "utils/utils.h"
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3/SDL.h>
-#include <android/log.h>
 #include <vector>
 #include <memory>
 
 #define LOG_TAG "Engine"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #pragma once//MY_APP_ENGINE_H
 enum class commandType{
     PUSH,
