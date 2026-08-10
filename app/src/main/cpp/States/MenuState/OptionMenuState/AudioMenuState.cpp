@@ -165,6 +165,7 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
 }
 AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
     LOGI("Audio menu state constructor:%p",this);
+    m_renderer =renderer;
 
     m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
     m_optionBlockTexture =Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);

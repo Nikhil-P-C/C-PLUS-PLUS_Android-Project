@@ -16,3 +16,5 @@ local.properties
 /app/src/main/assets/music.mp3
 /app/src/main/assets/music.wav
 /app/src/main/cpp/vendor
+app/src/main/cpp/vendor/
+app/src/main/cpp/build/
