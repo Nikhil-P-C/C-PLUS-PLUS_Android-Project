@@ -226,6 +226,9 @@ void MenuState::activateSelection() {
             if (GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK) {
                 Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
             }
+            if (GameData::getInstance().getControlType() == KEYBOARD) {
+                Engine::Get().pushOverlayState(std::make_unique<KeyboardOverlay>(m_renderer));
+            }
             break;
         case MenuButton::OPTION:
             m_transitioning = true;

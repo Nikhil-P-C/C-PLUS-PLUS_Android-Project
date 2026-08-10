@@ -27,7 +27,9 @@ private:
     SDL_Texture* m_joystickFontTexture = nullptr;
     SDL_Texture* m_buttonsFontTexture = nullptr;
     SDL_Texture* m_joystickWButtonsFontTexture = nullptr;
-    SDL_Texture* m_debugFontTexture = nullptr;
+    SDL_Texture* m_keyboardFontTexture =nullptr;
+    SDL_Texture* m_gamepadFontTexture =nullptr;
+
 
     SDL_Renderer* m_renderer = nullptr;
 
@@ -36,5 +38,6 @@ private:
     Button m_joystickButton{400.00f,100.00f,1000.00f,100.00f};
     Button m_buttonButton{400.00f,200.00f,1000.00f,100.00f};
     Button m_joystickWButtons{400.00f,300.00f,1000.00f,100.00f};
-    Button m_debugButton{400.00f,500.00f,1000.00f,100.00f};
+    Button m_keyboardButton{400.00f,400.00f,1000.00f,100.00f};
+    Button m_gamepadButton{400.00f,500.00f,1000.00f,100.00f};
 };

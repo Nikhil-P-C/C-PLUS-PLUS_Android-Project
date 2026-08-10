@@ -9,6 +9,7 @@
 #include "States/MenuState/MenuState.h"
 #include "States/MenuState/OptionMenuState/ControlMenuState.h"
 #include "States/MenuState/OptionMenuState/AudioMenuState.h"
+#include "States/MenuState/OptionMenuState/AdvanceMenuState.h"
 
 void OptionMenuState::render(SDL_Renderer *renderer) {
     SDL_FRect backgroundDst{0, 0, static_cast<float>(GameData::getInstance().getWinWidth()), static_cast<float>(GameData::getInstance().getWinHeight())};
@@ -47,6 +48,13 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
                 Engine::Get().popOverlayState();
             }
             Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
+        }
+        if(TouchX >= m_advanceButton.x && TouchX <= m_advanceButton.x + m_advanceButton.w &&
+           TouchY >= m_advanceButton.y && TouchY <= m_advanceButton.y + m_advanceButton.h){
+            if(Engine::Get().getOverlayStateCount()>0)
+                Engine::Get().popOverlayState();
+            Engine::Get().pushOverlayState(std::make_unique<AdvanceMenuState>(m_renderer));
+            return true;
         }
         if(TouchX >= m_controlButton.x && TouchX <= m_controlButton.x + m_controlButton.w &&
            TouchY >= m_controlButton.y && TouchY <= m_controlButton.y + m_controlButton.h){

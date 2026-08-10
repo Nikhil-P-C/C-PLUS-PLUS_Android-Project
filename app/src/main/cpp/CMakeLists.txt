@@ -71,6 +71,7 @@ set(MYAPP_SOURCES
         States/inputOverlayState/JoystickOverlay.cpp
         States/inputOverlayState/ButtonOverlay.cpp
         States/inputOverlayState/SepJoysticknButton.cpp
+        States/inputOverlayState/KeyboardOverlay.cpp
         States/DebugState/DebugState.cpp
         States/HUDOverlayState/HUDOverlayState.cpp
         States/GameState/GameState.cpp
@@ -80,6 +81,7 @@ set(MYAPP_SOURCES
         States/MenuState/OptionMenuState/OptionMenuState.cpp
         States/MenuState/OptionMenuState/ControlMenuState.cpp
         States/MenuState/OptionMenuState/AudioMenuState.cpp
+        States/MenuState/OptionMenuState/AdvanceMenuState.cpp
         States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
 

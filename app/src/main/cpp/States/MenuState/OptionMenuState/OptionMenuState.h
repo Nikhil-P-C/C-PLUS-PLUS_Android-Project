@@ -18,8 +18,10 @@ public:
     bool handleEvents(SDL_Event& event)override;
 
 private:
+
     Button m_audioButton{100.00f,120.00f,180.00f,155.00f};
     Button m_controlButton{100.00f,275.00f,180.00f,155.00f};
+    Button m_advanceButton{100.00f,430.00f,180.00f,155.00f};
     Button m_backButton{50.00f,600.00f,200.00f,100.00f};
 
     SDL_Texture* m_backGroundTexture = nullptr;

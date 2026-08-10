@@ -4,8 +4,10 @@
 #pragma once
 enum ControlType{
     BUTTONS =0,
-    JOYSTICK =1,
-    SEP_JUMP_W_JOYSTICK =2
+    JOYSTICK,
+    SEP_JUMP_W_JOYSTICK,
+    KEYBOARD,
+    GAMEPAD
 };
 class GameData{
 public:

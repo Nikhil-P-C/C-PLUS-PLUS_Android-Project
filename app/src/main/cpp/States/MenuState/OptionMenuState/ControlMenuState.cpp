@@ -11,15 +11,20 @@ void ControlMenuState::render(SDL_Renderer *renderer) {
     SDL_FRect menuDst ={100.00f,25.00f,1400.00f,670.00f};
     SDL_FRect menuSrc ={402.00f,0.00f,402.00f,198.00f};
     SDL_RenderTexture(renderer,m_menuTexture,&menuSrc,&menuDst);
+    //these three block draws three different part of block to avoid texture being stretched
     {
-        SDL_FRect optionBlockDst = {330.f, 75.00f, 1100.00f, 350.00f};
-        SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 34.00f};
+        SDL_FRect optionBlockDst = {330.f, 50.00f, 1100.00f, 75.00f};
+        SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 11.00f};
         SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
     }
     {
-        SDL_FRect optionBlockDst = {330.f, 475.00f, 1100.00f, 150.00f};
-
-        SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 34.00f};
+        SDL_FRect optionBlockDst = {330.f, 125.00f, 1100.00f, 450.00f};
+        SDL_FRect optionBlockSrc = {0.00f, 11.00f, 185.00f, 11.00f};
+        SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
+    }
+    {
+        SDL_FRect optionBlockDst = {330.f, 575.00f, 1100.00f, 75.00f};
+        SDL_FRect optionBlockSrc = {0.00f, 22.00f, 185.00f, 11.00f};
         SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
     }
 
@@ -41,8 +46,16 @@ void ControlMenuState::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_joystickWButtonsFontTexture, nullptr, &joystickWButtonsFontDst);
 
 
-    SDL_FRect fontDst = {400.00f, m_debugButton.y+(50.00f-15.00f), 100.00f,30.00f};
-    SDL_RenderTexture(renderer, m_debugFontTexture, nullptr, &fontDst);
+
+    SDL_FRect keyboardFontDst = {400.00f, m_keyboardButton.y+(50.00f-15.00f), 160.00f,30.00f};
+    SDL_RenderTexture(renderer, m_keyboardFontTexture, nullptr, &keyboardFontDst);
+
+
+
+    SDL_FRect gamepadFontDst = {400.00f, m_gamepadButton.y+(50.00f-15.00f), 140.00f,30.00f};
+    SDL_RenderTexture(renderer, m_gamepadFontTexture, nullptr, &gamepadFontDst);
+
+
 
 
 
@@ -71,12 +84,20 @@ void ControlMenuState::render(SDL_Renderer *renderer) {
         radioButtonSrc.x = m_controlType == ControlType::SEP_JUMP_W_JOYSTICK ? 0.00f : 10.00f;
         SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
     }
-    //debug button
+    //Keyboard radio button
     {
-        SDL_FRect radioButtonDst = {m_debugButton.x + 912.50f, m_debugButton.y+ 50.00f-(45.00f/2.00f),
+        SDL_FRect radioButtonDst = {m_keyboardButton.x + 912.50f, m_keyboardButton.y + 50.00f-(45.00f/2.00f),
                                     9.00f * 5.00f, 9.00f * 5.00f};
         SDL_FRect radioButtonSrc = {10.00f, 0.00f, 9.00f, 9.00f};
-        radioButtonSrc.x = GameData::getInstance().isDebugEnabled() ? 0.00f : 10.00f;
+        radioButtonSrc.x = m_controlType == ControlType::KEYBOARD ? 0.00f : 10.00f;
+        SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
+    }
+    //Gamepad radio button
+    {
+        SDL_FRect radioButtonDst = {m_gamepadButton.x + 912.50f,m_gamepadButton.y + 50.00f-(45.00f/2.00f),
+                                    9.00f * 5.00f, 9.00f * 5.00f};
+        SDL_FRect radioButtonSrc = {10.00f, 0.00f, 9.00f, 9.00f};
+        radioButtonSrc.x = m_controlType == ControlType::GAMEPAD ? 0.00f : 10.00f;
         SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
     }
 }
@@ -104,10 +125,14 @@ bool ControlMenuState::handleEvents(SDL_Event &event) {
             m_controlType = ControlType::SEP_JUMP_W_JOYSTICK;
             return true;
         }
-        if(touchX >= m_debugButton.x && touchX <= m_debugButton.x + m_debugButton.w &&
-           touchY >= m_debugButton.y && touchY <= m_debugButton.y + m_debugButton.h){
-            GameData::getInstance().toggleDebug();
-            LOGI("toggle debug:%d",GameData::getInstance().isDebugEnabled());
+        if(touchX >= m_keyboardButton.x && touchX <= m_keyboardButton.x + m_keyboardButton.w &&
+           touchY >= m_keyboardButton.y && touchY <= m_keyboardButton.y + m_keyboardButton.h){
+            m_controlType = ControlType::KEYBOARD;
+            return true;
+        }
+        if(touchX >= m_gamepadButton.x && touchX <= m_gamepadButton.x + m_gamepadButton.w &&
+           touchY >= m_gamepadButton.y && touchY <= m_gamepadButton.y + m_gamepadButton.h){
+            m_controlType = ControlType::GAMEPAD;
             return true;
         }
     }
@@ -116,6 +141,7 @@ bool ControlMenuState::handleEvents(SDL_Event &event) {
 
 ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
 
+    m_renderer =renderer;
 
     m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
     m_optionBlockTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);
@@ -143,23 +169,24 @@ ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
     SDL_DestroySurface(joystickWButtonsFontSurface);
 
 
-    SDL_Surface* debugFontSurface = TTF_RenderText_Solid(m_font, "Debug",5,
-                                                    SDL_Color{0, 0, 0, 255});
-    m_debugFontTexture = SDL_CreateTextureFromSurface(renderer, debugFontSurface);
-    SDL_DestroySurface(debugFontSurface);
+    SDL_Surface* keyboardFontSurface = TTF_RenderText_Solid(m_font, "Keyboard",8,
+                                                                    SDL_Color{0, 0, 0, 255});
+    m_keyboardFontTexture = SDL_CreateTextureFromSurface(renderer, keyboardFontSurface);
+    SDL_DestroySurface(keyboardFontSurface);
 
-    SDL_SetTextureScaleMode(m_joystickFontTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_buttonsFontTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_joystickWButtonsFontTexture,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_debugFontTexture,SDL_SCALEMODE_NEAREST);
 
+    SDL_Surface* gamepadFontSurface = TTF_RenderText_Solid(m_font, "Gamepad",7,
+                                                            SDL_Color{0, 0, 0, 255});
+    m_gamepadFontTexture = SDL_CreateTextureFromSurface(renderer, gamepadFontSurface);
+    SDL_DestroySurface(gamepadFontSurface);
 }
 
 ControlMenuState::~ControlMenuState() {
     SDL_DestroyTexture(m_joystickFontTexture);
     SDL_DestroyTexture(m_buttonsFontTexture);
     SDL_DestroyTexture(m_joystickWButtonsFontTexture);
-    SDL_DestroyTexture(m_debugFontTexture);
+    SDL_DestroyTexture(m_keyboardFontTexture);
+    SDL_DestroyTexture(m_gamepadFontTexture);
     TTF_CloseFont(m_font);
     SDL_CloseIO(m_fontfile);
 }
