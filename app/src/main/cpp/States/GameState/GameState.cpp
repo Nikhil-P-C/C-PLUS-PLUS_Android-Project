@@ -251,7 +251,6 @@ void GameState::render(SDL_Renderer* renderer)  {
     {
         SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
     }
-    SDL_SetRenderDrawColor(renderer,33,31,48,255);
     //player name rendering
     SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-(float)camX+(12.50f*P_scale)
                             -(50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()))/2,
@@ -367,6 +366,7 @@ bool GameState::handleEvents(SDL_Event& event) {
 
     if(InputUtils::IsBackKey(event)) {
         InputDispatcher::getInstance().setInputReleased(true);
+        InputDispatcher::getInstance().inputLogClear();
         GameData::getInstance().setPaused(true);
         m_transitioning = true;
         Engine::Get().popOverlayState();//controls
@@ -795,7 +795,11 @@ bool GameState::isBlinkFrame() const {
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
     auto* gameState = static_cast<GameState*>(userdata);
     if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND && !GameData::getInstance().isPaused()) {
+        InputDispatcher::getInstance().setInputReleased(true);
+        InputDispatcher::getInstance().inputLogClear();
+        GameData::getInstance().setPaused(true);
         gameState->m_transitioning = true;
+        Engine::Get().popOverlayState();
         Engine::Get().popOverlayState();
         if(GameData::getInstance().isDebugEnabled())
             Engine::Get().popOverlayState();

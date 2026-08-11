@@ -57,8 +57,8 @@ void ParticleSystem::emitOneJumpParticle(float feetX, float feetY)
             particle.y =feetY;
             particle.size =70.00f;
             particle.baseSize=particle.size;
-            particle.vX =randomFloat(-100,100);
-            particle.vY =randomFloat(0,-300);
+            particle.vX =randomFloat(-100.00f,100.00f);
+            particle.vY =randomFloat(-300.00f,100.00f);
 
             particle.life = 0.4f;
             particle.maxLife=0.4f;
@@ -116,8 +116,8 @@ void ParticleSystem::emitLandDust(float leftFeetX, float leftFeetY,float rightFe
     int burst =3;
     for(int i =0; i<burst;i++)
     {
-        float randomX1 = randomFloat(leftFeetX,rightFeetX);
-        float randomX2 = randomFloat(leftFeetX,rightFeetX);
+        float randomX1 = randomFloat(rightFeetX,leftFeetX);
+        float randomX2 = randomFloat(rightFeetX,leftFeetX);
 
 
         emitLeftDust(randomX1, leftFeetY);

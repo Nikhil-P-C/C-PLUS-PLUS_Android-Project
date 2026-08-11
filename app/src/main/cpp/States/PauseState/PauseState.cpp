@@ -7,12 +7,18 @@
 
 #include "PauseState.h"
 #include "engine/Engine.h"
+
 #include "States/GameState/GameState.h"
+
 #include "States/MenuState/TitleScreenState.h"
 #include "States/MenuState/MenuState.h"
+
 #include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
+#include "States/InputOverlayState/KeyboardOverlay.h"
+#include "States/InputOverlayState/GamepadOverlay.h"
+
 #include "States/DebugState/DebugState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
 
@@ -83,7 +89,7 @@ bool PauseState::shouldClose(float x ,float y) const{
 bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
 
-    if(InputUtils::IsPointerDown(event)){
+    if(InputUtils::IsPointerDown(event)||InputUtils::IsBackKey(event)){
         float x, y;
         InputUtils::GetPointerPosition(event, m_renderer, x, y);
 
@@ -111,22 +117,10 @@ bool PauseState::handleEvents(SDL_Event &event) {
             Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
         if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
             Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
-
-        return true;
-    }
-    if(InputUtils::IsBackKey(event)){
-        GameData::getInstance().setPaused(false);
-        m_transitioning =true;
-        Engine::Get().popState();
-        Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
-        if(GameData::getInstance().isDebugEnabled())
-            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
-        if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
-            Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
-        if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)
-            Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
-        if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
-            Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::KEYBOARD)
+            Engine::Get().pushOverlayState(std::make_unique<KeyboardOverlay>(m_renderer));
+        if(GameData::getInstance().getControlType() ==ControlType::GAMEPAD)
+            Engine::Get().pushOverlayState(std::make_unique<GamepadOverlay>(m_renderer));
         return true;
     }
 

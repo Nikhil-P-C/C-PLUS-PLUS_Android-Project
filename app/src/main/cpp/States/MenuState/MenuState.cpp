@@ -12,6 +12,7 @@
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/InputOverlayState/KeyboardOverlay.h"
+#include "States/InputOverlayState/GamepadOverlay.h"
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
 #include "States/MenuState/EditMenuState/EditMenuState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
@@ -228,6 +229,9 @@ void MenuState::activateSelection() {
             }
             if (GameData::getInstance().getControlType() == KEYBOARD) {
                 Engine::Get().pushOverlayState(std::make_unique<KeyboardOverlay>(m_renderer));
+            }
+            if (GameData::getInstance().getControlType() == GAMEPAD) {
+                Engine::Get().pushOverlayState(std::make_unique<GamepadOverlay>(m_renderer));
             }
             break;
         case MenuButton::OPTION:

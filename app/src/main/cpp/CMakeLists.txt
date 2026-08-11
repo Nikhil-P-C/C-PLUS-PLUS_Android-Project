@@ -12,7 +12,6 @@ if(ANDROID)
 endif()
 
 # --- Disable host-only SDL3 features (both platforms) ---
-set(SDL_HIDAPI OFF CACHE BOOL "Disable HIDAPI" FORCE)
 set(SDL_ALSA OFF CACHE BOOL "Disable ALSA" FORCE)
 set(SDL_ASAN OFF CACHE BOOL "Disable ASAN" FORCE)
 set(SDL_AVX OFF CACHE BOOL "Disable AVX" FORCE)
@@ -72,6 +71,7 @@ set(MYAPP_SOURCES
         States/inputOverlayState/ButtonOverlay.cpp
         States/inputOverlayState/SepJoysticknButton.cpp
         States/inputOverlayState/KeyboardOverlay.cpp
+        States/inputOverlayState/GamepadOverlay.cpp
         States/DebugState/DebugState.cpp
         States/HUDOverlayState/HUDOverlayState.cpp
         States/GameState/GameState.cpp

@@ -4,11 +4,12 @@
 #include "KeyboardOverlay.h"
 #include "utils/utils.h"
 void KeyboardOverlay::render(SDL_Renderer *renderer) {
-
+    SDL_FRect dst{0.00f,200.00f,100.00f,100.00f};
+    SDL_SetRenderDrawColor(renderer,255,0,0,255);
+    SDL_RenderFillRect(renderer,&dst);
 }
 
 void KeyboardOverlay::update(float dt) {
-    State::update(dt);
 }
 
 bool KeyboardOverlay::handleEvents(SDL_Event &event) {
@@ -26,7 +27,7 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             return true;
         }
     }
-    if(event.type == SDL_EVENT_KEY_UP){
+    else if(event.type == SDL_EVENT_KEY_UP){
         if(event.key.key == SDLK_A){
             InputDispatcher::getInstance().setMovingLeft(false);
             return true;
@@ -40,6 +41,7 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             return true;
         }
     }
+
     return false;
 }
 

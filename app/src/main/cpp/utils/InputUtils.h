@@ -49,8 +49,16 @@ namespace InputUtils {
         button on device, Escape on a desktop keyboard.
     */
     inline bool IsBackKey(const SDL_Event &event) {
-        if (event.type != SDL_EVENT_KEY_DOWN) return false;
-        return event.key.key == SDLK_AC_BACK || event.key.key == SDLK_ESCAPE;
+//        if (event.type != SDL_EVENT_KEY_DOWN) return false;
+        switch(event.type){
+            case SDL_EVENT_KEY_DOWN:
+                return event.key.key == SDLK_AC_BACK || event.key.key == SDLK_ESCAPE;
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                return event.gbutton.button == SDL_GAMEPAD_BUTTON_START;
+            default:
+                return false;
+        }
+//        return event.key.key == SDLK_AC_BACK || event.key.key == SDLK_ESCAPE || event.gbutton.button == SDL_GAMEPAD_BUTTON_START;
     }
     /*
         Fills outX/outY with the pointer's position in the game's fixed

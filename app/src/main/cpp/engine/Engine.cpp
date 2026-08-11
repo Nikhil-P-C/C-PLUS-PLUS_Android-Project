@@ -71,7 +71,7 @@ void Engine::run(){
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 
-
+        SDL_SetRenderDrawColor(m_renderer,33,31,48,255);
         SDL_RenderPresent(m_renderer);
 
         //polling events from states
@@ -120,7 +120,7 @@ Engine::Engine(){
     if(!MIX_Init()){
         LOGI("failed SDL_mixer:%s", SDL_GetError());
     }
-    if (!SDL_Init(SDL_INIT_VIDEO))
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
         LOGI("failed SDL:%s", SDL_GetError());
     if (!TTF_Init())
         LOGI("failed ttf:%s", SDL_GetError());
