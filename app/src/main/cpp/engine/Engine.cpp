@@ -122,6 +122,18 @@ Engine::Engine(){
     }
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
         LOGI("failed SDL:%s", SDL_GetError());
+    int gamepadCount = 0;
+    SDL_JoystickID* gamepadIDs = SDL_GetGamepads(&gamepadCount);
+    if (gamepadIDs) {
+        for (int i = 0; i < gamepadCount; ++i) {
+            SDL_Gamepad* gp = SDL_OpenGamepad(gamepadIDs[i]);
+            if (gp)
+                LOGI("opened pre-connected gamepad id:%d", gamepadIDs[i]);
+            else
+                LOGE("failed to open pre-connected gamepad id:%d err:%s", gamepadIDs[i], SDL_GetError());
+        }
+        SDL_free(gamepadIDs);
+    }
     if (!TTF_Init())
         LOGI("failed ttf:%s", SDL_GetError());
     m_window = SDL_CreateWindow("Dino", 0, 0, SDL_WINDOW_FULLSCREEN);

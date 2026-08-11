@@ -29,8 +29,8 @@ void GamepadOverlay::update(float dt) {
 }
 
 bool GamepadOverlay::handleEvents(SDL_Event &event) {
+
     if(event.type == SDL_EVENT_GAMEPAD_ADDED){
-        LOGI("game added");
         m_gamepad = SDL_OpenGamepad(event.gdevice.which);
         if(!m_gamepad)
             LOGE("gamepad failed");
@@ -44,26 +44,22 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
     switch(event.type){
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX){
-                LOGI("gamePad left motion X");
                  float x  =event.gaxis.value / 32767;
                  m_leftStickX =x;
             }
             if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY){
-                LOGI("gamePad left motion Y");
 
                 float y  = event.gaxis.value / 32767;
                 m_leftStickY =y;
             }
             break;
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-            LOGI("button pressed");
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH){
                 InputDispatcher::getInstance().setJump(true);
             }
             break;
 
         case SDL_EVENT_GAMEPAD_BUTTON_UP:
-            LOGI("button released");
 
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH){
                 InputDispatcher::getInstance().setJump(false);
@@ -73,12 +69,13 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
 }
 
 GamepadOverlay::GamepadOverlay(SDL_Renderer *renderer) {
+
     m_renderer=renderer;
-    LOGI("keyboard overlay constructor:%p",this);
+    LOGI("Gamepad overlay constructor:%p",this);
 
 }
 
 GamepadOverlay::~GamepadOverlay() {
-    LOGI("keyboard overlay destructor:%p",this);
+    LOGI("Gamepad overlay destructor:%p",this);
 }
 
