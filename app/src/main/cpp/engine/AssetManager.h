@@ -73,6 +73,9 @@ enum class TextureType{
     TRAP_TRAMPOLINE,
     TRAP_TRAMPOLINE_TRIGGER,
     HUD_HEALTH_HEART,
+    CHECKPOINT_FLAG_NO,
+    CHECKPOINT_FLAG_OUT,
+    CHECKPOINT_FLAG_IDLE,
     COUNT
 };
 class AssetManager{
@@ -80,7 +83,7 @@ public:
     SDL_Texture* getTexture(TextureType type);
     MIX_Audio* getSound(std::string soundName);
     TTF_Font* getFont(std::string fontName);
-    void loadTexture(TextureType type,const std::string& filepath);
+    void loadTexture(TextureType type,const std::string_view& filepath);
     void init(SDL_Renderer* renderer);
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;

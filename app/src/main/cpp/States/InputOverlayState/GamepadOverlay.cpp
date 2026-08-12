@@ -4,13 +4,10 @@
 #include "utils/utils.h"
 #include "GamepadOverlay.h"
 void GamepadOverlay::render(SDL_Renderer *renderer) {
-    SDL_FRect dst{0.00f,200.00f,100.00f,100.00f};
-    SDL_SetRenderDrawColor(renderer,0,255,0,255);
-    SDL_RenderFillRect(renderer,&dst);
+
 }
 
 void GamepadOverlay::update(float dt) {
-
     float deadzone = 0.25f;
 
     if(m_leftStickX>deadzone){
@@ -25,7 +22,6 @@ void GamepadOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingRight(false);
         InputDispatcher::getInstance().setMovingLeft(false);
     }
-
 }
 
 bool GamepadOverlay::handleEvents(SDL_Event &event) {

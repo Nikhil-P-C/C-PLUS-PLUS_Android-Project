@@ -48,7 +48,6 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_FRect playerBorder{m_player.x - camX, m_player.y - camY, m_player.w, m_player.h};
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderRect(renderer, &playerBorder);
-    SDL_SetRenderDrawColor(renderer, 33, 31, 48, 255);
     //traps
     m_traps = m_gameState->getTraps();
 
@@ -77,7 +76,9 @@ void DebugState::render(SDL_Renderer *renderer) {
         }
         SDL_RenderRect(renderer,&trapCollRect);
     }
-    SDL_SetRenderDrawColor(renderer, 33, 31, 48, 255);
+    SDL_SetRenderDrawColor(renderer,0,255,0,255);
+    SDL_FRect checkPointBorder{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
+    SDL_RenderRect(renderer,&checkPointBorder);
 
 }
 
@@ -105,7 +106,7 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     m_fruits=m_gameState->getFruits();
     m_trapBuilder =m_gameState->getTrapBuilder();
     m_traps =m_trapBuilder.getTraps();
-
+    m_checkPoint =gameState->getCheckPoint();
     LOGI("Debug state constructor :%p",this);
     m_font = TTF_OpenFontIO(m_fontFile,false, 24);
     LOGI("font:%d",(bool)m_font);

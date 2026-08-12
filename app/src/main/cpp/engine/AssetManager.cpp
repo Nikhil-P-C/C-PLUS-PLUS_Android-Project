@@ -3,8 +3,7 @@
 //
 #include "AssetManager.h"
 #include <SDL3_image/SDL_image.h>
-SDL_Texture* AssetManager::getTexture(TextureType type)
-{
+SDL_Texture* AssetManager::getTexture(TextureType type){
 
     if(m_textureTable[(unsigned int)type]) {
         return m_textureTable[(unsigned int) type];
@@ -13,33 +12,29 @@ SDL_Texture* AssetManager::getTexture(TextureType type)
     return nullptr;
 }
 
-MIX_Audio *AssetManager::getSound(std::string soundName)
-{
+MIX_Audio *AssetManager::getSound(std::string soundName){
     //TODO implement getSound
     return nullptr;
 }
 
-TTF_Font *AssetManager::getFont(std::string fontName)
-{
+TTF_Font *AssetManager::getFont(std::string fontName){
     //TODO implement getFont
     return nullptr;
 }
 
-void AssetManager::loadTexture(TextureType type, const std::string &filepath)
-{
-    if(type >=TextureType::COUNT)
-    {
+void AssetManager::loadTexture(TextureType type, const std::string_view& filepath){
+    if(type >=TextureType::COUNT){
         LOGI("out of bound");
         return;
     }
-    SDL_IOStream* ioStream =SDL_IOFromFile(filepath.c_str(),"rb");
+    SDL_IOStream* ioStream =SDL_IOFromFile(filepath.data(),"rb");
     SDL_Surface* surface = IMG_Load_IO(ioStream, false);
     m_textureTable[(unsigned int)type] = SDL_CreateTextureFromSurface(m_renderer,surface);
     SDL_CloseIO(ioStream);
     SDL_DestroySurface(surface);
     if(m_textureTable[(unsigned int)type] == nullptr)
     {
-        LOGI("failed to load texture:%s",filepath.c_str());
+        LOGI("failed to load texture:%s",filepath.data());
     }
 
 }
@@ -122,6 +117,10 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::TRAP_TRAMPOLINE,"Traps/Trampoline/Idle.png");
     loadTexture(TextureType::TRAP_TRAMPOLINE_TRIGGER,"Traps/Trampoline/Jump (28x28).png");
     loadTexture(TextureType::HUD_HEALTH_HEART,"HUD/heart-health.png");
+    loadTexture(TextureType::CHECKPOINT_FLAG_IDLE,"CheckPoint/Checkpoint (Flag Idle)(64x64).png");
+    loadTexture(TextureType::CHECKPOINT_FLAG_OUT,"CheckPoint/Checkpoint (Flag Out) (64x64).png");
+    loadTexture(TextureType::CHECKPOINT_FLAG_NO,"CheckPoint/Checkpoint (No Flag).png");
+
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

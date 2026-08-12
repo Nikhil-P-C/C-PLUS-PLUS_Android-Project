@@ -27,6 +27,21 @@ struct Animation{
     int startIndex=0;
     int lastIndex=0;
 };
+enum class CheckPointAni{
+    NO_FLAG=0,
+    FLAG_OUT,
+    FLAG_IDLE
+};
+struct CheckPoint{
+    float x=0.00f;
+    float y=0.00f;
+    float w=0.00f;
+    float h=0.00f;
+    CheckPointAni aniType;
+    int currentFrame=0;
+    uint32_t aniLastTime =0;
+    Animation ani;
+};
 enum PlayerAction{
     IDLE =0,
     MOVINGLEFT=1,
@@ -65,6 +80,8 @@ public:
     static bool HandleBackgroundEvents(void *userdata, SDL_Event *event);
     bool isBlinkFrame() const;
     void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
+    void triggerCheckpoint();
+
     Player getPlayer(){
         return m_player;
     }
@@ -85,6 +102,9 @@ public:
     }
     std::vector<Trap>& getTraps(){
         return m_trapBuilder.getTraps();
+    }
+    CheckPoint getCheckPoint(){
+        return m_checkPoint;
     }
 private:
 
@@ -131,6 +151,8 @@ private:
     float m_walkTimer=0.0f;
 
     Player   m_player;
+    //checkPoint
+    CheckPoint m_checkPoint;
 
     //scaling and window
     constexpr static const float P_scale =5.0f;

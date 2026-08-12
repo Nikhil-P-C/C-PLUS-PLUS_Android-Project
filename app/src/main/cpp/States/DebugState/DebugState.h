@@ -24,6 +24,7 @@ private:
     std::vector<Trap> m_traps;
     TrapBuilder m_trapBuilder;
     Player m_player;
+    CheckPoint m_checkPoint;
     SDL_Texture*  m_fpsTexture       = nullptr;
     TTF_Font*     m_font             = nullptr;
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");

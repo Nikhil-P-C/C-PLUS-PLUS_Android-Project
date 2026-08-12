@@ -20,7 +20,7 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_windowW =GameData::getInstance().getWinWidth();
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(400.00f,0.00f,P_scale);
+    m_player.setPosition(400.00f,1387.00f,P_scale);
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize((float)m_windowW,(float)m_windowH);
@@ -258,6 +258,26 @@ void GameState::render(SDL_Renderer* renderer)  {
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
+
+    SDL_FRect checkPointDst{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
+    if(m_checkPoint.aniType == CheckPointAni::NO_FLAG)
+    {
+        SDL_FRect checkPointSrc{0.00f,0.00f,64.00f,64.00f};
+        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_NO),
+                          &checkPointSrc,&checkPointDst);
+    }
+    if(m_checkPoint.aniType == CheckPointAni::FLAG_OUT)
+    {
+        SDL_FRect checkPointSrc{0.00f+64.00f*m_checkPoint.currentFrame,0.00f,64.00f,64.00f};
+        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_OUT),
+                          &checkPointSrc,&checkPointDst);
+    }
+    if(m_checkPoint.aniType == CheckPointAni::FLAG_IDLE)
+    {
+        SDL_FRect checkPointSrc{0.00f+64.00f*m_checkPoint.currentFrame,0.00f,64.00f,64.00f};
+        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_IDLE),
+                          &checkPointSrc,&checkPointDst);
+    }
     //TODO BETTER COUNTER RENDERING
     //this is for test purpose
     std::string fruitCounter = "fruit:"+std::to_string(PlayerDetail::getInstance().getScore());
@@ -272,6 +292,8 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);
+
+
 }
 
 void GameState::update(float dt){
@@ -354,6 +376,10 @@ void GameState::update(float dt){
         m_isGrounded = false;
     }
 
+    if(gameMath::checkcollision(m_player.x,m_player.y,m_checkPoint.x,m_checkPoint.y,
+                                m_player.h,m_player.w,m_checkPoint.h,m_checkPoint.w)){
+        triggerCheckpoint();
+    }
     updateAnimation();
 
     m_particleSystem.update(dt);
@@ -382,8 +408,7 @@ bool GameState::handleEvents(SDL_Event& event) {
 
 void GameState::handleCollision() {
     //Walls
-    for(int i = 0;i<1;i++)
-    {
+    for(int i = 0;i<1;i++){
         const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
         gameMath::collisionSide wallCollisionSide;
 
@@ -459,8 +484,7 @@ void GameState::handleCollision() {
 //    }
 
     //ground
-    for(const auto& ground : m_grounds)
-    {
+    for(const auto& ground : m_grounds){
         gameMath::collisionSide groundCollisionSide=
                 gameMath::checkcollisionXY(m_player.x,m_player.y,ground.x,ground.y,
                                            m_player.h,m_player.w,ground.h*SCALE,ground.w*SCALE);
@@ -474,8 +498,7 @@ void GameState::handleCollision() {
             m_velocityY =0.0f;
         }
     }
-    for(const auto& block : m_blocks)
-    {
+    for(const auto& block : m_blocks){
         gameMath::collisionSide blockCollisionSide=
                 gameMath::checkcollisionXY(m_player.x,m_player.y,block.rect.x,block.rect.y,
                                            m_player.h,m_player.w,block.rect.h,block.rect.w);
@@ -512,6 +535,11 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
 
 }
 
+void GameState::triggerCheckpoint(){
+    if(m_checkPoint.aniType == CheckPointAni::FLAG_OUT)return;
+    m_checkPoint.aniType = m_checkPoint.aniType == CheckPointAni::NO_FLAG ? CheckPointAni::FLAG_OUT:CheckPointAni::FLAG_IDLE;
+}
+
 void GameState::updateAnimation() {
     if(SDL_GetTicks() < m_hurtAnimEndTime) m_playerAction = PlayerAction::HURT;
     switch(m_playerAction){
@@ -538,6 +566,7 @@ void GameState::updateAnimation() {
             break;
 
     }
+
     m_aniNowTime = SDL_GetTicks();
     if(m_aniNowTime - m_aniLastTime > m_aniframeDelay){
         if(m_currentFrame < m_Animation.startIndex)
@@ -548,6 +577,42 @@ void GameState::updateAnimation() {
             m_currentFrame = m_Animation.startIndex;
         m_aniLastTime = m_aniNowTime;
     }
+
+
+    switch(m_checkPoint.aniType){
+        case CheckPointAni::NO_FLAG:
+            m_checkPoint.ani.startIndex = 0;
+            m_checkPoint.ani.lastIndex = 0;
+            break;
+        case CheckPointAni::FLAG_OUT:
+            m_checkPoint.ani.startIndex =0;
+            m_checkPoint.ani.lastIndex =24;
+            break;
+        case CheckPointAni::FLAG_IDLE:
+            m_checkPoint.ani.startIndex =0;
+            m_checkPoint.ani.lastIndex =9;
+    }
+    uint32_t nowTime = SDL_GetTicks();
+    if(nowTime - m_checkPoint.aniLastTime > m_aniframeDelay){
+        m_checkPoint.aniLastTime = nowTime;
+
+        if(m_checkPoint.currentFrame < m_checkPoint.ani.startIndex)
+            m_checkPoint.currentFrame = m_checkPoint.ani.startIndex;
+
+        if(m_checkPoint.currentFrame < m_checkPoint.ani.lastIndex){
+            m_checkPoint.currentFrame++;
+        }
+        else{
+            if(m_checkPoint.aniType == CheckPointAni::FLAG_OUT){
+                m_checkPoint.aniType = CheckPointAni::FLAG_IDLE;
+                m_checkPoint.currentFrame = 0;
+            }
+            else if(m_checkPoint.aniType == CheckPointAni::FLAG_IDLE){
+                m_checkPoint.currentFrame = m_checkPoint.ani.startIndex;
+            }
+        }
+    }
+
 }
 
 void GameState::handlePhysicAndInput(float dt) {
@@ -614,7 +679,7 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
-
+    m_checkPoint={2900.00f,1220.00f,256.00f,256.00f,CheckPointAni::NO_FLAG};
 
     m_levelWalls.emplace_back(0,0,3200,768,SpriteType::STONE_BRICK_WALL,ColliderType::SOLID);
     m_levelWalls.emplace_back(0,768,3200,768,SpriteType::MOSS_WALL,ColliderType::SOLID);
