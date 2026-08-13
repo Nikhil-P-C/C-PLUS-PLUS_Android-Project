@@ -5,8 +5,9 @@
 #include "SpriteCollector.h"
 enum class ColliderType{
     SOLID=0,
-    ONE_WAY=1,
-    TRIGGER=3
+    ONE_WAY,
+    TRIGGER,
+    NONE
 };
 class Platform {
 public:

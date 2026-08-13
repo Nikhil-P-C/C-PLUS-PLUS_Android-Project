@@ -20,7 +20,8 @@ enum class TrapType{
     SPIKE_HEAD,
     SPIKE_BALL,
     SPIKES,
-    TRAMPOLINE
+    TRAMPOLINE,
+    NONE
 };
 enum class TrapStatus{
     IDLE=0,
@@ -28,19 +29,21 @@ enum class TrapStatus{
     ON,
     OFF,
     TRIGGERED,
-
+    NONE
 };
 enum class PathAxis{
     AUTO=0,
     VERTICAL,
     HORIZONTAL,
     CIRCLE,
+    NONE
 };
 enum class PathShape{
-    RECT,
+    RECT=0,
     LINE,
     ARC,
-    CIRCLE
+    CIRCLE,
+    NONE
 };
 struct TrapFrameInfo{
     TextureType texture;
@@ -50,6 +53,7 @@ struct TrapFrameInfo{
     bool loop;
 };
 struct Trap{
+    Trap()=default;
     Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,
          float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius =0,bool showChain =false);
     float x ,y;

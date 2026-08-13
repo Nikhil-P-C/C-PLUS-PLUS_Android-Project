@@ -7,3 +7,4 @@ G Grounds
 B Blocks
 F Fruits
 T Traps
+C CheckPoint

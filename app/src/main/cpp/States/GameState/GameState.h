@@ -16,6 +16,8 @@
 #include "level/Fruits.h"
 #include "level/Traps.h"
 #include "level/BlockShapeBuilder.h"
+#include "level/CheckPoint.h"
+#include "level/LevelLoader/LevelLoader.h"
 
 #define LOG_TAG "GameState"
 
@@ -23,25 +25,7 @@ const float SCALE = 4;
 const int TILE_SIZE =16;
 const int HURT_ANIM_MS =300;
 const int KNOCKBACK_MS =300;
-struct Animation{
-    int startIndex=0;
-    int lastIndex=0;
-};
-enum class CheckPointAni{
-    NO_FLAG=0,
-    FLAG_OUT,
-    FLAG_IDLE
-};
-struct CheckPoint{
-    float x=0.00f;
-    float y=0.00f;
-    float w=0.00f;
-    float h=0.00f;
-    CheckPointAni aniType;
-    int currentFrame=0;
-    uint32_t aniLastTime =0;
-    Animation ani;
-};
+
 enum PlayerAction{
     IDLE =0,
     MOVINGLEFT=1,
@@ -107,7 +91,8 @@ public:
         return m_checkPoint;
     }
 private:
-
+    //level
+    LevelLoader m_levelLoader;
     //animation and texture
     Animation m_Animation;
     PlayerAction m_playerAction = IDLE;

@@ -10,7 +10,8 @@ enum class FruitType{
     APPLE,
     ORANGE,
     STRAWBERRY,
-    COLLECTED
+    COLLECTED,
+    NONE
 };
 
 struct Fruit{

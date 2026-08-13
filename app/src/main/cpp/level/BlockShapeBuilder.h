@@ -17,6 +17,7 @@ enum class BlockVariant{
     VERTICAL,
     HORIZONTAL,
     BLOCK,
+    NONE,
 };
 struct Block{
     Block(float x,float y,float w,float h,BlockVariant variant,BlockType type):

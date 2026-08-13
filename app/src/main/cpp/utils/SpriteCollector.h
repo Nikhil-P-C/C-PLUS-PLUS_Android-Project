@@ -43,6 +43,11 @@ enum class SpriteType{
     STONE_PLATFORM,
     COUNT
 };
+struct Animation{
+    int startIndex=0;
+    int lastIndex=0;
+};
+
 struct SpriteValue{
     SpriteType type;
     float x=0.0f;
@@ -131,6 +136,6 @@ public:
 
             goldPlatform,
             woodenPlatform,
-            stonePlatform
+            stonePlatform,
     };
 };
