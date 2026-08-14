@@ -285,7 +285,8 @@ void LevelLoader::parseCheckPoint(std::istringstream& ss) {
 }
 
 void LevelLoader::loadLevel(int level) {
-    std::string content = loadFromFile("Levels/level_0.txt");
+    std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");
+
     std::istringstream stream(content);
 
     std::string line;

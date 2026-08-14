@@ -171,11 +171,11 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     }
 
-    for(int i=0;i<10;i++){
+    for(const auto& platform : m_platforms){
         int tileSize =TILE_SIZE;
 
-        const int platformWidth = (int)m_platforms[i].w;
-        const int platformHeight = (int)m_platforms[i].h;
+        const int platformWidth = (int)platform.w;
+        const int platformHeight = (int)platform.h;
 
         int widthTiles = platformWidth / tileSize;
         int heightTiles = platformHeight / tileSize;
@@ -192,7 +192,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
                 if(heightTiles ==1){
 
-                    if(m_platforms[i].platformType == SpriteType::GOLD_PLATFORM){
+                    if(platform.platformType == SpriteType::GOLD_PLATFORM){
 
                         if (left) src = {SpriteCollection::goldPlatform.x, 0.00f, TILE_SIZE, TILE_SIZE};
 
@@ -205,7 +205,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                                    TILE_SIZE};
                     }
 
-                    else if(m_platforms[i].platformType == SpriteType::WOODEN_PLATFORM){
+                    else if(platform.platformType == SpriteType::WOODEN_PLATFORM){
                         if (left) src = {SpriteCollection::woodenPlatform.x,
                                          SpriteCollection::woodenPlatform.y, TILE_SIZE, TILE_SIZE};
 
@@ -220,7 +220,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
                     }
 
-                    else if(m_platforms[i].platformType == SpriteType::STONE_PLATFORM) {
+                    else if(platform.platformType == SpriteType::STONE_PLATFORM) {
                         if (left) src = {SpriteCollection::stonePlatform.x,
                                          SpriteCollection::stonePlatform.y, TILE_SIZE, TILE_SIZE};
 
@@ -236,8 +236,8 @@ void GameState::render(SDL_Renderer* renderer)  {
 
                 }
 
-                SDL_FRect dst = {(m_platforms[i].x+x* (TILE_SIZE * SCALE)) - camX,
-                                 ( m_platforms[i].y+y * (TILE_SIZE * SCALE)) - camY,
+                SDL_FRect dst = {(platform.x+x* (TILE_SIZE * SCALE)) - camX,
+                                 ( platform.y+y * (TILE_SIZE * SCALE)) - camY,
                                  TILE_SIZE * SCALE, TILE_SIZE * SCALE};
 
                 SDL_RenderTexture(renderer, m_tileset, &src, &dst);
@@ -246,6 +246,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         }
 
     }
+
     m_particleSystem.render(m_renderer);
     m_trapBuilder.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
@@ -323,7 +324,9 @@ void GameState::update(float dt){
     m_fruitBuilder.update(dt);
 
     m_previousY =m_player.y;
+
     handlePhysicAndInput(dt);
+
     m_isGrounded=false;
 
     handleCollision();
@@ -368,12 +371,18 @@ void GameState::update(float dt){
         }
 
     }
+
     m_trapBuilder.updatePath(dt);
+
     TrapType type;
     gameMath::collisionSide side =gameMath::collisionSide::NONE;
+
     bool hazardColl =m_trapBuilder.checkHazard(m_player.x,m_player.y,
                                                m_player.w,m_player.h,type ,side);
+
+
     unsigned int hitNow =SDL_GetTicks();
+
     if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer){
         PlayerDetail::getInstance().setInvincibility(false);
         if(hazardColl)
@@ -382,10 +391,13 @@ void GameState::update(float dt){
         }
     }
 
-//    LOGI("player hp:%d",PlayerDetail::getInstance().getPlayerHP());
+
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
+
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
+
+
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
     if(Force <0)
     {
@@ -394,15 +406,19 @@ void GameState::update(float dt){
         m_isGrounded = false;
     }
 
+
     if(gameMath::checkcollision(m_player.x,m_player.y,m_checkPoint.x,m_checkPoint.y,
                                 m_player.h,m_player.w,m_checkPoint.h,m_checkPoint.w)){
         triggerCheckpoint();
     }
+
+
     updateAnimation();
 
     m_particleSystem.update(dt);
     m_fruitBuilder.update(dt);
     m_trapBuilder.update(dt);
+
 }
 
 bool GameState::handleEvents(SDL_Event& event) {
@@ -426,52 +442,52 @@ bool GameState::handleEvents(SDL_Event& event) {
 
 void GameState::handleCollision() {
     //Walls
-    for(int i = 0;i<1;i++){
-        const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
-        gameMath::collisionSide wallCollisionSide;
 
-        wallCollisionSide = gameMath::checkcollisionXY(m_player.x,m_player.y,m_wallCollisionRect.x,
-                                                       m_wallCollisionRect.y,
-                                                       m_player.h,m_player.w,
-                                                       TILE_SIZE * SCALE,m_wallCollisionRect.w);
-        if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
-            m_velocityY =0.0f;
-        wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y, m_wallCollisionRect.x,
-                                                       m_wallCollisionRect.y,
-                                                       m_player.h, m_player.w, renderedHeight,
-                                                       TILE_SIZE * SCALE);
-        if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
-            m_velocityY =0.0f;
-        wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y,
-                                                       m_wallCollisionRect.x + m_wallCollisionRect.w -
-                                                       TILE_SIZE * SCALE, m_wallCollisionRect.y,
-                                                       m_player.h, m_player.w, renderedHeight,
-                                                       TILE_SIZE * SCALE);
-        if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
-            m_velocityY =0.0f;
-        wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y, m_wallCollisionRect.x,
-                                                       m_wallCollisionRect.y + renderedHeight -
-                                                       TILE_SIZE * SCALE,
-                                                       m_player.h, m_player.w, TILE_SIZE * SCALE,
-                                                       m_wallCollisionRect.w);
-        if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
-            m_velocityY = 0.0f;
-        if (wallCollisionSide == gameMath::collisionSide::TOP) {
-            m_isGrounded = true;
-            m_velocityY = 0.0f;
-        }
+    const float renderedHeight = (std::ceil(m_wallCollisionRect.h / (SCALE*TILE_SIZE)) *(SCALE *TILE_SIZE));
+    gameMath::collisionSide wallCollisionSide;
+
+    wallCollisionSide = gameMath::checkcollisionXY(m_player.x,m_player.y,m_wallCollisionRect.x,
+                                                   m_wallCollisionRect.y,
+                                                   m_player.h,m_player.w,
+                                                   TILE_SIZE * SCALE,m_wallCollisionRect.w);
+    if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
+        m_velocityY =0.0f;
+    wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y, m_wallCollisionRect.x,
+                                                  m_wallCollisionRect.y,
+                                                  m_player.h, m_player.w, renderedHeight,
+                                                  TILE_SIZE * SCALE);
+    if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
+        m_velocityY =0.0f;
+    wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y,
+                                                  m_wallCollisionRect.x + m_wallCollisionRect.w -
+                                                  TILE_SIZE * SCALE, m_wallCollisionRect.y,
+                                                  m_player.h, m_player.w, renderedHeight,
+                                                  TILE_SIZE * SCALE);
+    if(wallCollisionSide == gameMath::collisionSide::BOTTOM)
+        m_velocityY =0.0f;
+    wallCollisionSide =gameMath::checkcollisionXY(m_player.x, m_player.y, m_wallCollisionRect.x,
+                                                  m_wallCollisionRect.y + renderedHeight -
+                                                  TILE_SIZE * SCALE,
+                                                  m_player.h, m_player.w, TILE_SIZE * SCALE,
+                                                  m_wallCollisionRect.w);
+    if (wallCollisionSide == gameMath::collisionSide::BOTTOM)
+        m_velocityY = 0.0f;
+    if (wallCollisionSide == gameMath::collisionSide::TOP) {
+        m_isGrounded = true;
+        m_velocityY = 0.0f;
     }
 
+
     //platforms
-    for(int i=0;i<10;i++) {
-        if (m_platforms[i].colliderType == ColliderType::SOLID) {
+    for(const auto& platform : m_platforms) {
+        if (platform.colliderType == ColliderType::SOLID) {
 
             gameMath::collisionSide side = gameMath::checkcollisionXY(m_player.x, m_player.y,
-                                                                      m_platforms[i].x,
-                                                                      m_platforms[i].y,
+                                                                      platform.x,
+                                                                      platform.y,
                                                                       m_player.h, m_player.w,
-                                                                      m_platforms[i].h * SCALE,
-                                                                      m_platforms[i].w * SCALE);
+                                                                      platform.h * SCALE,
+                                                                      platform.w * SCALE);
             if (side == gameMath::collisionSide::TOP) {
 
                 m_velocityY = 0.0f;
@@ -480,17 +496,17 @@ void GameState::handleCollision() {
             if (side == gameMath::collisionSide::BOTTOM) {
                 m_velocityY = 0.0f;
             }
-        } else if (m_platforms[i].colliderType == ColliderType::ONE_WAY) {
+        } else if (platform.colliderType == ColliderType::ONE_WAY) {
             float previousBottom = m_previousY + m_player.h;
             float currentBottom = m_player.y + m_player.h;
-            float platformTop = m_platforms[i].y;
+            float platformTop = platform.y;
 
             if (m_velocityY > 0 && previousBottom <= platformTop
                 && currentBottom >= platformTop
-                && gameMath::checkcollisionX(m_player.x, m_player.y, m_platforms[i].x,
-                                             m_platforms[i].y,
-                                             m_player.h, m_player.w, m_platforms[i].h * SCALE,
-                                             m_platforms[i].w * SCALE)) {
+                && gameMath::checkcollisionX(m_player.x, m_player.y, platform.x,
+                                             platform.y,
+                                             m_player.h, m_player.w, platform.h * SCALE,
+                                             platform.w * SCALE)) {
 
                 m_player.y = platformTop - m_player.h;
                 m_velocityY = 0.0f;
@@ -540,7 +556,6 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
     PlayerDetail::getInstance().setInvincibility(true);
     m_hurtAnimEndTime = now + HURT_ANIM_MS;
     m_knockbackEndTime = now + KNOCKBACK_MS;
-    LOGI("player HP:%d",PlayerDetail::getInstance().getPlayerHP());
     const float KNOCK_H = 600.0f, KNOCK_V = 600.0f;
     switch(side){
         case gameMath::collisionSide::TOP:    m_velocityY = -KNOCK_V; break; // pushed up
@@ -698,7 +713,7 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
-    m_levelLoader.loadLevel(0);
+    m_levelLoader.loadLevel(1);
 
     m_checkPoint=m_levelLoader.getCheckPoint();
     m_blocks =m_levelLoader.getBlocks();
@@ -713,8 +728,11 @@ void GameState::setLevel(int level) {
     m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
+
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
+    LOGI("ground builder init");
+
     //TODO : find a work around to push debug state from menustate without passing gamestate to menustate
     if(GameData::getInstance().isDebugEnabled())//had to push here , cant have gamestate being passed everywhere,
     {

@@ -11,6 +11,9 @@
 #include <sstream>
 #include <filesystem>
 
+
+#define LOG_TAG "LevelLoader"
+
 class LevelLoader{
 public:
 
