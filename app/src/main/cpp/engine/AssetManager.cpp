@@ -108,7 +108,7 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_LEFT,"Traps/Spike Head/Left Hit (54x52).png");
     loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_RIGHT,"Traps/Spike Head/Right Hit (54x52).png");
     loadTexture(TextureType::TRAP_SPIKE_HEAD_HIT_TOP,"Traps/Spike Head/Top Hit (54x52).png");
-    loadTexture(TextureType::TRAP_SPIKE_BALL_CAHIN,"Traps/Spiked Ball/Chain.png");
+    loadTexture(TextureType::TRAP_SPIKE_BALL_CHAIN,"Traps/Spiked Ball/Chain.png");
     loadTexture(TextureType::TRAP_SPIKE_BALL,"Traps/Spiked Ball/Spiked Ball.png");
     loadTexture(TextureType::TRAP_SAW_CHAIN,"Traps/Saw/Chain.png");
     loadTexture(TextureType::TRAP_SAW_OFF,"Traps/Saw/Off.png");
@@ -120,7 +120,7 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::CHECKPOINT_FLAG_IDLE,"CheckPoint/Checkpoint (Flag Idle)(64x64).png");
     loadTexture(TextureType::CHECKPOINT_FLAG_OUT,"CheckPoint/Checkpoint (Flag Out) (64x64).png");
     loadTexture(TextureType::CHECKPOINT_FLAG_NO,"CheckPoint/Checkpoint (No Flag).png");
-
+    loadTexture(TextureType::TRANSITION,"misc/Transition.png");
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

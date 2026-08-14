@@ -38,7 +38,7 @@ enum PlayerAction{
 
 class GameState : public State{
 public:
-    GameState(SDL_Renderer* renderer);
+    GameState(SDL_Renderer* renderer,int level);
     ~GameState() override{
         LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
@@ -93,6 +93,9 @@ public:
 private:
     //level
     LevelLoader m_levelLoader;
+    int m_level =0;
+    uint32_t m_lastTransitionTime =0;
+    int m_transitionDelay =3000;
     //animation and texture
     Animation m_Animation;
     PlayerAction m_playerAction = IDLE;

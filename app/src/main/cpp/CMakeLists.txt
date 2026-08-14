@@ -73,6 +73,7 @@ set(MYAPP_SOURCES
         States/inputOverlayState/KeyboardOverlay.cpp
         States/inputOverlayState/GamepadOverlay.cpp
         States/DebugState/DebugState.cpp
+        States/TransitionState/TransitionState.cpp
         States/HUDOverlayState/HUDOverlayState.cpp
         States/GameState/GameState.cpp
         States/GameState/ParticleSystem.cpp

@@ -90,6 +90,8 @@ HUDOverlayState::HUDOverlayState(SDL_Renderer *renderer) {
         if(i >= m_lastHeart)
             m_hearts[i].heartAniType = HeartAniType::LOST;
     }
+    LOGI("HUD overlay state constructor:%p",this);
+
 }
 HUDOverlayState::~HUDOverlayState() {
     LOGI("HUD overlay state destructor:%p",this);

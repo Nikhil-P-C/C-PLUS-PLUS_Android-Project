@@ -215,7 +215,7 @@ void MenuState::activateSelection() {
     switch (m_selectedButton) {
         case MenuButton::PLAY:
             m_transitioning = true;
-            Engine::Get().changeState(std::make_unique<GameState>(m_renderer));
+            Engine::Get().changeState(std::make_unique<GameState>(m_renderer,0));
             Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
 
             if (GameData::getInstance().getControlType() == JOYSTICK) {

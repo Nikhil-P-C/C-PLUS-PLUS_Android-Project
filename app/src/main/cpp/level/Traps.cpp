@@ -621,7 +621,7 @@ const TextureType getChainTexture(TrapType type) {
         case TrapType::SAW: return TextureType::TRAP_SAW_CHAIN;
         case TrapType::MOVING_PLATFORM_BROWN:
         case TrapType::MOVING_PLATFORM_GREY: return TextureType::TRAP_PLATFORM_CHAIN;
-        case TrapType::SPIKE_BALL: return TextureType::TRAP_SPIKE_BALL_CAHIN;
+        case TrapType::SPIKE_BALL: return TextureType::TRAP_SPIKE_BALL_CHAIN;
         default: return TextureType::COUNT; // no chain for anything else
     }
 }

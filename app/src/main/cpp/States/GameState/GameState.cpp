@@ -1,6 +1,7 @@
 
 #include "GameState.h"
 #include "States/MenuState/TitleScreenState.h"
+#include "States/TransitionState/TransitionState.h"
 #include "States/PauseState/PauseState.h"
 #include "States/DebugState/DebugState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
@@ -11,13 +12,14 @@
 //
 // Created by LENOVO on 27-04-2026.
 //
-GameState::GameState(SDL_Renderer *renderer) {
+GameState::GameState(SDL_Renderer *renderer,int level) {
 
     SDL_AddEventWatch(HandleBackgroundEvents,this);
     m_renderer = renderer;
     LOGI("gamestate constructor:%p",this);
     m_windowH =GameData::getInstance().getWinHeight();
     m_windowW =GameData::getInstance().getWinWidth();
+
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
     m_player.setPosition(400.00f,1387.00f,P_scale);
@@ -53,8 +55,8 @@ GameState::GameState(SDL_Renderer *renderer) {
     m_playerNameTextue = SDL_CreateTextureFromSurface(renderer,playerNameSurface);
     SDL_DestroySurface(playerNameSurface);
 
-
-    setLevel(0);
+    m_level = level;
+    setLevel(m_level);
 }
 
 void GameState::render(SDL_Renderer* renderer)  {
@@ -410,10 +412,26 @@ void GameState::update(float dt){
     if(gameMath::checkcollision(m_player.x,m_player.y,m_checkPoint.x,m_checkPoint.y,
                                 m_player.h,m_player.w,m_checkPoint.h,m_checkPoint.w)){
         triggerCheckpoint();
+
+        if(!m_isCompleted)
+            m_lastTransitionTime = SDL_GetTicks();
+        m_isCompleted =true;
     }
 
+    if(m_isCompleted && SDL_GetTicks() - m_lastTransitionTime>m_transitionDelay){
+        if(m_transitioning)return;
+        m_transitioning =true;
+
+        LOGI("Should transition");
+        Engine::Get().popOverlayState();
+        Engine::Get().popOverlayState();
+        if(GameData::getInstance().isDebugEnabled())
+            Engine::Get().popOverlayState();
+        Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,m_level+1));
+    }
 
     updateAnimation();
+    LOGI("from game overlayState:%d",Engine::Get().getOverlayStateCount());
 
     m_particleSystem.update(dt);
     m_fruitBuilder.update(dt);
@@ -713,7 +731,8 @@ void GameState::handlePhysicAndInput(float dt) {
 }
 
 void GameState::setLevel(int level) {
-    m_levelLoader.loadLevel(1);
+
+    m_levelLoader.loadLevel(level);
 
     m_checkPoint=m_levelLoader.getCheckPoint();
     m_blocks =m_levelLoader.getBlocks();

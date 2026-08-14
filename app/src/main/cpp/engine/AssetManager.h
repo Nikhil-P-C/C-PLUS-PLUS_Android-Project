@@ -65,7 +65,7 @@ enum class TextureType{
     TRAP_SPIKE_HEAD_HIT_RIGHT,
     TRAP_SPIKE_HEAD_HIT_LEFT,
     TRAP_SPIKE_BALL,
-    TRAP_SPIKE_BALL_CAHIN,
+    TRAP_SPIKE_BALL_CHAIN,
     TRAP_SAW_OFF,
     TRAP_SAW_ON,
     TRAP_SAW_CHAIN,
@@ -76,6 +76,7 @@ enum class TextureType{
     CHECKPOINT_FLAG_NO,
     CHECKPOINT_FLAG_OUT,
     CHECKPOINT_FLAG_IDLE,
+    TRANSITION,
     COUNT
 };
 class AssetManager{
