@@ -76,6 +76,8 @@ void HUDOverlayState::updateAnimation() {
 }
 
 HUDOverlayState::HUDOverlayState(SDL_Renderer *renderer) {
+    this->Name = "HUDState";
+
     m_renderer =renderer;
     m_hearts.reserve(5);
     m_hearts.emplace_back(SDL_FRect{25.00f,0.00f,75.00f,75.00f});

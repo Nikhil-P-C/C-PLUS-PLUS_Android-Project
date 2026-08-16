@@ -245,6 +245,8 @@ bool EditMenuState::handleEvents(SDL_Event &event)
 
 EditMenuState::EditMenuState(SDL_Renderer *renderer)
 {
+    this->Name = "EditMenuState";
+
     m_renderer =renderer;
 
     if(!m_fontfile)

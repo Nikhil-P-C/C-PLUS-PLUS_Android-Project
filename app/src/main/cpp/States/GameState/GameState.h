@@ -93,17 +93,22 @@ public:
 private:
     //level
     LevelLoader m_levelLoader;
+
     int m_level =0;
-    uint32_t m_lastTransitionTime =0;
     int m_transitionDelay =3000;
+    uint32_t m_lastTransitionTime =0;
+
+
+
     //animation and texture
-    Animation m_Animation;
-    PlayerAction m_playerAction = IDLE;
-    unsigned int m_hurtAnimEndTime =0;
+    uint32_t m_hurtAnimEndTime =0;
+    uint32_t m_aniNowTime =0;
+    uint32_t m_aniLastTime =SDL_GetTicks();
     int m_currentFrame=0;
     int m_aniframeDelay =50;//delayed by 50ms
-    unsigned int m_aniNowTime =0;
-    unsigned int m_aniLastTime =SDL_GetTicks();
+    Animation m_Animation;
+    PlayerAction m_playerAction = IDLE;
+
 
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
 
@@ -122,7 +127,7 @@ private:
     static const int SPRITE_WIDTH  =24;
 
     //player and platform
-    bool m_isPlayerfacingRight =true;
+
     std::vector<Platform> m_platforms;
     std::vector<LevelGround> m_grounds;
     std::vector<LevelGround> m_levelWalls;
@@ -148,19 +153,24 @@ private:
     SDL_Renderer* m_renderer = nullptr;
 
     //mechanics
-    bool m_isCompleted=false;
-    bool m_transitioning=false;
+
     int m_invincibilityTimer = 5000;
     int m_blinkTimer =500;
-    unsigned int m_knockbackEndTime =0;
+    uint32_t m_knockbackEndTime =0;
     //physics
     float m_previousY = 0.0f;
     float m_velocityY =0.0f;
     float m_velocityX =0.0f;
     float m_gravity =1800.00f;
     float m_jumpVelocity =1000.00f;
+
+
     bool  m_isGrounded =true;
     bool  m_wasGrounded =false;
+    bool m_isPlayerfacingRight =true;
+    bool m_isCompleted=false;
+    bool m_transitioning=false;
+    bool m_levelTransitioning =false;
 
 };
 

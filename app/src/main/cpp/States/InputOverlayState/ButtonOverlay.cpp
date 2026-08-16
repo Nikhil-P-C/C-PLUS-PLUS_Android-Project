@@ -121,6 +121,8 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
 
 
 ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
+    this->Name = "ButtonState";
+
     LOGI("Button Overlay Constructor : %p",this);
     m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
     m_leftButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_LEFT_BUTTON);

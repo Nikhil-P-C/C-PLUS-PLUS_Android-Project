@@ -43,6 +43,8 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
 }
 
 KeyboardOverlay::KeyboardOverlay(SDL_Renderer *renderer) {
+    this->Name = "KeyboardState";
+
     m_renderer=renderer;
     LOGI("keyboard overlay constructor:%p",this);
 

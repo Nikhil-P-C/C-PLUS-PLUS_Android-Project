@@ -77,6 +77,8 @@ bool OptionMenuState::handleEvents(SDL_Event &event) {
 }
 
 OptionMenuState::OptionMenuState(SDL_Renderer *renderer) {
+    this->Name = "OptionMenuState";
+
     LOGI("Option Menu State Constructor:%p",this);
 
     m_renderer =renderer;

@@ -122,6 +122,8 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
 }
 
 SepJoysticknButton::SepJoysticknButton(SDL_Renderer *renderer) {
+    this->Name = "JnBState";
+
     m_joystickTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING);
 
     m_joystickHandleTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE);

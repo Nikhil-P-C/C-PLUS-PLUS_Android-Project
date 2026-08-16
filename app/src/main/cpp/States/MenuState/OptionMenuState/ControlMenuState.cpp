@@ -140,6 +140,8 @@ bool ControlMenuState::handleEvents(SDL_Event &event) {
 }
 
 ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
+    this->Name = "ControlMenu";
+
     m_renderer =renderer;
 
     m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);

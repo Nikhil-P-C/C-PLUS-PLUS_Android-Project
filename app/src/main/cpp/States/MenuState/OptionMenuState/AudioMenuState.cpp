@@ -164,6 +164,8 @@ bool AudioMenuState::handleEvents(SDL_Event &event) {
     return false;
 }
 AudioMenuState::AudioMenuState(SDL_Renderer *renderer) {
+    this->Name = "AudioMenuState";
+
     LOGI("Audio menu state constructor:%p",this);
     m_renderer =renderer;
 

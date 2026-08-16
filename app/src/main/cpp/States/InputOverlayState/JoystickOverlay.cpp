@@ -117,6 +117,7 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
 }
 
 JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
+    this->Name = "JoystickState";
 
     m_joystickTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING);
     m_joystickHandleTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE);

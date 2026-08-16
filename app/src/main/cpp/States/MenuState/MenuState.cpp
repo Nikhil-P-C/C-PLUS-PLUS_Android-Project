@@ -17,95 +17,6 @@
 #include "States/MenuState/EditMenuState/EditMenuState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
 
-MenuState::MenuState(SDL_Renderer *renderer) {
-    LOGI("menu construct:%p",this);
-    if(!m_fontfile)return;
-    if(!m_fontShadowfile)return;
-
-
-
-    m_font =TTF_OpenFontIO(m_fontfile,false,32);
-    m_fontShadow =TTF_OpenFontIO(m_fontShadowfile,false,32);
-
-    if(!m_font)return;
-    if(!m_fontShadow)return;
-
-
-    m_renderer = renderer;
-    m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
-    m_playButtonTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_BUTTONS);
-
-    //text texture
-    //play text
-    SDL_Surface *playFontSurface = TTF_RenderText_Solid(m_font, " Play",
-                                                        5, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *playFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Play",
-                                                              5, SDL_Color{0, 0, 0, 255});
-    m_playText = SDL_CreateTextureFromSurface(renderer, playFontSurface);
-    m_playTextShadow = SDL_CreateTextureFromSurface(renderer, playFontShadowSurface);
-    SDL_DestroySurface(playFontSurface);
-    SDL_DestroySurface(playFontShadowSurface);
-
-    //option text
-    SDL_Surface *optionFontSurface = TTF_RenderText_Solid(m_font, " option",
-                                                        7, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *optionFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " option",
-                                                              7, SDL_Color{0, 0, 0, 255});
-    m_optionText = SDL_CreateTextureFromSurface(renderer, optionFontSurface);
-    m_optionTextShadow = SDL_CreateTextureFromSurface(renderer, optionFontShadowSurface);
-    SDL_DestroySurface(optionFontSurface);
-    SDL_DestroySurface(optionFontShadowSurface);
-
-    //quit text
-    SDL_Surface *quitFontSurface = TTF_RenderText_Solid(m_font, " Quit",
-                                                    5, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *quitFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Quit",
-                                                          5, SDL_Color{0, 0, 0, 255});
-    m_quitText = SDL_CreateTextureFromSurface(renderer, quitFontSurface);
-    m_quitTextShadow = SDL_CreateTextureFromSurface(renderer, quitFontShadowSurface);
-    SDL_DestroySurface(quitFontSurface);
-    SDL_DestroySurface(quitFontShadowSurface);
-
-    //edit text
-    SDL_Surface *editFontSurface = TTF_RenderText_Solid(m_font, " Edit",
-                                                    5, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *editFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Edit",
-                                                          5, SDL_Color{0, 0, 0, 255});
-    m_editText = SDL_CreateTextureFromSurface(renderer, editFontSurface);
-    m_editTextShadow = SDL_CreateTextureFromSurface(renderer, editFontShadowSurface);
-    SDL_DestroySurface(editFontSurface);
-    SDL_DestroySurface(editFontShadowSurface);
-
-    SDL_SetTextureScaleMode(m_playText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_playTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_quitText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_quitTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_editText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_editTextShadow,SDL_SCALEMODE_NEAREST);
-
-}
-
-MenuState::~MenuState() {
-
-    LOGI("menu destructor:%p",this);
-
-    SDL_DestroyTexture(m_playText);
-    SDL_DestroyTexture(m_playTextShadow);
-    SDL_DestroyTexture(m_optionText);
-    SDL_DestroyTexture(m_optionTextShadow);
-    SDL_DestroyTexture(m_quitText);
-    SDL_DestroyTexture(m_quitTextShadow);
-    SDL_DestroyTexture(m_editText);
-    SDL_DestroyTexture(m_editTextShadow);
-
-    TTF_CloseFont(m_font);
-    TTF_CloseFont(m_fontShadow);
-
-    SDL_CloseIO(m_fontfile);
-    SDL_CloseIO(m_fontShadowfile);
-}
 
 void MenuState::render(SDL_Renderer* renderer) {
     SDL_FRect backgroundDst{0, 0, 1600, 720};
@@ -246,4 +157,96 @@ void MenuState::activateSelection() {
             Engine::Get().exitEngine();
             break;
     }
+}
+
+MenuState::MenuState(SDL_Renderer *renderer) {
+    this->Name = "MenuState";
+
+    LOGI("menu construct:%p",this);
+    if(!m_fontfile)return;
+    if(!m_fontShadowfile)return;
+
+
+
+    m_font =TTF_OpenFontIO(m_fontfile,false,32);
+    m_fontShadow =TTF_OpenFontIO(m_fontShadowfile,false,32);
+
+    if(!m_font)return;
+    if(!m_fontShadow)return;
+
+
+    m_renderer = renderer;
+    m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
+    m_playButtonTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_BUTTONS);
+
+    //text texture
+    //play text
+    SDL_Surface *playFontSurface = TTF_RenderText_Solid(m_font, " Play",
+                                                        5, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *playFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Play",
+                                                              5, SDL_Color{0, 0, 0, 255});
+    m_playText = SDL_CreateTextureFromSurface(renderer, playFontSurface);
+    m_playTextShadow = SDL_CreateTextureFromSurface(renderer, playFontShadowSurface);
+    SDL_DestroySurface(playFontSurface);
+    SDL_DestroySurface(playFontShadowSurface);
+
+    //option text
+    SDL_Surface *optionFontSurface = TTF_RenderText_Solid(m_font, " option",
+                                                          7, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *optionFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " option",
+                                                                7, SDL_Color{0, 0, 0, 255});
+    m_optionText = SDL_CreateTextureFromSurface(renderer, optionFontSurface);
+    m_optionTextShadow = SDL_CreateTextureFromSurface(renderer, optionFontShadowSurface);
+    SDL_DestroySurface(optionFontSurface);
+    SDL_DestroySurface(optionFontShadowSurface);
+
+    //quit text
+    SDL_Surface *quitFontSurface = TTF_RenderText_Solid(m_font, " Quit",
+                                                        5, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *quitFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Quit",
+                                                              5, SDL_Color{0, 0, 0, 255});
+    m_quitText = SDL_CreateTextureFromSurface(renderer, quitFontSurface);
+    m_quitTextShadow = SDL_CreateTextureFromSurface(renderer, quitFontShadowSurface);
+    SDL_DestroySurface(quitFontSurface);
+    SDL_DestroySurface(quitFontShadowSurface);
+
+    //edit text
+    SDL_Surface *editFontSurface = TTF_RenderText_Solid(m_font, " Edit",
+                                                        5, SDL_Color{255, 255, 255, 255});
+    SDL_Surface *editFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Edit",
+                                                              5, SDL_Color{0, 0, 0, 255});
+    m_editText = SDL_CreateTextureFromSurface(renderer, editFontSurface);
+    m_editTextShadow = SDL_CreateTextureFromSurface(renderer, editFontShadowSurface);
+    SDL_DestroySurface(editFontSurface);
+    SDL_DestroySurface(editFontShadowSurface);
+
+    SDL_SetTextureScaleMode(m_playText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_playTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_optionText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_optionTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_quitText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_quitTextShadow,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_editText,SDL_SCALEMODE_NEAREST);
+    SDL_SetTextureScaleMode(m_editTextShadow,SDL_SCALEMODE_NEAREST);
+
+}
+
+MenuState::~MenuState() {
+
+    LOGI("menu destructor:%p",this);
+
+    SDL_DestroyTexture(m_playText);
+    SDL_DestroyTexture(m_playTextShadow);
+    SDL_DestroyTexture(m_optionText);
+    SDL_DestroyTexture(m_optionTextShadow);
+    SDL_DestroyTexture(m_quitText);
+    SDL_DestroyTexture(m_quitTextShadow);
+    SDL_DestroyTexture(m_editText);
+    SDL_DestroyTexture(m_editTextShadow);
+
+    TTF_CloseFont(m_font);
+    TTF_CloseFont(m_fontShadow);
+
+    SDL_CloseIO(m_fontfile);
+    SDL_CloseIO(m_fontShadowfile);
 }

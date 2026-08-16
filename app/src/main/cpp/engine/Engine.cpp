@@ -51,7 +51,6 @@ void Engine::run(){
         }
         m_CommandQueue.clear();
 
-
         SDL_RenderClear(m_renderer);
         for(const auto &state : m_States)
             state->render(m_renderer);
@@ -68,6 +67,23 @@ void Engine::run(){
 
         }
         m_CommandOverlayQueue.clear();
+        //remove this after fix
+        if(SDL_GetTicks() - lasttimelog > 1000) {
+
+            LOGI("overlay State name(in order:");
+            for (const auto &state: m_OverlayStates) {
+                LOGI("state name : %s ", state->Name.c_str());
+            }
+            LOGI("completed overlay State list after applying command");
+            //remove this after fix
+            LOGI("State name(in order:");
+            for(const auto& state : m_States){
+                LOGI("state name : %s ",state->Name.c_str());
+            }
+            LOGI("completed State list after applying command");
+
+            lasttimelog =SDL_GetTicks();
+        }
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 

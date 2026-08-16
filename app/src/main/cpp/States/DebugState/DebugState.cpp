@@ -99,6 +99,8 @@ bool DebugState::handleEvents(SDL_Event &event) {
 }
 
 DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
+    this->Name = "DebugState";
+
     m_gameState =gameState;
     m_grounds=m_gameState->getLevelGrounds();
     m_walls=m_gameState->getLevelWalls();

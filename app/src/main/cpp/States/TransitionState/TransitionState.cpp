@@ -11,20 +11,6 @@
 #include "utils/GameData.h"
 #include <cmath>
 
-TransitionState::TransitionState(SDL_Renderer *renderer, int level) {
-    m_renderer = renderer;
-    m_level = level;
-    if(level > 1)
-        m_level =0;
-    m_lastTime = SDL_GetTicks();
-
-    m_diamondTexture = Engine::Get().getAssetManager().getTexture(TextureType::TRANSITION);
-
-
-    buildGrid();
-}
-
-TransitionState::~TransitionState() {}
 
 void TransitionState::buildGrid() {
     int winW = GameData::getInstance().getWinWidth();
@@ -128,3 +114,19 @@ void TransitionState::render(SDL_Renderer *renderer) {
 bool TransitionState::handleEvents(SDL_Event &event) {
     return true; // swallow input while transitioning
 }
+
+TransitionState::TransitionState(SDL_Renderer *renderer, int level) {
+    this->Name = "Transition";
+    m_renderer = renderer;
+    m_level = level;
+    if(level > 1)
+        m_level =0;
+    m_lastTime = SDL_GetTicks();
+
+    m_diamondTexture = Engine::Get().getAssetManager().getTexture(TextureType::TRANSITION);
+
+
+    buildGrid();
+}
+
+TransitionState::~TransitionState() {}

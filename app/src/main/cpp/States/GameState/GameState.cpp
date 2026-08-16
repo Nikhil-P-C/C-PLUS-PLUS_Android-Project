@@ -13,7 +13,7 @@
 // Created by LENOVO on 27-04-2026.
 //
 GameState::GameState(SDL_Renderer *renderer,int level) {
-
+    this->Name = "GameState";
     SDL_AddEventWatch(HandleBackgroundEvents,this);
     m_renderer = renderer;
     LOGI("gamestate constructor:%p",this);
@@ -419,10 +419,9 @@ void GameState::update(float dt){
     }
 
     if(m_isCompleted && SDL_GetTicks() - m_lastTransitionTime>m_transitionDelay){
-        if(m_transitioning)return;
-        m_transitioning =true;
+        if(m_levelTransitioning)return;
+        m_levelTransitioning =true;
 
-        LOGI("Should transition");
         Engine::Get().popOverlayState();
         Engine::Get().popOverlayState();
         if(GameData::getInstance().isDebugEnabled())
@@ -431,7 +430,6 @@ void GameState::update(float dt){
     }
 
     updateAnimation();
-    LOGI("from game overlayState:%d",Engine::Get().getOverlayStateCount());
 
     m_particleSystem.update(dt);
     m_fruitBuilder.update(dt);
@@ -750,7 +748,6 @@ void GameState::setLevel(int level) {
 
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
-    LOGI("ground builder init");
 
     //TODO : find a work around to push debug state from menustate without passing gamestate to menustate
     if(GameData::getInstance().isDebugEnabled())//had to push here , cant have gamestate being passed everywhere,

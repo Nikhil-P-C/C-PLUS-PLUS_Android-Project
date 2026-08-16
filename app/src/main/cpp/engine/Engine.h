@@ -95,6 +95,8 @@ private:
 
     bool m_running =true;
 
+    //remove this after fix
+    uint32_t lasttimelog =0;
     AssetManager m_assetManager;
 
 };

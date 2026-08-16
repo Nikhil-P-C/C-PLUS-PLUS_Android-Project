@@ -65,6 +65,7 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
 }
 
 GamepadOverlay::GamepadOverlay(SDL_Renderer *renderer) {
+    this->Name = "GamepadState";
 
     m_renderer=renderer;
     LOGI("Gamepad overlay constructor:%p",this);

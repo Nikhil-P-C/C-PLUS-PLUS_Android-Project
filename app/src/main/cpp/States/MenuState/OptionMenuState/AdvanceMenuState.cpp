@@ -49,6 +49,8 @@ bool AdvanceMenuState::handleEvents(SDL_Event &event) {
 }
 
 AdvanceMenuState::AdvanceMenuState(SDL_Renderer *renderer) {
+    this->Name = "AdvanceMenuState";
+
     m_renderer = renderer;
     m_menuTexture=Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
     m_optionBlockTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);

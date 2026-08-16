@@ -22,11 +22,7 @@
 #include "States/DebugState/DebugState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
 
-PauseState::PauseState(SDL_Renderer *renderer, GameState* gameState) {
-    LOGI("Pause construct:%p",this);
-    m_gameState = gameState;
-    init(renderer);
-}
+
 
 void PauseState::init(SDL_Renderer *renderer) {
     m_font = TTF_OpenFontIO(m_fontfile,false,24);
@@ -83,9 +79,11 @@ void PauseState::render(SDL_Renderer *renderer) {
 void PauseState::update(float dt) {
 
 }
+
 bool PauseState::shouldClose(float x ,float y) const{
     return  (x >= m_exit.x && x <= m_exit.x + m_exit.w && y >= m_exit.y && y <= m_exit.y + m_exit.h);
 }
+
 bool PauseState::handleEvents(SDL_Event &event) {
     if(m_transitioning)return true;
 
@@ -125,6 +123,13 @@ bool PauseState::handleEvents(SDL_Event &event) {
     }
 
     return false;
+}
+
+PauseState::PauseState(SDL_Renderer *renderer, GameState* gameState) {
+    this->Name = "PauseState";
+    LOGI("Pause construct:%p",this);
+    m_gameState = gameState;
+    init(renderer);
 }
 
 PauseState::~PauseState() {

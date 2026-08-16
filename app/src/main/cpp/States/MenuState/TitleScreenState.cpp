@@ -18,6 +18,7 @@ void TitleScreenState::render(SDL_Renderer *renderer) {
 //  SDL_RenderTexture(m_renderer, backGround, nullptr, &backgroundDst);
     SDL_RenderTexture(m_renderer, m_background,&backgroundSrc, &backgroundDst);
 }
+
 void TitleScreenState::update(float dt) {
 
     m_now =SDL_GetTicks();
@@ -28,6 +29,7 @@ void TitleScreenState::update(float dt) {
         m_last = m_now;
     }
 }
+
 bool TitleScreenState::handleEvents(SDL_Event &event){
     if(InputUtils::IsPointerDown(event)){
         Engine::Get().changeState(std::make_unique<MenuState>(m_renderer));
@@ -43,13 +45,17 @@ bool TitleScreenState::handleEvents(SDL_Event &event){
     }
     return false;
 }
+
 TitleScreenState::TitleScreenState(SDL_Renderer *renderer){
+    this->Name = "TitleScreen";
+
     m_renderer = renderer;
 
     m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI_ANIMATED);
 
 
 }
+
 TitleScreenState::~TitleScreenState() {
         LOGI("TitleScreenState destructor:%p",this);
 }
