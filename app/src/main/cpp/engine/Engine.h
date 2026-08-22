@@ -64,12 +64,23 @@ public:
     bool isStatesEmpty(){
         return m_States.empty();
     }
+    //use for exceptional case ,if no other choice ,handle carefully
+    template<typename T>
+    T* getCurrentState(){
+        return static_cast<T*>(m_States.back().get());
+    }
+    template<typename T>
+    T* getCurrentOverlayState(){
+        return static_cast<T*>(m_OverlayStates.back().get());
+    }
+
     size_t getOverlayStateCount(){
         return m_OverlayStates.size();
     }
     size_t getStateCount(){
         return m_States.size();
     }
+
     SDL_Window* getWindow(){
         return m_window;
     }

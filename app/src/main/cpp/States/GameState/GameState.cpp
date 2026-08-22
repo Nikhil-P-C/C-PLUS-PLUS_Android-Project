@@ -360,6 +360,10 @@ void GameState::update(float dt){
                     break;
                 case gameMath::collisionSide::BOTTOM:
                     m_velocityY =0.0f;
+                case gameMath::collisionSide::LEFT:
+                case gameMath::collisionSide::RIGHT:
+                case gameMath::collisionSide::NONE:
+                    break;
             }
         }
         //trampoline
@@ -749,11 +753,6 @@ void GameState::setLevel(int level) {
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
 
-    //TODO : find a work around to push debug state from menustate without passing gamestate to menustate
-    if(GameData::getInstance().isDebugEnabled())//had to push here , cant have gamestate being passed everywhere,
-    {
-        Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,this));
-    }
 }
 
 bool GameState::hasWallAbove(float x, float y) {
@@ -799,10 +798,12 @@ bool GameState::hasWallLeft(float x, float y) {
     }
     return false;
 }
+
 bool GameState::isBlinkFrame() const {
     unsigned int elapsed = SDL_GetTicks() - PlayerDetail::getInstance().getLastHitTime();
     return (elapsed / m_blinkTimer) % 2 == 0;
 }
+
 bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event) {
     auto* gameState = static_cast<GameState*>(userdata);
     if (event->type == SDL_EVENT_WILL_ENTER_BACKGROUND && !GameData::getInstance().isPaused()) {

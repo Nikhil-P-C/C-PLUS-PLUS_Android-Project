@@ -3,7 +3,7 @@
 #include "State/State.h"
 #include <SDL3/SDL.h>
 #include <vector>
-
+class GameState;//forward declare;
 class TransitionState : public State {
 public:
     TransitionState(SDL_Renderer* renderer, int level);
@@ -36,4 +36,5 @@ private:
 
     bool m_hasSwapped = false;
     std::vector<Diamond> m_diamonds;
+    GameState* m_gameState= nullptr;
 };

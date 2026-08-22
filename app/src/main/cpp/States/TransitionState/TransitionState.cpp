@@ -9,6 +9,7 @@
 #include "States/InputOverlayState/KeyboardOverlay.h"
 #include "States/InputOverlayState/GamepadOverlay.h"
 #include "utils/GameData.h"
+#include "States/DebugState/DebugState.h"
 #include <cmath>
 
 
@@ -69,18 +70,26 @@ void TransitionState::update(float dt) {
     if (!m_hasSwapped && elapsed >= m_growDuration + (uint32_t)m_maxStagger) {
         m_hasSwapped = true;
 
+        //risky code
         Engine::Get().popState();//old gamestate
-        Engine::Get().pushState(std::make_unique<GameState>(m_renderer, m_level));
+        auto newGameState = std::make_unique<GameState>(m_renderer, m_level);
+        m_gameState = newGameState.get();//capture the raw pointer before ownership moves into the command queue;
+        //getCurrentState() would be stale here since PUSH/POP are queued, not applied until next frame
+        Engine::Get().pushState(std::move(newGameState));
+
 
     }
 
     if (m_hasSwapped && elapsed >= m_growDuration + m_shrinkDuration + (uint32_t)m_maxStagger) {
         Engine::Get().popOverlayState();//pop this state
-        Engine::Get().popOverlayState();//pop this state
+
 
         LOGI("overlayState:%d",Engine::Get().getOverlayStateCount());
         Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
-        if(GameData::getInstance().isDebugEnabled());
+        if(GameData::getInstance().isDebugEnabled()){
+            if(m_gameState)
+                Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
+        }
         if (GameData::getInstance().getControlType() == JOYSTICK)
             Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
         if (GameData::getInstance().getControlType() == BUTTONS)

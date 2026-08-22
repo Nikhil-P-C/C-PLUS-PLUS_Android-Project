@@ -50,13 +50,6 @@ void Engine::run(){
 
         }
         m_CommandQueue.clear();
-
-        SDL_RenderClear(m_renderer);
-        for(const auto &state : m_States)
-            state->render(m_renderer);
-
-
-
         for (auto& cmd : m_CommandOverlayQueue) {
             if (cmd.type == commandType::PUSH)
                 m_OverlayStates.push_back(std::move(cmd.state));
@@ -67,6 +60,16 @@ void Engine::run(){
 
         }
         m_CommandOverlayQueue.clear();
+
+
+
+        SDL_RenderClear(m_renderer);
+        for(const auto &state : m_States)
+            state->render(m_renderer);
+
+
+
+
         //remove this after fix
         if(SDL_GetTicks() - lasttimelog > 1000) {
 
@@ -88,6 +91,8 @@ void Engine::run(){
             state->render(m_renderer);
 
         SDL_SetRenderDrawColor(m_renderer,33,31,48,255);
+
+
         SDL_RenderPresent(m_renderer);
 
         //polling events from states

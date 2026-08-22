@@ -5,6 +5,9 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include "State/state.h"
 #include "utils/utils.h"
+
+class GameState;//forward declare;
+
 enum class MenuButton{
     PLAY =0,
     OPTION =1,
@@ -49,4 +52,5 @@ private:
 
     SDL_Renderer* m_renderer = nullptr;
 
+    GameState* m_gameState= nullptr;
 };

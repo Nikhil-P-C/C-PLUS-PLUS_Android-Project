@@ -124,9 +124,14 @@ bool MenuState::handleEvents(SDL_Event &event) {
 
 void MenuState::activateSelection() {
     switch (m_selectedButton) {
-        case MenuButton::PLAY:
+        case MenuButton::PLAY: {
             m_transitioning = true;
-            Engine::Get().changeState(std::make_unique<GameState>(m_renderer,0));
+            Engine::Get().popState();//old gamestate
+            auto newGameState = std::make_unique<GameState>(m_renderer, 0);
+            m_gameState = newGameState.get();//capture the raw pointer before ownership moves into the command queue;
+            //getCurrentState() would be stale here since PUSH/POP are queued, not applied until next frame
+            Engine::Get().changeState(std::move(newGameState));
+            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
             Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
 
             if (GameData::getInstance().getControlType() == JOYSTICK) {
@@ -145,6 +150,7 @@ void MenuState::activateSelection() {
                 Engine::Get().pushOverlayState(std::make_unique<GamepadOverlay>(m_renderer));
             }
             break;
+        }
         case MenuButton::OPTION:
             m_transitioning = true;
             Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
