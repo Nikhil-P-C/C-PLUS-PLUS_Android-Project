@@ -128,10 +128,12 @@ void MenuState::activateSelection() {
             m_transitioning = true;
             Engine::Get().popState();//old gamestate
             auto newGameState = std::make_unique<GameState>(m_renderer, 0);
+
             m_gameState = newGameState.get();//capture the raw pointer before ownership moves into the command queue;
             //getCurrentState() would be stale here since PUSH/POP are queued, not applied until next frame
             Engine::Get().changeState(std::move(newGameState));
-            Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
+            if(GameData::getInstance().isDebugEnabled())
+                Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
             Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
 
             if (GameData::getInstance().getControlType() == JOYSTICK) {
