@@ -66,7 +66,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
     SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
-
+    m_backgroundBuilder.render(m_renderer);
     for(const auto& level :m_levelWalls)
     {
         int tileSize =(int)(TILE_SIZE*SCALE);
@@ -310,6 +310,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 
     m_blockBuilder.render(m_renderer);
+    m_foregroundBuilder.render(m_renderer);
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);
@@ -752,7 +753,8 @@ void GameState::setLevel(int level) {
 
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
-
+    m_backgroundBuilder.init(m_backgroundElements);
+    m_foregroundBuilder.init(m_foregroundElements);
 }
 
 bool GameState::hasWallAbove(float x, float y) {

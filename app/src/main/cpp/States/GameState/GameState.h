@@ -13,10 +13,13 @@
 #include "utils/utils.h"
 #include "level/GroundShapeBuilder.h"
 #include "ParticleSystem.h"
+
 #include "level/Fruits.h"
 #include "level/Traps.h"
 #include "level/BlockShapeBuilder.h"
 #include "level/CheckPoint.h"
+#include "level/BackGroundBuilder.h"
+#include "level/ForeGroundBuilder.h"
 #include "level/LevelLoader/LevelLoader.h"
 
 #define LOG_TAG "GameState"
@@ -134,12 +137,16 @@ private:
     std::vector<Fruit> m_fruits;
     std::vector<Trap> m_traps;
     std::vector<Block> m_blocks;
+    std::vector<BackGroundElement> m_backgroundElements;
+    std::vector<ForeGroundElement> m_foregroundElements;
 
     SDL_FRect  m_wallCollisionRect{0.00f};
     FruitBuilder m_fruitBuilder;
     TrapBuilder m_trapBuilder;
     GroundShape m_wallShape;
     BlockBuilder m_blockBuilder;
+    BackGroundBuilder m_backgroundBuilder;
+    ForeGroundBuilder m_foregroundBuilder;
     ParticleSystem m_particleSystem;
     float m_walkTimer=0.0f;
 

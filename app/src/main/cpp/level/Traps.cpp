@@ -14,9 +14,7 @@ std::vector<Trap> &TrapBuilder::getTraps()
     return m_traps;
 }
 
-void TrapBuilder::init(const std::vector<Trap> &traps)
-
-{
+void TrapBuilder::init(const std::vector<Trap> &traps){
     m_traps =traps;
     unsigned int now = SDL_GetTicks();
     for(auto& trap : m_traps){
