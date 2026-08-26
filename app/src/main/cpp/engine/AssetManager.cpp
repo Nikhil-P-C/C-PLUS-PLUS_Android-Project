@@ -121,6 +121,12 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::CHECKPOINT_FLAG_OUT,"CheckPoint/Checkpoint (Flag Out) (64x64).png");
     loadTexture(TextureType::CHECKPOINT_FLAG_NO,"CheckPoint/Checkpoint (No Flag).png");
     loadTexture(TextureType::TRANSITION,"misc/Transition.png");
+    loadTexture(TextureType::BG_GREENERY_SKY,"Background/greenery_sky.png");
+    loadTexture(TextureType::BG_GREENERY_MOUNTAINS,"Background/greenery_mountains.png");
+    loadTexture(TextureType::BG_GREENERY_TREES,"Background/greenery_trees.png");
+    loadTexture(TextureType::FG_GREENERY_NEAR_GRASS,"ForeGround/greenery_neargrass.png");
+    loadTexture(TextureType::FG_GREENERY_NEAR_OBJECT,"ForeGround/greenery_nearobjects.png");
+
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

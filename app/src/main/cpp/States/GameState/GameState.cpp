@@ -64,8 +64,8 @@ void GameState::render(SDL_Renderer* renderer)  {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
 
-    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
-    SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
+//    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
+//    SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
     m_backgroundBuilder.render(m_renderer);
     for(const auto& level :m_levelWalls)
     {
@@ -745,7 +745,8 @@ void GameState::setLevel(int level) {
     m_fruits =m_levelLoader.getFruits();
     m_traps =m_levelLoader.getTraps();
 
-    m_wallCollisionRect={0.00f,0.00f,3200.00f,1536};
+    if(!m_levelWalls.empty())
+        m_wallCollisionRect={0.00f,0.00f,3200.00f,1536};
 
     m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
     m_fruitBuilder.init(m_fruits);

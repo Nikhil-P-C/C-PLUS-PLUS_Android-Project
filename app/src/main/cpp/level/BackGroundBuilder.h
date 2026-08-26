@@ -4,15 +4,18 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <vector>
+#include "engine/Engine.h"
 // index 1 is base , index < 1 is background
+
 struct BackGroundElement{
-    BackGroundElement(float x,float y,float w,float h,float parallaxFactorX,float parallaxFactorY,bool isAnimated):
-    parallaxFloatX(parallaxFactorX),parallaxFloatY(parallaxFactorY),isAnimated(isAnimated){
+    BackGroundElement(float x,float y,float w,float h,float parallaxFactorX,float parallaxFactorY,bool isAnimated,TextureType type):
+    parallaxFloatX(parallaxFactorX),parallaxFloatY(parallaxFactorY),isAnimated(isAnimated),type(type){
         rect.x = x;
         rect.y = y;
         rect.w = w;
         rect.h = h;
     }
+    TextureType type = TextureType::BG_SKY;
     SDL_FRect rect{0};
     float parallaxFloatX= 0.75f;//default render on right below main ground
     float parallaxFloatY = 0.50f;

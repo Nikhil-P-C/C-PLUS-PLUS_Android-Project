@@ -127,32 +127,7 @@ void MenuState::activateSelection() {
     switch (m_selectedButton) {
         case MenuButton::PLAY: {
             m_transitioning = true;
-            Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,0));
-//            Engine::Get().popState();//old gamestate
-//            auto newGameState = std::make_unique<GameState>(m_renderer, 0);
-//
-//            m_gameState = newGameState.get();//capture the raw pointer before ownership moves into the command queue;
-//            //getCurrentState() would be stale here since PUSH/POP are queued, not applied until next frame
-//            Engine::Get().changeState(std::move(newGameState));
-//            if(GameData::getInstance().isDebugEnabled())
-//                Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
-//            Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
-//
-//            if (GameData::getInstance().getControlType() == JOYSTICK) {
-//                Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
-//            }
-//            if (GameData::getInstance().getControlType() == BUTTONS) {
-//                Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
-//            }
-//            if (GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK) {
-//                Engine::Get().pushOverlayState(std::make_unique<SepJoysticknButton>(m_renderer));
-//            }
-//            if (GameData::getInstance().getControlType() == KEYBOARD) {
-//                Engine::Get().pushOverlayState(std::make_unique<KeyboardOverlay>(m_renderer));
-//            }
-//            if (GameData::getInstance().getControlType() == GAMEPAD) {
-//                Engine::Get().pushOverlayState(std::make_unique<GamepadOverlay>(m_renderer));
-//            }
+            Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,2));
             break;
         }
         case MenuButton::OPTION:

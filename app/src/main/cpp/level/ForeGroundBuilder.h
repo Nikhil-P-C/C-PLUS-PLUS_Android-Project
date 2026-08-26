@@ -5,17 +5,20 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <vector>
+#include "engine/Engine.h"
 // index 1 is base , index > 1 is ForeGround
 struct ForeGroundElement{
-    ForeGroundElement(float x,float y,float w,float h,float parallaxFactor,bool isAnimated):
-            parallaxFloat(parallaxFactor),isAnimated(isAnimated){
+    ForeGroundElement(float x,float y,float w,float h,float parallaxFactorX,float parallaxFactorY,bool isAnimated,TextureType type):
+            parallaxFloatX(parallaxFactorX),parallaxFloatY(parallaxFactorY),isAnimated(isAnimated),type(type){
         rect.x = x;
         rect.y = y;
         rect.w = w;
         rect.h = h;
     }
     SDL_FRect rect{0};
-    float parallaxFloat= 1.25;//default render on right below main ground
+    TextureType type = TextureType::FG_GREENERY_NEAR_GRASS;
+    float parallaxFloatX= 1.25;//default render on right below main ground
+    float parallaxFloatY= 1.50;
     bool isAnimated = false;
 };
 
