@@ -18,6 +18,9 @@ public:
 
     }
     void lockCameraOn(float& targetX,float& targetY,float targetH,float targetW);
+
+    void cameraClamp(SDL_FRect rect);
+
     static Camera& getInstance()
     {
         static Camera instance;   // created only once

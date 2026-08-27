@@ -14,7 +14,6 @@ void ForeGroundBuilder::render(SDL_Renderer *renderer) {
                       element.rect.y - camY * element.parallaxFloatY,
                       element.rect.w, element.rect.h};
 //        SDL_FRect src{0.00f,0.00f,};
-        LOGI("dst: x:%f,y:%f",dst.x,dst.y);
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(element.type);
         SDL_RenderTexture(renderer,texture, nullptr,&dst);
     }

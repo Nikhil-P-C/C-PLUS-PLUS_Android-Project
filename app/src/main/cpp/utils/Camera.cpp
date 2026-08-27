@@ -12,3 +12,10 @@ void Camera::lockCameraOn(float& targetX,float& targetY,float targetH,float targ
     gameMath::interpolate(m_camera.x,m_camera.y,centerX,centerY,0.2f);
 //        LOGI("cX:%f,c:%f",camera.x,camera.y);
 }
+
+void Camera::cameraClamp(SDL_FRect rect) {
+    if(m_camera.x > rect.x+rect.w)m_camera.x= rect.x+rect.w;
+    if(m_camera.x < rect.x)m_camera.x = rect.x;
+    if(m_camera.y > rect.y+rect.h)m_camera.y= rect.y+rect.h;
+    if(m_camera.y < rect.y)m_camera.y = rect.y;
+}

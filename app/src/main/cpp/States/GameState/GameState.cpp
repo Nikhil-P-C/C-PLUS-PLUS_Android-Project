@@ -13,6 +13,7 @@
 // Created by LENOVO on 27-04-2026.
 //
 GameState::GameState(SDL_Renderer *renderer,int level) {
+
     this->Name = "GameState";
     SDL_AddEventWatch(HandleBackgroundEvents,this);
     m_renderer = renderer;
@@ -22,7 +23,7 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
 
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(400.00f,1387.00f,P_scale);
+    m_player.setPosition(300.00f,0.00f,P_scale);
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize((float)m_windowW,(float)m_windowH);
@@ -319,10 +320,12 @@ void GameState::render(SDL_Renderer* renderer)  {
 }
 
 void GameState::update(float dt){
+    dt = std::min(dt, 1.0f/30.0f); // never simulate more than ~33ms in one step
+    LOGI("playerY = %f",m_player.y);
     if(PlayerDetail::getInstance().getPlayerHP() <= 0){
         //respawn
         PlayerDetail::getInstance().addPlayerHP(5);
-        m_player.setPosition(109.00f,1387.00f,P_scale);
+        m_player.setPosition(109.00f,0.00f,P_scale);
     }
     m_fruitBuilder.update(dt);
 
@@ -403,7 +406,8 @@ void GameState::update(float dt){
     PlayerDetail::getInstance().addScore(score);
 
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-
+    SDL_FRect clamprect{0.0,-3000,4000,3200};
+    Camera::getInstance().cameraClamp(clamprect);
 
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
     if(Force <0)
@@ -746,7 +750,7 @@ void GameState::setLevel(int level) {
     m_traps =m_levelLoader.getTraps();
 
     if(!m_levelWalls.empty())
-        m_wallCollisionRect={0.00f,0.00f,3200.00f,1536};
+        m_wallCollisionRect={0.00f,-768.00f,3200.00f,1536};
 
     m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
     m_fruitBuilder.init(m_fruits);

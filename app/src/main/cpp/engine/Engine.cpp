@@ -15,7 +15,7 @@ void Engine::run(){
 
     unsigned int lastTime = SDL_GetTicks();
     unsigned int currentTime;
-    int framedelay = 1000/120;
+    int framedelay = 1000/60;
 
     GameData::getInstance().setSize(1600,720);
 

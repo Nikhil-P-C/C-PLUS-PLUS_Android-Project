@@ -98,7 +98,7 @@ private:
     LevelLoader m_levelLoader;
 
     int m_level =0;
-    int m_transitionDelay =3000;
+    int m_transitionDelay =2000;
     uint32_t m_lastTransitionTime =0;
 
 
