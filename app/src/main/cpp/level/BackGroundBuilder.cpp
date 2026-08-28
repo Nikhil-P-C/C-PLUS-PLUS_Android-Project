@@ -32,9 +32,10 @@ void BackGroundBuilder::update(float dt) {
 void BackGroundBuilder::init(std::vector<BackGroundElement>& elements) {
 
 //    m_elements = elements;
-    m_elements.emplace_back(0,0,1600,720,0.00,0.00,false,TextureType::BG_GREENERY_SKY);
+    m_elements.emplace_back(0,-100,1600,720,0.00,0.00,false,TextureType::BG_GREENERY_SKY);
 
-    m_elements.emplace_back(0,0,1822,820,0.03,0.03,false,TextureType::BG_GREENERY_MOUNTAINS);
+    m_elements.emplace_back(0,-100,1822,820,0.03,0.01,false,TextureType::BG_GREENERY_MOUNTAINS);
+    m_elements.emplace_back(1822,-100,1822,820,0.03,0.01,false,TextureType::BG_GREENERY_MOUNTAINS);
 
 
 //    m_elements.emplace_back(-1000,-600,2488,1120,0.40,0.40,false,TextureType::BG_GREENERY_TREES);
@@ -43,8 +44,12 @@ void BackGroundBuilder::init(std::vector<BackGroundElement>& elements) {
 //
 //    m_elements.emplace_back(3996,-600,2488,1120,0.40,0.40,false,TextureType::BG_GREENERY_TREES);
 
-    m_elements.emplace_back(0,-400,2488,1120,0.50,0.50,false,TextureType::BG_GREENERY_TREES);
+    m_elements.emplace_back(0,-50,1600,720,0.25,0.10,false,TextureType::BG_GREENERY_TREES);
+    m_elements.emplace_back(1600,-50,1600,720,0.25,0.10,false,TextureType::BG_GREENERY_TREES);
+    m_elements.emplace_back(3200,-50,1600,720,0.25,0.10,false,TextureType::BG_GREENERY_TREES);
 
-    m_elements.emplace_back(2488,-400,2488,1120,0.50,0.50,false,TextureType::BG_GREENERY_TREES);
+    m_elements.emplace_back(0,-300,2488,1120,0.50,0.25,false,TextureType::BG_GREENERY_TREES);
+
+    m_elements.emplace_back(2488,-300,2488,1120,0.50,0.25,false,TextureType::BG_GREENERY_TREES);
 }
 

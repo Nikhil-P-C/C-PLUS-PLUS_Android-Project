@@ -23,7 +23,8 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
 
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(300.00f,0.00f,P_scale);
+    m_player.setPosition(100.00f,400.00f,P_scale);
+
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize((float)m_windowW,(float)m_windowH);
@@ -320,8 +321,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 }
 
 void GameState::update(float dt){
-    dt = std::min(dt, 1.0f/30.0f); // never simulate more than ~33ms in one step
-    LOGI("playerY = %f",m_player.y);
+//    LOGI("player x : %f , player : %f",m_player.x,m_player.y);
     if(PlayerDetail::getInstance().getPlayerHP() <= 0){
         //respawn
         PlayerDetail::getInstance().addPlayerHP(5);
@@ -406,8 +406,8 @@ void GameState::update(float dt){
     PlayerDetail::getInstance().addScore(score);
 
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
-    SDL_FRect clamprect{0.0,-3000,4000,3200};
-    Camera::getInstance().cameraClamp(clamprect);
+
+    Camera::getInstance().cameraClamp(m_wallCollisionRect);
 
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
     if(Force <0)
@@ -749,8 +749,7 @@ void GameState::setLevel(int level) {
     m_fruits =m_levelLoader.getFruits();
     m_traps =m_levelLoader.getTraps();
 
-    if(!m_levelWalls.empty())
-        m_wallCollisionRect={0.00f,-768.00f,3200.00f,1536};
+    m_wallCollisionRect=m_levelLoader.getWallCollisionRect();
 
     m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
     m_fruitBuilder.init(m_fruits);

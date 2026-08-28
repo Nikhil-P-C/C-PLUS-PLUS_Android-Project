@@ -14,8 +14,10 @@ void Camera::lockCameraOn(float& targetX,float& targetY,float targetH,float targ
 }
 
 void Camera::cameraClamp(SDL_FRect rect) {
-    if(m_camera.x > rect.x+rect.w)m_camera.x= rect.x+rect.w;
+    LOGI("wall col x:%f , y:%f , w:%f , h:%f",rect.x,rect.y,rect.w,rect.h);
+
+    if(m_camera.x > rect.x+rect.w-1600)m_camera.x= rect.x+rect.w-1600;
     if(m_camera.x < rect.x)m_camera.x = rect.x;
-    if(m_camera.y > rect.y+rect.h)m_camera.y= rect.y+rect.h;
+    if(m_camera.y > rect.y+rect.h-720)m_camera.y= rect.y+rect.h-720;
     if(m_camera.y < rect.y)m_camera.y = rect.y;
 }

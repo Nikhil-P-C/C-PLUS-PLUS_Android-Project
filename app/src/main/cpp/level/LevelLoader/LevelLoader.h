@@ -45,6 +45,9 @@ public:
     CheckPoint getCheckPoint(){
         return m_checkPoint;
     }
+    SDL_FRect getWallCollisionRect(){
+        return m_wallCollisionRect;
+    }
 private:
     void parseLine(const std::string& line);
 
@@ -70,6 +73,8 @@ private:
 
     void parseCheckPoint(std::istringstream& ss);
 
+    void parseWallCollisionRect(std::istringstream &ss);
+
     std::string loadFromFile(const std::string& filepath);
 
 private:
@@ -81,4 +86,6 @@ private:
     std::vector<Trap> m_traps;
     std::vector<Block> m_blocks;
     CheckPoint m_checkPoint;
+    SDL_FRect m_wallCollisionRect;
+
 };

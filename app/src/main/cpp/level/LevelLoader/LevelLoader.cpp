@@ -47,6 +47,8 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'C':
             parseCheckPoint(stream);
             break;
+        case 'R':
+            parseWallCollisionRect(stream);
         default:
             LOGI("Failed to decode:%c",recordType);
     }
@@ -210,7 +212,12 @@ void LevelLoader::parseTraps(std::istringstream& ss) {
     trap.y = y;
     trap.baseX = x;//these are used as coords for starting corner of rect path must initialze them as spawn
     trap.baseY = y;
+    trap.previousX = x;
+    trap.previousY = y;
     trap.type = type;
+    if(type == TrapType::MOVING_PLATFORM_GREY || type == TrapType::MOVING_PLATFORM_BROWN){
+        LOGI("parseTraps: type=%d x=%.2f y=%.2f prevX=%.2f prevY=%.2f", (int)type, trap.x, trap.y, trap.previousX, trap.previousY);
+    }
     trap.status = toTrapStatus(statusStr);
     trap.startPath = startPath;
     trap.endPath = endPath;
@@ -283,7 +290,15 @@ void LevelLoader::parseCheckPoint(std::istringstream& ss) {
 
     m_checkPoint={x,y,w,h,flagType};
 }
-
+void LevelLoader::parseWallCollisionRect(std::istringstream& ss){
+    float x=0.00f,y=0.00f,w=0.00f,h=0.00f;
+    ss>>x>>y>>w>>h;
+    if(ss.fail()){
+        LOGE("Malformed wallCollisionRect line: failed parsing fixed fields");
+        return;
+    }
+    m_wallCollisionRect = {x,y,w,h};
+}
 void LevelLoader::loadLevel(int level) {
     std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");
 

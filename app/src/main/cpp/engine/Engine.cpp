@@ -67,26 +67,6 @@ void Engine::run(){
         for(const auto &state : m_States)
             state->render(m_renderer);
 
-
-
-
-        //remove this after fix
-        if(SDL_GetTicks() - lasttimelog > 1000) {
-
-            LOGI("overlay State name(in order:");
-            for (const auto &state: m_OverlayStates) {
-                LOGI("state name : %s ", state->Name.c_str());
-            }
-            LOGI("completed overlay State list after applying command");
-            //remove this after fix
-            LOGI("State name(in order:");
-            for(const auto& state : m_States){
-                LOGI("state name : %s ",state->Name.c_str());
-            }
-            LOGI("completed State list after applying command");
-
-            lasttimelog =SDL_GetTicks();
-        }
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 
@@ -136,6 +116,7 @@ void Engine::exitEngine(){
     if(m_musicfile)SDL_CloseIO(m_musicfile);
 }
 Engine::Engine(){
+
     LOGI("engine constructor");
 
     if(!MIX_Init()){
@@ -160,9 +141,17 @@ Engine::Engine(){
     m_window = SDL_CreateWindow("Dino", 0, 0, SDL_WINDOW_FULLSCREEN);
     if (!m_window) {
         LOGE("Window creation failed: %s", SDL_GetError());
+}
+    SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV,true, nullptr);
+    SDL_Renderer* renderer = SDL_CreateGPURenderer(device,m_window);
+    if(!renderer) {
+        m_renderer = SDL_CreateRenderer(m_window, "opengles2");
+        LOGI("gpu renderer creation failed");
     }
-
-    m_renderer = SDL_CreateRenderer(m_window, "opengles2");
+    else {
+        LOGI("gpu renderer succeeded");
+        m_renderer = renderer;
+    }
     if (!m_renderer) {
         LOGE("Renderer creation failed: %s", SDL_GetError());
     }

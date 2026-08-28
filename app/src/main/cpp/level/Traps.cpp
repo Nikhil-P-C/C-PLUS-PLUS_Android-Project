@@ -20,6 +20,10 @@ void TrapBuilder::init(const std::vector<Trap> &traps){
     for(auto& trap : m_traps){
         trap.lastSwitchTime = now;
         trap.lastTime = now;
+        if(trap.type == TrapType::MOVING_PLATFORM_BROWN|| trap.type == TrapType::MOVING_PLATFORM_GREY){
+            // in TrapBuilder::init(), inside the first for loop, right after trap.lastTime = now;
+            LOGI("trapBuilder.init: type=%d x=%.2f y=%.2f prevX=%.2f prevY=%.2f", (int)trap.type, trap.x, trap.y, trap.previousX, trap.previousY);
+        }
         if(const auto* info = getTrapFrameInfo(trap.type, trap.status)){
             trap.aniEndFrame = info->frameCount - 1;
         }
@@ -353,7 +357,6 @@ SDL_FRect TrapBuilder::getHazardHitBox(const Trap &trap) {
     }
 }
 
-
 bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float playerH,
                               TrapType& outType,gameMath::collisionSide& outSide) {
     for(const auto& trap:m_traps){
@@ -379,7 +382,6 @@ bool TrapBuilder::checkHazard(float playerX, float playerY, float playerW, float
     return false;
 }
 
-
 float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, float playerH,ParticleSystem& particleSystem) {
     const float FAN_FORCE = -500.0f; // px/s upward, tune against m_gravity/m_jumpVelocity
     for(const auto& trap : m_traps){
@@ -400,6 +402,7 @@ float TrapBuilder::checkFanForce(float playerX, float playerY, float playerW, fl
     }
     return 0.0f;
 }
+
 bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY, float playerW, float playerH) {
     if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return false;
     Trap& trap = m_traps[trapIndex];
@@ -419,6 +422,7 @@ bool TrapBuilder::checkFireCollision(int trapIndex,float playerX, float playerY,
         trap.aniEndFrame = info->frameCount-1;
     return true;
 }
+
 bool TrapBuilder::checkTrampolineBounce(int trapIndex,float playerX, float playerY,
                                         float playerW, float playerH,ParticleSystem& particleSystem) {
     if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return false;
@@ -598,8 +602,12 @@ void TrapBuilder::updatePath(float dt)
 }
 
 SDL_FPoint TrapBuilder::getTrapDelta(int trapIndex) {
+    // in LevelLoader::parseTraps(), right after trap.previousY = y;
     if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return {0.0f,0.0f};
     const Trap& trap = m_traps[trapIndex];
+    if(trap.type == TrapType::MOVING_PLATFORM_BROWN|| trap.type == TrapType::MOVING_PLATFORM_GREY)
+        LOGI("getTrapDelta: idx=%d x=%.2f y=%.2f prevX=%.2f prevY=%.2f", trapIndex, trap.x, trap.y, trap.previousX, trap.previousY);
+
     return { trap.x - trap.previousX, trap.y - trap.previousY };
 }
 
@@ -609,7 +617,7 @@ Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,f
            bool showChain)
         :x(x),y(y),type(type),status(status),startPath(startPath),endPath(endPath),
         movingSpeed(speed),axis(axis),pathShape(shape),baseX(x),baseY(y),colliderType(colliderType),
-        radius(radius),showChain(showChain)
+        radius(radius),showChain(showChain),previousX(x),previousY(y)
 {
 
 }

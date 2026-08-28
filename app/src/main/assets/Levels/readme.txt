@@ -2,6 +2,7 @@
 
 S spawn
 W walls
+R WallCollisionRect
 P Platforms
 G Grounds
 B Blocks

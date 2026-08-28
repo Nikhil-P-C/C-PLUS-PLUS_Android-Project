@@ -56,29 +56,36 @@ struct Trap{
     Trap()=default;
     Trap(float x, float y, TrapType type, TrapStatus status,float startPath,float endPath,
          float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius =0,bool showChain =false);
+
     float x ,y;
+    float startPath=0.00f,endPath=0.00f;//for RECT path this is used a opposite corner of starting corner
+    float baseX =0.00f,baseY =0.00f;// this is same as spawn for path RECT it use as the starting corner
+    float movingSpeed = 150.00f;
+    float previousX = 0.00f, previousY = 0.00f;//initializing this with 0.00f cause teleportation bug in player spawn to moving platform,
+                                //even tho it is initialized in levelLoader and trap constructor, somehow the initial value for a frame are still 0.00f
+    float pathAngle = 0.00f; //only used for trap that should move in circle or swing arcs
+    float radius = 0.00f;
+
+    int pathIndex = 1;
+
+    bool showChain =false;
+    bool isMovingForward =true;
+    bool isActivated =false;
+    bool hasHitEnd =false;
+
+    bool aniDone= false;
+
     TrapType type;
     TrapStatus status;
 
     PathAxis axis = PathAxis::AUTO;
     PathShape pathShape = PathShape::LINE;
 
-    float startPath=0.00f,endPath=0.00f;//for RECT path this is used a opposite corner of starting corner
-    float baseX =0.00f,baseY =0.00f;// this is same as spawn for path RECT it use as the starting corner
-    float movingSpeed = 150.00f;
-    float previousX =0.00f, previousY = 0.00f;
-    float pathAngle = 0.00f; //only used for trap that should move in circle or swing arcs
-    float radius = 0.00f;
-    int pathIndex = 1;
-    bool showChain =false;
-    bool isMovingForward =true;
-    bool isActivated =false;
-    bool hasHitEnd =false;
     unsigned int lastTime = 0.00f;
     unsigned int lastSwitchTime =0.00f;
     int aniStartFrame =0.00f;
     int aniEndFrame=0.00f;
-    bool aniDone= false;
+
     ColliderType colliderType;
 };
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status);
