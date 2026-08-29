@@ -121,12 +121,16 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::CHECKPOINT_FLAG_OUT,"CheckPoint/Checkpoint (Flag Out) (64x64).png");
     loadTexture(TextureType::CHECKPOINT_FLAG_NO,"CheckPoint/Checkpoint (No Flag).png");
     loadTexture(TextureType::TRANSITION,"misc/Transition.png");
-    loadTexture(TextureType::BG_GREENERY_SKY,"Background/greenery_sky.png");
-    loadTexture(TextureType::BG_GREENERY_MOUNTAINS,"Background/greenery_mountains.png");
-    loadTexture(TextureType::BG_GREENERY_TREES,"Background/greenery_trees.png");
-    loadTexture(TextureType::FG_GREENERY_NEAR_GRASS,"ForeGround/greenery_neargrass.png");
-    loadTexture(TextureType::FG_GREENERY_NEAR_OBJECT,"ForeGround/greenery_nearobjects.png");
-
+    loadTexture(TextureType::BG_GREENERY_SKY,"Background/Greenery/greenery_sky.png");
+    loadTexture(TextureType::BG_GREENERY_MOUNTAINS,"Background/Greenery/greenery_mountains.png");
+    loadTexture(TextureType::BG_GREENERY_TREES,"Background/Greenery/greenery_trees.png");
+    loadTexture(TextureType::FG_GREENERY_NEAR_GRASS,"ForeGround/Greenery/greenery_neargrass.png");
+    loadTexture(TextureType::FG_GREENERY_NEAR_OBJECT,"ForeGround/Greenery/greenery_nearobjects.png");
+    loadTexture(TextureType::BG_MEADOWS_SKY,"Background/Meadows/meadows_sky.png");
+    loadTexture(TextureType::BG_MEADOWS_CLOUDS,"Background/Meadows/meadows_cloud.png");
+    loadTexture(TextureType::BG_MEADOWS_FAR_PLAIN,"Background/Meadows/meadows_farplain.png");
+    loadTexture(TextureType::BG_MEADOWS_FLOWER_FIELD,"Background/Meadows/meadows_flowerfield.png");
+    loadTexture(TextureType::FG_MEADOW_NEAR_FLOWERS,"ForeGround/Meadows/meadows_foreground.png");
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

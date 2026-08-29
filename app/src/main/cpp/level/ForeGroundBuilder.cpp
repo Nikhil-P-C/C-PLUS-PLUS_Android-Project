@@ -5,7 +5,19 @@
 #include "ForeGroundBuilder.h"
 #include "utils/utils.h"
 #include <SDL3/SDL.h>
-
+namespace {
+    inline TextureType toTextureType(ForeGroundType type){
+        switch (type) {
+            case ForeGroundType::GREENERY_NEAR_GRASS :
+                return TextureType::FG_GREENERY_NEAR_GRASS;
+            case ForeGroundType::GREENERY_NEAR_OBJECT :
+                return TextureType::FG_GREENERY_NEAR_OBJECT;
+            case ForeGroundType::MEADOWS_NEAR_FLOWERS :
+                return TextureType::FG_MEADOW_NEAR_FLOWERS;
+        }
+        return TextureType::COUNT;
+    }
+}
 void ForeGroundBuilder::render(SDL_Renderer *renderer) {
     float camX = Camera::getInstance().getCamera().x;
     float camY = Camera::getInstance().getCamera().y;
@@ -14,7 +26,7 @@ void ForeGroundBuilder::render(SDL_Renderer *renderer) {
                       element.rect.y - camY * element.parallaxFloatY,
                       element.rect.w, element.rect.h};
 //        SDL_FRect src{0.00f,0.00f,};
-        SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(element.type);
+        SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(toTextureType(element.type));
         SDL_RenderTexture(renderer,texture, nullptr,&dst);
     }
 }
@@ -25,13 +37,12 @@ void ForeGroundBuilder::update(float dt) {
 
 void ForeGroundBuilder::init(std::vector<ForeGroundElement>& elements) {
 
-//    m_elements = elements;
+    m_elements = elements;
 
-    m_elements.emplace_back(0,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
-    m_elements.emplace_back(3200,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
-    m_elements.emplace_back(6400,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
-    m_elements.emplace_back(9600,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
-
+//    m_elements.emplace_back(0,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
+//    m_elements.emplace_back(3200,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
+//    m_elements.emplace_back(6400,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
+//    m_elements.emplace_back(9600,4600,3200,1440,4.90,4.90,false,TextureType::FG_GREENERY_NEAR_OBJECT);
 
 
     //    m_elements.emplace_back(1400,1600,500,50,1.10,1.25,false);

@@ -6,16 +6,25 @@
 #include <vector>
 #include "engine/Engine.h"
 // index 1 is base , index < 1 is background
-
+enum class BackGroundType{
+    GREENERY_SKY=0,
+    GREENERY_MOUNTAINS,
+    GREENERY_TREES,
+    MEADOWS_SKY,
+    MEADOWS_CLOUD,
+    MEADOWS_FAR_PLAIN,
+    MEADOWS_FLOWER_FIELD,
+    NONE
+};
 struct BackGroundElement{
-    BackGroundElement(float x,float y,float w,float h,float parallaxFactorX,float parallaxFactorY,bool isAnimated,TextureType type):
+    BackGroundElement(float x,float y,float w,float h,float parallaxFactorX,float parallaxFactorY,bool isAnimated,BackGroundType type):
     parallaxFloatX(parallaxFactorX),parallaxFloatY(parallaxFactorY),isAnimated(isAnimated),type(type){
         rect.x = x;
         rect.y = y;
         rect.w = w;
         rect.h = h;
     }
-    TextureType type = TextureType::BG_SKY;
+    BackGroundType type;
     SDL_FRect rect{0};
     float parallaxFloatX= 0.75f;//default render on right below main ground
     float parallaxFloatY = 0.50f;

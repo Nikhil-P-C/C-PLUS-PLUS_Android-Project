@@ -95,6 +95,43 @@ namespace {
         }
         return it->second;
     }
+
+    BackGroundType toBackGroundType(std::string_view stringBackGroundType){
+        static const std::unordered_map<std::string_view ,BackGroundType> map{
+                {"GREENERY_SKY",BackGroundType::GREENERY_SKY},
+                {"GREENERY_MOUNTAINS",BackGroundType::GREENERY_MOUNTAINS},
+                {"GREENERY_TREES",BackGroundType::GREENERY_TREES},
+                {"MEADOWS_SKY",BackGroundType::MEADOWS_SKY},
+                {"MEADOWS_CLOUD",BackGroundType::MEADOWS_CLOUD},
+                {"MEADOWS_FAR_PLAIN",BackGroundType::MEADOWS_FAR_PLAIN},
+                {"MEADOWS_FLOWER_FIELD",BackGroundType::MEADOWS_FLOWER_FIELD}
+
+
+        };
+        const auto& it = map.find(stringBackGroundType);
+        if(it == map.end()){
+            logUnknownToken("backGroundType",stringBackGroundType);
+            return BackGroundType::NONE;
+        }
+        return it->second;
+    }
+
+    ForeGroundType toForeGroundType(std::string_view stringForeGroundType){
+        static const std::unordered_map<std::string_view ,ForeGroundType> map{
+                {"GREENERY_NEAR_OBJECT",ForeGroundType::GREENERY_NEAR_OBJECT},
+                {"GREENERY_NEAR_GRASS",ForeGroundType::GREENERY_NEAR_GRASS},
+                {"MEADOWS_NEAR_FLOWERS",ForeGroundType::MEADOWS_NEAR_FLOWERS},
+
+
+        };
+        const auto& it = map.find(stringForeGroundType);
+        if(it == map.end()){
+            logUnknownToken("ForeGroundType",stringForeGroundType);
+            return ForeGroundType::NONE;
+        }
+        return it->second;
+    }
+
     TrapType toTrapType(std::string_view stringTrapType){
         static const std::unordered_map<std::string_view ,TrapType> map{
                 {"FALLING_PLATFORM",TrapType::FALLING_PLATFORM},

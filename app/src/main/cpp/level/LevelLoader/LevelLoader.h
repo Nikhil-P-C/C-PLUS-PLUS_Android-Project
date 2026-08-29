@@ -8,6 +8,8 @@
 #include "level/BlockShapeBuilder.h"
 #include "level/CheckPoint.h"
 #include "utils/utils.h"
+#include "level/BackGroundBuilder.h"
+#include "level/ForeGroundBuilder.h"
 #include <sstream>
 #include <filesystem>
 
@@ -42,6 +44,12 @@ public:
     const std::vector<Block>& getBlocks(){
         return m_blocks;
     }
+    const std::vector<BackGroundElement>& getBackGroundElements(){
+        return m_backGroundElements;
+    }
+    const std::vector<ForeGroundElement>& getForeGroundElements(){
+        return m_foreGroundElements;
+    }
     CheckPoint getCheckPoint(){
         return m_checkPoint;
     }
@@ -62,6 +70,10 @@ private:
     void parseBlocks(std::istringstream& ss);
 
     void parseFruits(std::istringstream& ss);
+
+    void parseBackGround(std::istringstream& ss);
+
+    void parseForeGround(std::istringstream& ss);
 
     void parseTraps(std::istringstream& ss);//some traps have additional param trailing at end
 
@@ -85,6 +97,8 @@ private:
     std::vector<Fruit> m_fruits;
     std::vector<Trap> m_traps;
     std::vector<Block> m_blocks;
+    std::vector<BackGroundElement> m_backGroundElements;
+    std::vector<ForeGroundElement> m_foreGroundElements;
     CheckPoint m_checkPoint;
     SDL_FRect m_wallCollisionRect;
 

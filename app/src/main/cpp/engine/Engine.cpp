@@ -109,12 +109,14 @@ void Engine::run(){
         }
     }
 }
+
 void Engine::exitEngine(){
     m_running =false;
     if(m_mixer)MIX_DestroyMixer(m_mixer);
     if(m_audio)MIX_DestroyAudio(m_audio);
     if(m_musicfile)SDL_CloseIO(m_musicfile);
 }
+
 Engine::Engine(){
 
     LOGI("engine constructor");
@@ -170,6 +172,7 @@ Engine::Engine(){
     const char* name = SDL_GetRendererName(m_renderer);
     LOGI("Renderer: %s", name);
 }
+
 Engine::~Engine(){
     LOGI("engine destructor");
     if(m_window)SDL_DestroyWindow(m_window);

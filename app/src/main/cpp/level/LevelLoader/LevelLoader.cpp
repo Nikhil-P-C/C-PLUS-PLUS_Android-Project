@@ -49,6 +49,13 @@ void LevelLoader::parseLine(const std::string& line) {
             break;
         case 'R':
             parseWallCollisionRect(stream);
+            break;
+        case 'X':
+            parseBackGround(stream);
+            break;
+        case 'Y':
+            parseForeGround(stream);
+            break;
         default:
             LOGI("Failed to decode:%c",recordType);
     }
@@ -189,6 +196,36 @@ void LevelLoader::parseFruits(std::istringstream& ss) {
         return;
     }
     m_fruits.emplace_back(x,y,type);
+}
+
+void LevelLoader::parseBackGround(std::istringstream& ss){
+    float x=0.00f,y=0.00f,w = 0.00f,h=0.00f;
+    float parallaxFactorX=0.00f, parallaxFactorY=0.00f;
+    std::string typeStr;
+    bool isAnimated = false;
+    ss>>x>>y>>w>>h>>parallaxFactorX>>parallaxFactorY>>std::boolalpha>>isAnimated>>typeStr;
+
+    BackGroundType type = toBackGroundType(typeStr);
+    if(type == BackGroundType::NONE){
+        LOGI("invalid type for background");
+        return;
+    }
+    m_backGroundElements.emplace_back(x,y,w,h,parallaxFactorX,parallaxFactorY,isAnimated,type);
+}
+
+void LevelLoader::parseForeGround(std::istringstream &ss) {
+    float x=0.00f,y=0.00f,w = 0.00f,h=0.00f;
+    float parallaxFactorX=0.00f, parallaxFactorY=0.00f;
+    std::string typeStr;
+    bool isAnimated = false;
+    ss>>x>>y>>w>>h>>parallaxFactorX>>parallaxFactorY>>std::boolalpha>>isAnimated>>typeStr;
+
+    ForeGroundType type = toForeGroundType(typeStr);
+    if(type == ForeGroundType::NONE){
+        LOGI("invalid type for background");
+        return;
+    }
+    m_foreGroundElements.emplace_back(x,y,w,h,parallaxFactorX,parallaxFactorY,isAnimated,type);
 }
 
 void LevelLoader::parseTraps(std::istringstream& ss) {

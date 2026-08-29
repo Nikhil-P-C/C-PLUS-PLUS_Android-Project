@@ -23,7 +23,7 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
 
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(100.00f,400.00f,P_scale);
+    m_player.setPosition(200.00f,400.00f,P_scale);
 
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
@@ -405,9 +405,12 @@ void GameState::update(float dt){
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
 
+
+    //camera
     Camera::getInstance().lockCameraOn(m_player.x,m_player.y,m_player.h,m_player.w);
 
-    Camera::getInstance().cameraClamp(m_wallCollisionRect);
+    SDL_FRect cameraBounds{m_wallCollisionRect.x,m_wallCollisionRect.y,m_wallCollisionRect.w,m_wallCollisionRect.h+TILE_SIZE*SCALE};
+    Camera::getInstance().cameraClamp(cameraBounds);
 
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
     if(Force <0)
@@ -748,7 +751,8 @@ void GameState::setLevel(int level) {
     m_grounds =m_levelLoader.getLevelGrounds();
     m_fruits =m_levelLoader.getFruits();
     m_traps =m_levelLoader.getTraps();
-
+    m_backgroundElements = m_levelLoader.getBackGroundElements();
+    m_foregroundElements = m_levelLoader.getForeGroundElements();
     m_wallCollisionRect=m_levelLoader.getWallCollisionRect();
 
     m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
@@ -758,6 +762,7 @@ void GameState::setLevel(int level) {
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
     m_backgroundBuilder.init(m_backgroundElements);
+    m_foregroundBuilder.init(m_foregroundElements);
     m_foregroundBuilder.init(m_foregroundElements);
 }
 
