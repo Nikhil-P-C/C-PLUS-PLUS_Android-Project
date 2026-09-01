@@ -4,6 +4,7 @@
 
 #include "State/State.h"
 #include "AssetManager.h"
+#include "PostProcessor.h"
 #include "utils/utils.h"
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3/SDL.h>
@@ -87,6 +88,9 @@ public:
     AssetManager& getAssetManager(){
         return m_assetManager;
     }
+    PostProcessor& getPostProcessor(){
+        return m_postProcessor;
+    }
 private:
     std::vector<Command> m_CommandQueue;
     std::vector<std::unique_ptr<State>> m_States;
@@ -109,5 +113,5 @@ private:
     //remove this after fix
     uint32_t lasttimelog =0;
     AssetManager m_assetManager;
-
+    PostProcessor m_postProcessor;
 };

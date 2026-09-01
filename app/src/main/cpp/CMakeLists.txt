@@ -88,6 +88,7 @@ set(MYAPP_SOURCES
 
         engine/Engine.cpp
         engine/AssetManager.cpp
+        engine/PostProcessor.cpp
 
         utils/Camera.cpp
         utils/gameMath.cpp

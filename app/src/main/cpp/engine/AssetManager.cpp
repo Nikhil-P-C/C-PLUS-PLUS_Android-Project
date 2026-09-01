@@ -131,6 +131,17 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::BG_MEADOWS_FAR_PLAIN,"Background/Meadows/meadows_farplain.png");
     loadTexture(TextureType::BG_MEADOWS_FLOWER_FIELD,"Background/Meadows/meadows_flowerfield.png");
     loadTexture(TextureType::FG_MEADOW_NEAR_FLOWERS,"ForeGround/Meadows/meadows_foreground.png");
+    loadTexture(TextureType::BG_CAVE_SKY,"Background/Cave/cave_sky.png");
+    loadTexture(TextureType::BG_CAVE_FAR_LIGHT1,"Background/Cave/far_light1.png");
+    loadTexture(TextureType::BG_CAVE_FAR_LIGHT2,"Background/Cave/far_light2.png");
+    loadTexture(TextureType::BG_CAVE_FAR_LIGHT3,"Background/Cave/far_light3.png");
+    loadTexture(TextureType::BG_CAVE_FAR_OBJECT1,"Background/Cave/far_object1.png");
+    loadTexture(TextureType::BG_CAVE_FAR_OBJECT2,"Background/Cave/far_object2.png");
+    loadTexture(TextureType::BG_CAVE_FAR_OBJECT3,"Background/Cave/far_object3.png");
+    loadTexture(TextureType::BG_CAVE_FAR_OBJECT4,"Background/Cave/far_object4.png");
+    loadTexture(TextureType::BG_CAVE_FAR_OBJECT5,"Background/Cave/far_object5.png");
+    loadTexture(TextureType::FG_CAVE_NEAR_OBJECT,"ForeGround/Cave/near_object.png");
+
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

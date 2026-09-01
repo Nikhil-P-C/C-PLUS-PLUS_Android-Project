@@ -62,15 +62,20 @@ void Engine::run(){
         m_CommandOverlayQueue.clear();
 
 
-
         SDL_RenderClear(m_renderer);
+
+//        Engine::Get().getPostProcessor().beginScene(m_renderer);
+
         for(const auto &state : m_States)
             state->render(m_renderer);
 
+//        Engine::Get().getPostProcessor().endSceneAndComposite(m_renderer,Engine::Get().getWindow());
+//        SDL_SetGPURenderState(m_renderer, nullptr);
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 
         SDL_SetRenderDrawColor(m_renderer,33,31,48,255);
+
 
 
         SDL_RenderPresent(m_renderer);
@@ -152,11 +157,15 @@ Engine::Engine(){
     }
     else {
         LOGI("gpu renderer succeeded");
+        LOGI("GPU backend: %s", SDL_GetGPUDeviceDriver(device));
+        SDL_GPUShaderFormat formats = SDL_GetGPUShaderFormats(device);
+        SDL_Log("SPIR-V supported: %d", (formats & SDL_GPU_SHADERFORMAT_SPIRV) != 0);
         m_renderer = renderer;
     }
     if (!m_renderer) {
         LOGE("Renderer creation failed: %s", SDL_GetError());
     }
+    m_postProcessor.init(m_renderer,device);
     SDL_SetRenderLogicalPresentation(m_renderer,1600,720,SDL_LOGICAL_PRESENTATION_STRETCH);
     m_mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (!m_mixer) {

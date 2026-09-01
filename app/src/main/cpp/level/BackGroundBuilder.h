@@ -14,6 +14,16 @@ enum class BackGroundType{
     MEADOWS_CLOUD,
     MEADOWS_FAR_PLAIN,
     MEADOWS_FLOWER_FIELD,
+
+    CAVE_SKY,
+    CAVE_FAR_OBJECT1,
+    CAVE_FAR_OBJECT2,
+    CAVE_FAR_OBJECT3,
+    CAVE_FAR_OBJECT4,
+    CAVE_FAR_OBJECT5,
+    CAVE_FAR_LIGHT1,
+    CAVE_FAR_LIGHT2,
+    CAVE_FAR_LIGHT3,
     NONE
 };
 struct BackGroundElement{
@@ -42,5 +52,6 @@ public:
 
 private:
     std::vector<BackGroundElement> m_elements;
+
 
 };

@@ -68,7 +68,9 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 //    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
 //    SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
+
     m_backgroundBuilder.render(m_renderer);
+
     for(const auto& level :m_levelWalls)
     {
         int tileSize =(int)(TILE_SIZE*SCALE);

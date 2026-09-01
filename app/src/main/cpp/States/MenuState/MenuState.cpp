@@ -127,7 +127,7 @@ void MenuState::activateSelection() {
     switch (m_selectedButton) {
         case MenuButton::PLAY: {
             m_transitioning = true;
-            Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,0));
+            Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,1));
             break;
         }
         case MenuButton::OPTION:

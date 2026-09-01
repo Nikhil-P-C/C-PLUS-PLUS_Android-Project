@@ -104,7 +104,16 @@ namespace {
                 {"MEADOWS_SKY",BackGroundType::MEADOWS_SKY},
                 {"MEADOWS_CLOUD",BackGroundType::MEADOWS_CLOUD},
                 {"MEADOWS_FAR_PLAIN",BackGroundType::MEADOWS_FAR_PLAIN},
-                {"MEADOWS_FLOWER_FIELD",BackGroundType::MEADOWS_FLOWER_FIELD}
+                {"MEADOWS_FLOWER_FIELD",BackGroundType::MEADOWS_FLOWER_FIELD},
+                {"CAVE_SKY",BackGroundType::CAVE_SKY},
+                {"CAVE_FAR_OBJECT1",BackGroundType::CAVE_FAR_OBJECT1},
+                {"CAVE_FAR_LIGHT1",BackGroundType::CAVE_FAR_LIGHT1},
+                {"CAVE_FAR_OBJECT2",BackGroundType::CAVE_FAR_OBJECT2},
+                {"CAVE_FAR_LIGHT2",BackGroundType::CAVE_FAR_LIGHT2},
+                {"CAVE_FAR_OBJECT3",BackGroundType::CAVE_FAR_OBJECT3},
+                {"CAVE_FAR_OBJECT4",BackGroundType::CAVE_FAR_OBJECT4},
+                {"CAVE_FAR_LIGHT3",BackGroundType::CAVE_FAR_LIGHT3},
+                {"CAVE_FAR_OBJECT5",BackGroundType::CAVE_FAR_OBJECT5}
 
 
         };
@@ -121,6 +130,8 @@ namespace {
                 {"GREENERY_NEAR_OBJECT",ForeGroundType::GREENERY_NEAR_OBJECT},
                 {"GREENERY_NEAR_GRASS",ForeGroundType::GREENERY_NEAR_GRASS},
                 {"MEADOWS_NEAR_FLOWERS",ForeGroundType::MEADOWS_NEAR_FLOWERS},
+                {"CAVE_NEAR_OBJECT",ForeGroundType::CAVE_NEAR_OBJECT}
+
 
 
         };

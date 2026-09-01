@@ -21,11 +21,32 @@ namespace {
                 return TextureType::BG_MEADOWS_FAR_PLAIN;
             case BackGroundType::MEADOWS_FLOWER_FIELD:
                 return TextureType::BG_MEADOWS_FLOWER_FIELD;
+            case BackGroundType::CAVE_SKY:
+                return TextureType::BG_CAVE_SKY;
+            case BackGroundType::CAVE_FAR_LIGHT1:
+                return TextureType::BG_CAVE_FAR_LIGHT1;
+            case BackGroundType::CAVE_FAR_LIGHT2:
+                return TextureType::BG_CAVE_FAR_LIGHT2;
+            case BackGroundType::CAVE_FAR_LIGHT3:
+                return TextureType::BG_CAVE_FAR_LIGHT3;
+            case BackGroundType::CAVE_FAR_OBJECT1:
+                return TextureType::BG_CAVE_FAR_OBJECT1;
+            case BackGroundType::CAVE_FAR_OBJECT2:
+                return TextureType::BG_CAVE_FAR_OBJECT2;
+            case BackGroundType::CAVE_FAR_OBJECT3:
+                return TextureType::BG_CAVE_FAR_OBJECT3;
+            case BackGroundType::CAVE_FAR_OBJECT4:
+                return TextureType::BG_CAVE_FAR_OBJECT4;
+            case BackGroundType::CAVE_FAR_OBJECT5:
+                return TextureType::BG_CAVE_FAR_OBJECT5;
         }
         return TextureType::COUNT;
     }
 }
+
 void BackGroundBuilder::render(SDL_Renderer *renderer) {
+    Engine::Get().getPostProcessor().beginScene(renderer);
+
     float camX = Camera::getInstance().getCamera().x;
     float camY = Camera::getInstance().getCamera().y;
     for(const auto element : m_elements){
@@ -43,6 +64,8 @@ void BackGroundBuilder::render(SDL_Renderer *renderer) {
             SDL_RenderFillRect(renderer,&gapDst);
         }
     }
+    Engine::Get().getPostProcessor().endSceneAndComposite(renderer,Engine::Get().getWindow());
+    SDL_SetGPURenderState(renderer, nullptr);
 }
 
 void BackGroundBuilder::update(float dt) {
