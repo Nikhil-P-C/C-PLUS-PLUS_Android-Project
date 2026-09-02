@@ -64,13 +64,13 @@ void Engine::run(){
 
         SDL_RenderClear(m_renderer);
 
-//        Engine::Get().getPostProcessor().beginScene(m_renderer);
-
+        // Each state draws straight to the backbuffer. Bloom is no longer
+        // handled here — GameState itself wraps specific render calls in
+        // getPostProcessor().beginBloomGroup()/endBloomGroup() around
+        // whichever layers should bloom (see GameState::render()).
         for(const auto &state : m_States)
             state->render(m_renderer);
 
-//        Engine::Get().getPostProcessor().endSceneAndComposite(m_renderer,Engine::Get().getWindow());
-//        SDL_SetGPURenderState(m_renderer, nullptr);
         for(const auto &state : m_OverlayStates)
             state->render(m_renderer);
 

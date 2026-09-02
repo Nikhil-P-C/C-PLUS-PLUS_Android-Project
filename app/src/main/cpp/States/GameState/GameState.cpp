@@ -69,6 +69,11 @@ void GameState::render(SDL_Renderer* renderer)  {
 //    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
 //    SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
 
+    // Group 1: background + walls + particles + traps + fruits, all drawn
+    // before the player. One offscreen capture, bright-pass + blur applied
+    // once to the whole group (see PostProcessor::beginBloomGroup).
+    Engine::Get().getPostProcessor().beginBloomGroup(m_renderer);
+
     m_backgroundBuilder.render(m_renderer);
 
     for(const auto& level :m_levelWalls)
@@ -252,11 +257,35 @@ void GameState::render(SDL_Renderer* renderer)  {
         }
 
     }
+    SDL_FRect checkPointDst{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
+    if(m_checkPoint.aniType == CheckPointAni::NO_FLAG)
+    {
+        SDL_FRect checkPointSrc{0.00f,0.00f,64.00f,64.00f};
+        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_NO),
+                          &checkPointSrc,&checkPointDst);
+    }
+    if(m_checkPoint.aniType == CheckPointAni::FLAG_OUT)
+    {
+        SDL_FRect checkPointSrc{0.00f+64.00f*m_checkPoint.currentFrame,0.00f,64.00f,64.00f};
+        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_OUT),
+                          &checkPointSrc,&checkPointDst);
+    }
+    if(m_checkPoint.aniType == CheckPointAni::FLAG_IDLE)
+    {
+        SDL_FRect checkPointSrc{0.00f+64.00f*m_checkPoint.currentFrame,0.00f,64.00f,64.00f};
+        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_IDLE),
+                          &checkPointSrc,&checkPointDst);
+    }
 
     m_particleSystem.render(m_renderer);
     m_trapBuilder.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
 
+    Engine::Get().getPostProcessor().endBloomGroup(m_renderer); // composites Group 1 onto the window
+
+    // Player draws directly to the backbuffer from here — sharp, untouched
+    // by bloom regardless of what's happening in it (invincibility flicker,
+    // skin color, etc).
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-(float)camX,
                      m_player.y+m_player.spriteOffsetY-(float)camY,
                      m_player.spriteW,m_player.spriteH};
@@ -284,25 +313,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                             45.00f};
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
 
-    SDL_FRect checkPointDst{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
-    if(m_checkPoint.aniType == CheckPointAni::NO_FLAG)
-    {
-        SDL_FRect checkPointSrc{0.00f,0.00f,64.00f,64.00f};
-        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_NO),
-                          &checkPointSrc,&checkPointDst);
-    }
-    if(m_checkPoint.aniType == CheckPointAni::FLAG_OUT)
-    {
-        SDL_FRect checkPointSrc{0.00f+64.00f*m_checkPoint.currentFrame,0.00f,64.00f,64.00f};
-        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_OUT),
-                          &checkPointSrc,&checkPointDst);
-    }
-    if(m_checkPoint.aniType == CheckPointAni::FLAG_IDLE)
-    {
-        SDL_FRect checkPointSrc{0.00f+64.00f*m_checkPoint.currentFrame,0.00f,64.00f,64.00f};
-        SDL_RenderTexture(renderer,Engine::Get().getAssetManager().getTexture(TextureType::CHECKPOINT_FLAG_IDLE),
-                          &checkPointSrc,&checkPointDst);
-    }
+
     //TODO BETTER COUNTER RENDERING
     //this is for test purpose
     std::string fruitCounter = "fruit:"+std::to_string(PlayerDetail::getInstance().getScore());
@@ -313,8 +324,12 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_FRect fruitCounterDst{1420.00f,0.00f,160.00f,100.00f};
 
 
-    m_blockBuilder.render(m_renderer);
+    m_blockBuilder.render(m_renderer); // platforms stay sharp — not in a bloom group
+
+    // Group 2: foreground only, drawn after the player/blocks so it composites on top of them.
+    Engine::Get().getPostProcessor().beginBloomGroup(m_renderer);
     m_foregroundBuilder.render(m_renderer);
+    Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
     SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);

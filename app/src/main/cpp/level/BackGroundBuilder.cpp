@@ -45,8 +45,10 @@ namespace {
 }
 
 void BackGroundBuilder::render(SDL_Renderer *renderer) {
-    Engine::Get().getPostProcessor().beginScene(renderer);
-
+    // NOTE: GameState::render() wraps this (and the wall/particle/trap/fruit
+    // draws that follow it) in a single beginBloomGroup()/endBloomGroup()
+    // pass, so this builder just draws normally — no per-element opt-in
+    // needed, the bright-pass threshold decides what actually glows.
     float camX = Camera::getInstance().getCamera().x;
     float camY = Camera::getInstance().getCamera().y;
     for(const auto element : m_elements){
@@ -64,8 +66,6 @@ void BackGroundBuilder::render(SDL_Renderer *renderer) {
             SDL_RenderFillRect(renderer,&gapDst);
         }
     }
-    Engine::Get().getPostProcessor().endSceneAndComposite(renderer,Engine::Get().getWindow());
-    SDL_SetGPURenderState(renderer, nullptr);
 }
 
 void BackGroundBuilder::update(float dt) {
