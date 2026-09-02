@@ -149,7 +149,19 @@ Engine::Engine(){
     if (!m_window) {
         LOGE("Window creation failed: %s", SDL_GetError());
 }
-    SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV,true, nullptr);
+//    SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
+    SDL_PropertiesID props = SDL_CreateProperties();
+    SDL_SetNumberProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true); // or however you're setting SPIR-V support
+    SDL_SetStringProperty(props, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, nullptr);
+    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, false);
+    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_FEATURE_CLIP_DISTANCE_BOOLEAN, false);
+    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_FEATURE_DEPTH_CLAMPING_BOOLEAN, false);
+    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_FEATURE_INDIRECT_DRAW_FIRST_INSTANCE_BOOLEAN, false);
+    SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_FEATURE_ANISOTROPY_BOOLEAN, false);
+    SDL_GPUDevice* device = SDL_CreateGPUDeviceWithProperties(props);
+    SDL_DestroyProperties(props);
+    SDL_Log("GPU device creation failed: %s", SDL_GetError());
+
     SDL_Renderer* renderer = SDL_CreateGPURenderer(device,m_window);
     if(!renderer) {
         m_renderer = SDL_CreateRenderer(m_window, "opengles2");
@@ -159,7 +171,15 @@ Engine::Engine(){
         LOGI("gpu renderer succeeded");
         LOGI("GPU backend: %s", SDL_GetGPUDeviceDriver(device));
         SDL_GPUShaderFormat formats = SDL_GetGPUShaderFormats(device);
+        SDL_Log("device:%p",device);
         SDL_Log("SPIR-V supported: %d", (formats & SDL_GPU_SHADERFORMAT_SPIRV) != 0);
+        SDL_Log("DXBC: %d", (formats & SDL_GPU_SHADERFORMAT_DXBC) != 0);
+        SDL_Log("DXIL: %d", (formats & SDL_GPU_SHADERFORMAT_DXIL) != 0);
+        SDL_Log("MSL: %d", (formats & SDL_GPU_SHADERFORMAT_MSL) != 0);
+        SDL_Log("METALLIB: %d", (formats & SDL_GPU_SHADERFORMAT_METALLIB) != 0);
+        SDL_Log("PRIVATE: %d", (formats & SDL_GPU_SHADERFORMAT_PRIVATE) != 0);
+        SDL_Log("INVALID: %d", (formats & SDL_GPU_SHADERFORMAT_INVALID) != 0);
+
         m_renderer = renderer;
     }
     if (!m_renderer) {
