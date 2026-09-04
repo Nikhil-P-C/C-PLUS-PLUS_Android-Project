@@ -36,7 +36,7 @@ enum PlayerAction{
     CROUCHING=3,
     HURT=4,
     JUMP=5,
-
+    ATTACK=6,
 };
 
 class GameState : public State{
@@ -160,7 +160,7 @@ private:
     SDL_Renderer* m_renderer = nullptr;
 
     //mechanics
-
+    int m_tempInc =0;
     int m_invincibilityTimer = 5000;
     int m_blinkTimer =500;
     uint32_t m_knockbackEndTime =0;
@@ -171,7 +171,7 @@ private:
     float m_gravity =1800.00f;
     float m_jumpVelocity =1000.00f;
 
-
+    bool m_isAttacking =false;
     bool  m_isGrounded =true;
     bool  m_wasGrounded =false;
     bool m_isPlayerfacingRight =true;

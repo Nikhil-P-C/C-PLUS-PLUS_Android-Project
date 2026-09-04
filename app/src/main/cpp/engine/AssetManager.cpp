@@ -142,6 +142,8 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::BG_CAVE_FAR_OBJECT5,"Background/Cave/far_object5.png");
     loadTexture(TextureType::FG_CAVE_NEAR_OBJECT,"ForeGround/Cave/near_object.png");
 
+
+    loadTexture(TextureType::ATTACK_PLAYER_SLASH,"Attacks/slash.png");
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

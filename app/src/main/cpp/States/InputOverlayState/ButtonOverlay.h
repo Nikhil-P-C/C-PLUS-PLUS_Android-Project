@@ -21,6 +21,7 @@ private:
     Button m_LeftButton{200 ,400,100,100};
     Button m_RightButton{300,400,100,100};
     Button m_CrouchButton{1400,600,100,100};
+    Button m_AttackButton{1450,300,100,100};
 
     SDL_Texture* m_jumpButtonTexture = nullptr;
     SDL_Texture* m_leftButtonTexture = nullptr;
@@ -28,9 +29,12 @@ private:
 
     SDL_FingerID m_jumpFingerID=0;
     SDL_FingerID m_dFingerID=0;
-    bool m_jumpFingerActive = false;
-    bool m_dFingerActive = false;
+    SDL_FingerID m_attackFingerID=0;
     float m_TouchX =0;
     float m_TouchY =0;
+    bool m_jumpFingerActive = false;
+    bool m_dFingerActive = false;
+    bool m_attackFingerActive = false;
+
 };
 

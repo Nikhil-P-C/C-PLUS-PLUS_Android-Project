@@ -17,7 +17,9 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_leftButtonTexture, nullptr, &leftButtonDst);
     SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
 
-
+    SDL_FRect attackButtonDst{m_AttackButton.x,m_AttackButton.y,m_AttackButton.w,m_AttackButton.h};
+    SDL_SetRenderDrawColor(renderer,255,0,0,255);
+    SDL_RenderFillRect(renderer,&attackButtonDst);
 //    SDL_FRect crouchButtonDst{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
 //    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 //    SDL_RenderRect(renderer, &crouchButtonDst);
@@ -27,7 +29,16 @@ void ButtonOverlay::update(float dt) {
     if(m_jumpFingerActive){
         InputDispatcher::getInstance().setJump(true);
     }
-    else InputDispatcher::getInstance().setJump(false);
+    else
+        InputDispatcher::getInstance().setJump(false);
+
+    if(m_attackFingerActive){
+        InputDispatcher::getInstance().setAttack(true);
+    }
+    else
+        InputDispatcher::getInstance().setAttack(false);
+
+
     if(m_dFingerActive){
 
          if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w &&
@@ -51,16 +62,13 @@ void ButtonOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingLeft(false);
         InputDispatcher::getInstance().setMovingRight(false);
     }
-    if(!m_jumpFingerActive && !m_dFingerActive){
+    if(!m_jumpFingerActive && !m_dFingerActive && !m_attackFingerActive){
         InputDispatcher::getInstance().inputLogClear();
     }
     if(InputDispatcher::getInstance().released){
         InputDispatcher::getInstance().inputLogClear();
     }
-    //uncomment for debuging
-//    LOGI(" jump:%d left:%d right:%d",InputDispatcher::getInstance().getJump(),
-//                InputDispatcher::getInstance().getMovingLeft(),
-//                InputDispatcher::getInstance().getMovingRight());
+
 }
 
 bool ButtonOverlay::handleEvents(SDL_Event &event) {
@@ -88,7 +96,12 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
             m_jumpFingerID = event.tfinger.fingerID;
             m_jumpFingerActive=true;
         }
+        if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
+            touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
 
+            m_attackFingerID = event.tfinger.fingerID;
+            m_attackFingerActive =true;
+        }
 
     }
     if(event.type == SDL_EVENT_FINGER_MOTION){
@@ -113,6 +126,9 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
         }
         if(event.tfinger.fingerID == m_dFingerID){
             m_dFingerActive =false;
+        }
+        if(event.tfinger.fingerID == m_attackFingerID){
+            m_attackFingerActive =false;
         }
         return true;
     }

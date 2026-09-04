@@ -72,6 +72,16 @@ void PostProcessor::init(SDL_Renderer *renderer, SDL_GPUDevice *device) {
     SDL_GPURenderStateCreateInfo blurInfo{};
     blurInfo.fragment_shader = blurShader;
     m_blurState = SDL_CreateGPURenderState(renderer, &blurInfo);
+
+    m_whitePixel = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, 1, 1);
+    SDL_SetTextureBlendMode(m_whitePixel, SDL_BLENDMODE_BLEND);
+    Uint32 whitePixelData = 0xFFFFFFFF;
+    SDL_UpdateTexture(m_whitePixel, nullptr, &whitePixelData, sizeof(Uint32));
+
+    SDL_GPUShader* lightMaskShader = compileFragmentShader(device, "Shaders/lightmask.frag.spv", 1, 1);
+    SDL_GPURenderStateCreateInfo lightMaskInfo{};
+    lightMaskInfo.fragment_shader = lightMaskShader;
+    m_lightMaskState = SDL_CreateGPURenderState(renderer, &lightMaskInfo);
 }
 
 SDL_Texture* PostProcessor::blurTexture(SDL_Renderer* r, SDL_Texture* src, float radiusTexels) {
@@ -128,4 +138,32 @@ void PostProcessor::endBloomGroup(SDL_Renderer* r) {
     SDL_SetTextureBlendMode(blurred, SDL_BLENDMODE_BLEND); // reset for next group/frame's ping-pong reuse
 }
 
+void PostProcessor::applyPlayerLight(SDL_Renderer* r, float centerX, float centerY,
+                                     float radiusPx, float softnessPx, float darkness) {
+    const float screenW = 1600.0f, screenH = 720.0f; // matches the game's fixed logical presentation size
+
+    struct {
+        float center[2];
+        float radius;
+        float softness;
+        float darkness;
+        float aspect;
+        float _pad[2];
+    } params{};
+    params.center[0] = centerX / screenW;
+    params.center[1] = centerY / screenH;
+    params.radius    = radiusPx / screenH;
+    params.softness  = softnessPx / screenH;
+    params.darkness  = darkness;
+    params.aspect    = screenW / screenH;
+
+    SDL_SetRenderTarget(r, nullptr); // draw straight over whatever's already on the window
+    SDL_SetGPURenderState(r, m_lightMaskState);
+    SDL_SetGPURenderStateFragmentUniforms(m_lightMaskState, 0, &params, sizeof(params));
+
+    SDL_FRect fullScreen{0.0f, 0.0f, screenW, screenH};
+    SDL_RenderTexture(r, m_whitePixel, nullptr, &fullScreen);
+
+    SDL_SetGPURenderState(r, nullptr);
+}
 PostProcessor::PostProcessor() = default;

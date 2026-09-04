@@ -328,9 +328,56 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     // Group 2: foreground only, drawn after the player/blocks so it composites on top of them.
     Engine::Get().getPostProcessor().beginBloomGroup(m_renderer);
+    if(m_isAttacking)
+    {
+        SDL_FRect slashDst{m_player.x - 40 - camX, m_player.y - 20 - camY, 48 * P_scale,
+                           24 * P_scale};
+        SDL_FRect slashSrc{static_cast<float>(0 + (m_tempInc * 48)), 0, 48, 24};
+        if (!m_isPlayerfacingRight) {
+            slashDst.x = slashDst.x - 120;
+            SDL_RenderTextureRotated(renderer, Engine::Get().getAssetManager().getTexture(
+                                             TextureType::ATTACK_PLAYER_SLASH), &slashSrc, &slashDst, 0.0f, nullptr,
+                                     SDL_FLIP_HORIZONTAL);
+        } else {
+
+            SDL_RenderTexture(renderer, Engine::Get().getAssetManager().getTexture(
+                    TextureType::ATTACK_PLAYER_SLASH), &slashSrc, &slashDst);
+        }
+    }
+//    SDL_RenderTexture(m_renderer,Engine::Get().getAssetManager().getTexture(TextureType::ATTACK_PLAYER_SLASH),&slashSrc,&slashDst);
     m_foregroundBuilder.render(m_renderer);
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
-    SDL_RenderTexture(renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
+
+    //TODO: remove this temporary test,and load light data from level file
+    if(m_level == 1)
+    {
+        float playerLightX =
+                m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX;
+        float playerLightY =
+                m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
+        Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
+                /*radiusPx=*/100.0f, /*softnessPx=*/250.0f,
+                /*darkness=*/0.50f);
+    }
+    else if(m_level ==2){
+        float playerLightX =
+                m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX;
+        float playerLightY =
+                m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
+        Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
+                /*radiusPx=*/100.0f, /*softnessPx=*/250.0f,
+                /*darkness=*/0.10f);
+    }
+    else{
+        float playerLightX =
+                m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX;
+        float playerLightY =
+                m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
+        Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
+                /*radiusPx=*/100.0f, /*softnessPx=*/250.0f,
+                /*darkness=*/0.20f);
+    }
+    SDL_RenderTexture(m_renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
     SDL_DestroyTexture(fruitCounterTexture);
     SDL_DestroySurface(fruitCounterSurface);
 
@@ -338,6 +385,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 }
 
 void GameState::update(float dt){
+    LOGI("input attack:%d,gamestate attack:%d",InputDispatcher::getInstance().attack,m_isAttacking);
 //    LOGI("player x : %f , player : %f",m_player.x,m_player.y);
     if(PlayerDetail::getInstance().getPlayerHP() <= 0){
         //respawn
@@ -455,6 +503,7 @@ void GameState::update(float dt){
         Engine::Get().popOverlayState();
         if(GameData::getInstance().isDebugEnabled())
             Engine::Get().popOverlayState();
+        InputDispatcher::getInstance().inputLogClear();
         Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,m_level+1));
     }
 
@@ -648,6 +697,15 @@ void GameState::updateAnimation() {
 
     m_aniNowTime = SDL_GetTicks();
     if(m_aniNowTime - m_aniLastTime > m_aniframeDelay){
+        if(m_isAttacking){
+            m_tempInc++;
+            if(m_tempInc >4) {
+                m_tempInc = 0;
+                m_isAttacking =false;
+            }
+
+        }
+
         if(m_currentFrame < m_Animation.startIndex)
             m_currentFrame = m_Animation.startIndex;
         if(m_currentFrame < m_Animation.lastIndex)
@@ -750,6 +808,10 @@ void GameState::handlePhysicAndInput(float dt) {
         m_velocityY =-m_jumpVelocity;
         m_wasGrounded =true;
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
+    }
+
+    if(InputDispatcher::getInstance().attack){
+        m_isAttacking =true;
     }
 
     m_player.x +=m_velocityX * dt;

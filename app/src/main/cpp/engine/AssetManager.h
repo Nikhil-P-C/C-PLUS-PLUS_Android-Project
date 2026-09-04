@@ -97,6 +97,8 @@ enum class TextureType{
     FG_GREENERY_NEAR_OBJECT,
     FG_MEADOW_NEAR_FLOWERS,
     FG_CAVE_NEAR_OBJECT,
+
+    ATTACK_PLAYER_SLASH,
     COUNT
 };
 class AssetManager{

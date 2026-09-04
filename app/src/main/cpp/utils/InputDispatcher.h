@@ -10,13 +10,14 @@ public:
     bool movingRight =false;
     bool jump =false;
     bool released =true;
-
+    bool attack =false;
 public:
     void inputLogClear(){
         movingLeft  =false;
         movingRight =false;
         jump =false;
         released =true;
+        attack =false;
     }
     void setInputReleased(bool shouldRelease){
         released=shouldRelease;
@@ -30,7 +31,9 @@ public:
     void setMovingRight(bool shouldMoveRight){
         movingRight=shouldMoveRight;
     }
-
+    void setAttack(bool shouldAttack){
+        attack=shouldAttack;
+    }
     bool getJump(){
         return jump;
     }
