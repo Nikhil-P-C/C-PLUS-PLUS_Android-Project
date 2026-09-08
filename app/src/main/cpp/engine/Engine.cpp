@@ -26,6 +26,7 @@ void Engine::run(){
     float nowMusicAudioScale =0.0f;
     float lastMusicAudioScale = GameData::getInstance().getMusicAudioScale();
     while(m_running){
+
         nowMasterAudioScale = GameData::getInstance().getAudioScale();
         if(nowMasterAudioScale != lastMasterAudioScale)
             MIX_SetMixerGain(m_mixer,GameData::getInstance().getAudioScale());
@@ -39,7 +40,10 @@ void Engine::run(){
         currentTime = SDL_GetTicks();
         float deltaTime =(float) (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
+        const float kMaxDeltaTime = 1.0f / 30.0f;
+        if (deltaTime > kMaxDeltaTime) deltaTime = kMaxDeltaTime;
         //RENDER
+
         for (auto& cmd : m_CommandQueue) {
             if (cmd.type == commandType::PUSH)
                 m_States.push_back(std::move(cmd.state));
@@ -64,10 +68,7 @@ void Engine::run(){
 
         SDL_RenderClear(m_renderer);
 
-        // Each state draws straight to the backbuffer. Bloom is no longer
-        // handled here — GameState itself wraps specific render calls in
-        // getPostProcessor().beginBloomGroup()/endBloomGroup() around
-        // whichever layers should bloom (see GameState::render()).
+
         for(const auto &state : m_States)
             state->render(m_renderer);
 

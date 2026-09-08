@@ -68,8 +68,6 @@ void GameState::render(SDL_Renderer* renderer)  {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
 
-//    SDL_FRect backgroundDst{static_cast<float>(0-camX), static_cast<float>(0-camY), 3200, 1536};
-//    SDL_RenderTexture(renderer, m_backGround, nullptr, &backgroundDst);
 
     // Group 1: background + walls + particles + traps + fruits, all drawn
     // before the player. One offscreen capture, bright-pass + blur applied
@@ -262,8 +260,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         float playerLightY =
                 m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
         Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
-                /*radiusPx=*/100.0f, /*softnessPx=*/250.0f,
-                /*darkness=*/0.50f);
+                                                          100.0f,250.0f,0.50f);
     }
     else if(m_level ==2 || m_level == 3){
         float playerLightX =
@@ -271,8 +268,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         float playerLightY =
                 m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
         Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
-                /*radiusPx=*/100.0f, /*softnessPx=*/250.0f,
-                /*darkness=*/0.10f);
+                                                          100.0f, 250.0f,0.10f);
     }
     else{
         float playerLightX =
@@ -280,17 +276,21 @@ void GameState::render(SDL_Renderer* renderer)  {
         float playerLightY =
                 m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
         Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
-                /*radiusPx=*/100.0f, /*softnessPx=*/250.0f,
-                /*darkness=*/0.20f);
+                                                          100.0f, 250.0f, 0.20f);
     }
-//    SDL_RenderTexture(m_renderer,fruitCounterTexture, nullptr,&fruitCounterDst);
-//    SDL_DestroyTexture(fruitCounterTexture);
-//    SDL_DestroySurface(fruitCounterSurface);
-
 
 }
 
 void GameState::update(float dt){
+    if(m_isAttacking){
+        m_playerHitBox = {m_player.x+40,m_player.y +20,29* P_scale,15 * P_scale};
+        if (!m_isPlayerfacingRight) {
+            m_playerHitBox.x = m_playerHitBox.x - 185;
+        }
+    }
+    else {
+
+    }
     if(PlayerDetail::getInstance().getPlayerHP() <= 0){
         //respawn
         PlayerDetail::getInstance().addPlayerHP(5);

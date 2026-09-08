@@ -80,6 +80,9 @@ public:
     const Player& getPlayer(){
         return m_player;
     }
+    const SDL_FRect& getPlayerHitBox(){
+        return m_playerHitBox;
+    }
     const std::vector<Platform>& getPlatforms(){
         return m_platforms;
     }
@@ -160,6 +163,7 @@ private:
     float m_walkTimer=0.0f;
 
     Player   m_player;
+    SDL_FRect m_playerHitBox{0.0f,0.0f,0.0f,0.0f};
     //checkPoint
     CheckPoint m_checkPoint;
 

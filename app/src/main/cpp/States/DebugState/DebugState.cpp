@@ -57,6 +57,13 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_FRect playerBorder{m_player.x - camX, m_player.y - camY, m_player.w, m_player.h};
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderRect(renderer, &playerBorder);
+
+    //player hitbox
+    const SDL_FRect& playerHitBox = m_gameState->getPlayerHitBox();
+    SDL_FRect playerHitBoxBorder ={playerHitBox.x -camX,playerHitBox.y - camY,
+                                   playerHitBox.w,playerHitBox.h};
+    SDL_SetRenderDrawColor(renderer,0,0,255,255);
+    SDL_RenderRect(renderer,&playerHitBoxBorder);
     //traps
     const std::vector<Trap>& m_traps = m_gameState->getTraps();
 
