@@ -90,9 +90,11 @@ struct Trap{
 };
 const TrapFrameInfo* getTrapFrameInfo(TrapType type,TrapStatus status);
 const TextureType getChainTexture(TrapType type);
+
+
 class TrapBuilder{
 public:
-    std::vector<Trap>& getTraps();
+    const std::vector<Trap>& getTraps();
 
     void init(const std::vector<Trap>& traps);
 

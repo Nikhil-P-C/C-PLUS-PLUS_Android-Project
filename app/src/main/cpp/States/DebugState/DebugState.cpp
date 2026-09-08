@@ -10,15 +10,24 @@
 
 void DebugState::render(SDL_Renderer *renderer) {
     m_player =m_gameState->getPlayer();
-    std::string fps = "FPS:" + std::to_string(m_frames);
-    SDL_Surface *fpsSurface = TTF_RenderText_Solid(m_font, fps.c_str(), fps.length(),
-                                                   {255, 255, 255});
-    m_fpsTexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
+
+    if (m_frames != m_lastRenderedFrames || !m_fpsTexture) {
+        if (m_fpsTexture) {
+            SDL_DestroyTexture(m_fpsTexture);
+            m_fpsTexture = nullptr;
+        }
+        std::string fps = "FPS:" + std::to_string(m_frames);
+        SDL_Surface *fpsSurface = TTF_RenderText_Solid(m_font, fps.c_str(), fps.length(),
+                                                       {255, 255, 255});
+        if (fpsSurface) {
+            m_fpsTexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
+            SDL_DestroySurface(fpsSurface);
+        }
+        m_lastRenderedFrames = m_frames;
+    }
     SDL_FRect fpsrect{0, 0, 100, 100};
     SDL_RenderTexture(renderer, m_fpsTexture, nullptr, &fpsrect);
-    SDL_DestroyTexture(m_fpsTexture);
-    m_fpsTexture = nullptr;
-    SDL_DestroySurface(fpsSurface);
+
     int camX = (int) std::round(Camera::getInstance().getCamera().x);
     int camY = (int) std::round(Camera::getInstance().getCamera().y);
     //wall borders
@@ -49,7 +58,7 @@ void DebugState::render(SDL_Renderer *renderer) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderRect(renderer, &playerBorder);
     //traps
-    m_traps = m_gameState->getTraps();
+    const std::vector<Trap>& m_traps = m_gameState->getTraps();
 
     SDL_SetRenderDrawColor(renderer,255,0,0,255);
     for(const auto& trap:m_traps)
@@ -109,7 +118,7 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     m_platforms=m_gameState->getPlatforms();
     m_fruits=m_gameState->getFruits();
     m_trapBuilder =m_gameState->getTrapBuilder();
-    m_traps =m_trapBuilder.getTraps();
+//    m_traps =m_trapBuilder.getTraps();
     m_checkPoint =gameState->getCheckPoint();
     LOGI("Debug state constructor :%p",this);
     m_font = TTF_OpenFontIO(m_fontFile,false, 24);

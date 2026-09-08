@@ -11,36 +11,39 @@
 
 void JoystickOverlay::render(SDL_Renderer *renderer) {
     SDL_FRect joystick{m_joystick.x,m_joystick.y,m_joystick.w,m_joystick.h};
-    SDL_RenderTexture(renderer,m_joystickTexture,NULL,&joystick);
-
+    SDL_FRect attackButtonDst{m_AttackButton.x,m_AttackButton.y,m_AttackButton.w,m_AttackButton.h};
     SDL_FRect joystickHandle{ m_joystickHandle.x-m_joystickHandle.h/2,
                               m_joystickHandle.y-m_joystickHandle.h/2,
                               m_joystickHandle.w,m_joystickHandle.h};
-    SDL_RenderTexture(renderer,m_joystickHandleTexture,NULL,&joystickHandle);
+
+    SDL_RenderTexture(renderer,m_joystickTexture, nullptr,&joystick);
+    SDL_RenderTexture(renderer,m_joystickHandleTexture, nullptr,&joystickHandle);
+    SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
+
 }
 
 void JoystickOverlay::update(float dt) {
+
+    if(m_attackFingerActive){
+        InputDispatcher::getInstance().triggerAttack();
+        m_attackFingerActive =false;
+    }
+
     float centerX = (m_joystick.x + m_joystick.w / 2);
     float centerY = (m_joystick.y + m_joystick.h / 2);
-    float dY = m_touchY - centerY;
-    float dX = m_touchX - centerX;
-    float ndY =dY;
-    float ndX =dX;
-    float radius =m_joystick.w/2;
-    float len = sqrtf(dX * dX + dY * dY);
-    if(len > radius){
-        dX = (dX / len) * radius ;
-        dY = (dY / len) * radius;
 
-    }
     if(m_joystickFingerActive){
+        float dY = m_touchY - centerY;
+        float dX = m_touchX - centerX;
+        float ndY =dY;
+        float ndX =dX;
+        float radius =m_joystick.w/2;
+        float len = sqrtf(dX * dX + dY * dY);
 
-//        float centerX = m_joystick.x + m_joystick.w / 2;
-//        float centerY = m_joystick.y + m_joystick.h / 2;
-//        float dY = m_touchY - centerY;
-//        float dX = m_touchX - centerX;
-//        float len = sqrtf(dX * dX + dY * dY);
-        const float ndeadZone = 30.0f; // pixels
+        if(len > radius){
+            dX = (dX / len) * radius ;
+            dY = (dY / len) * radius;
+        }
 
 
         if (len > 0) {
@@ -77,16 +80,14 @@ void JoystickOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingRight(false);
         InputDispatcher::getInstance().setInputReleased(true);
     }
-
-
+    
     if(!m_joystickFingerActive){
         gameMath::interpolate(m_joystickHandle.x,m_joystickHandle.y,centerX,centerY,0.5f);
     }
 }
 
 bool JoystickOverlay::handleEvents(SDL_Event &event) {
-    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION){
-        InputDispatcher::getInstance().setInputReleased(false);
+    if(event.type == SDL_EVENT_FINGER_DOWN){
         float touchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
 
@@ -95,19 +96,29 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
             touchY >= m_joystick.y &&
             touchY <= m_joystick.y + m_joystick.h )&& !m_joystickFingerActive)
         {
-            m_fingerID = event.tfinger.fingerID;
+            m_joystickFingerID = event.tfinger.fingerID;
             m_joystickFingerActive = true;
             InputDispatcher::getInstance().setInputReleased(false);
         }
-        if(event.tfinger.fingerID == m_fingerID){
-            m_touchX = touchX;
-            m_touchY = touchY;
+        if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
+            touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
+
+            m_attackFingerID = event.tfinger.fingerID;
+            m_attackFingerActive =true;
         }
         return true;
     }
+    if(event.type == SDL_EVENT_FINGER_MOTION){
+        float touchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
+        if(event.tfinger.fingerID == m_joystickFingerID){
 
+            m_touchX = touchX;
+            m_touchY = touchY;
+        }
+    }
     if(event.type == SDL_EVENT_FINGER_UP){
-        if(event.tfinger.fingerID == m_fingerID){
+        if(event.tfinger.fingerID == m_joystickFingerID){
             m_joystickFingerActive =false;
             InputDispatcher::getInstance().inputLogClear();
         }
@@ -121,6 +132,8 @@ JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
 
     m_joystickTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING);
     m_joystickHandleTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE);
+    m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
+
     LOGI("joystick overlay constructor:%p",this);
 }
 JoystickOverlay::~JoystickOverlay() {

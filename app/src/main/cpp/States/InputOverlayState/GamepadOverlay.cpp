@@ -52,6 +52,10 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH){
                 InputDispatcher::getInstance().setJump(true);
+                return true;
+            }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_WEST){
+                InputDispatcher::getInstance().triggerAttack();
             }
             break;
 

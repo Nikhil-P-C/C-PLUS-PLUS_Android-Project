@@ -12,14 +12,13 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     SDL_FRect jumpButtonDst{m_JumpButton.x, m_JumpButton.y, m_JumpButton.w, m_JumpButton.h};
     SDL_FRect leftButtonDst{m_LeftButton.x, m_LeftButton.y, m_LeftButton.w, m_LeftButton.h};
     SDL_FRect rightButtonDst{m_RightButton.x, m_RightButton.y, m_RightButton.w, m_RightButton.h};
+    SDL_FRect attackButtonDst{m_AttackButton.x,m_AttackButton.y,m_AttackButton.w,m_AttackButton.h};
 
     SDL_RenderTexture(renderer, m_jumpButtonTexture, nullptr, &jumpButtonDst);
     SDL_RenderTexture(renderer, m_leftButtonTexture, nullptr, &leftButtonDst);
     SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
+    SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
 
-    SDL_FRect attackButtonDst{m_AttackButton.x,m_AttackButton.y,m_AttackButton.w,m_AttackButton.h};
-    SDL_SetRenderDrawColor(renderer,255,0,0,255);
-    SDL_RenderFillRect(renderer,&attackButtonDst);
 //    SDL_FRect crouchButtonDst{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
 //    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 //    SDL_RenderRect(renderer, &crouchButtonDst);
@@ -33,10 +32,9 @@ void ButtonOverlay::update(float dt) {
         InputDispatcher::getInstance().setJump(false);
 
     if(m_attackFingerActive){
-        InputDispatcher::getInstance().setAttack(true);
+        InputDispatcher::getInstance().triggerAttack();
+        m_attackFingerActive =false;
     }
-    else
-        InputDispatcher::getInstance().setAttack(false);
 
 
     if(m_dFingerActive){
@@ -62,9 +60,9 @@ void ButtonOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingLeft(false);
         InputDispatcher::getInstance().setMovingRight(false);
     }
-    if(!m_jumpFingerActive && !m_dFingerActive && !m_attackFingerActive){
-        InputDispatcher::getInstance().inputLogClear();
-    }
+//    if(!m_jumpFingerActive && !m_dFingerActive && m_attackFingerActive){
+//        InputDispatcher::getInstance().inputLogClear();
+//    }
     if(InputDispatcher::getInstance().released){
         InputDispatcher::getInstance().inputLogClear();
     }
@@ -143,7 +141,7 @@ ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
     m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
     m_leftButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_LEFT_BUTTON);
     m_rightButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_RIGHT_BUTTON);
-
+    m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
 }
 
 ButtonOverlay::~ButtonOverlay(){

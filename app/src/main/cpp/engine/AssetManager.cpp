@@ -72,6 +72,7 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::BUTTON_JUMP_BUTTON,"button/jump_button.png");
     loadTexture(TextureType::BUTTON_LEFT_BUTTON,"button/left_button.png");
     loadTexture(TextureType::BUTTON_RIGHT_BUTTON,"button/right_button.png");
+    loadTexture(TextureType::BUTTON_SLASH_BUTTON,"button/slash_button.png");
     loadTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING,"joystick/Joystick.png");
     loadTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE,"joystick/SmallHandleFilledGrey.png");
     loadTexture(TextureType::MENU_BUTTONS,"button/buttons.png");

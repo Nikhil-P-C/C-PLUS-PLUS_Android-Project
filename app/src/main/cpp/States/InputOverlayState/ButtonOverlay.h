@@ -26,7 +26,7 @@ private:
     SDL_Texture* m_jumpButtonTexture = nullptr;
     SDL_Texture* m_leftButtonTexture = nullptr;
     SDL_Texture* m_rightButtonTexture = nullptr;
-
+    SDL_Texture* m_slashButtonTexture = nullptr;
     SDL_FingerID m_jumpFingerID=0;
     SDL_FingerID m_dFingerID=0;
     SDL_FingerID m_attackFingerID=0;

@@ -6,7 +6,7 @@
 #include "Fruits.h"
 #include "States/GameState/GameState.h"
 #include "utils/utils.h"
-std::vector<Fruit>& FruitBuilder::getFruits()
+const std::vector<Fruit>& FruitBuilder::getFruits()
 {
     return m_fruits;
 }

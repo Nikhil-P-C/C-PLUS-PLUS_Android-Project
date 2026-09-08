@@ -31,8 +31,13 @@ public:
     void setMovingRight(bool shouldMoveRight){
         movingRight=shouldMoveRight;
     }
-    void setAttack(bool shouldAttack){
-        attack=shouldAttack;
+    void triggerAttack(){
+        attack=true;
+    }
+    bool consumeAttack(){
+        bool prevAttack =attack;
+        attack = false;
+        return prevAttack;
     }
     bool getJump(){
         return jump;

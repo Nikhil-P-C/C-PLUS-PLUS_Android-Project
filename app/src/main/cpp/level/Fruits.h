@@ -27,7 +27,7 @@ struct Fruit{
 
 class FruitBuilder{
 public:
-    std::vector<Fruit>& getFruits();
+    const std::vector<Fruit>& getFruits();
     void init(const std::vector<Fruit>& fruits);
     void render(SDL_Renderer* renderer);
     void update(float dt);

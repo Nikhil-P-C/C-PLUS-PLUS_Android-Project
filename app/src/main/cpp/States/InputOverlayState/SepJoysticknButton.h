@@ -17,6 +17,7 @@ public:
     bool handleEvents(SDL_Event& event) override;
 
 private:
+    Button m_AttackButton{1450,300,100,100};
     Button m_JumpButton{1400,400,100,100};
     Button m_joystick{0+ 200, 720 -400,300,300};
     Button m_joystickHandle{350.00f,470.00f,150.00f,150.00f};
@@ -25,13 +26,17 @@ private:
 
     bool m_joystickFingerActive =false;
     bool m_jumpFingerActive = false;
+    bool m_attackFingerActive =false;
 
     SDL_FingerID m_joystickFingerID =0;
     SDL_FingerID m_jumpFingerID =0;
+    SDL_FingerID m_attackFingerID =0;
 
     SDL_Texture* m_jumpButtonTexture = nullptr;
     SDL_Texture *m_joystickTexture = nullptr;
     SDL_Texture *m_joystickHandleTexture = nullptr;
+    SDL_Texture* m_slashButtonTexture = nullptr;
+
 };
 
 

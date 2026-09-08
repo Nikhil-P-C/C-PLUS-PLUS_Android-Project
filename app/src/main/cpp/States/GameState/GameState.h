@@ -38,7 +38,12 @@ enum PlayerAction{
     JUMP=5,
     ATTACK=6,
 };
-
+struct PrecomputedWallTile{
+    SDL_FRect src;
+    float x;
+    float y;
+    bool flip;
+};
 class GameState : public State{
 public:
     GameState(SDL_Renderer* renderer,int level);
@@ -50,6 +55,7 @@ public:
         SDL_SetTextureAlphaMod(m_playerTexture,255);
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
     }
+    void buildWallTiles();
     bool hasWallAbove(float x,float y);
     bool hasWallBelow(float x,float y);
     bool hasWallRight(float x,float y);
@@ -59,38 +65,40 @@ public:
     void handleCollision();
     void handlePhysicAndInput(float dt);
     void updateAnimation();
+
     void render(SDL_Renderer* renderer) override;
 
     void update(float dt) override;
 
     bool handleEvents(SDL_Event& event) override;
+
     static bool HandleBackgroundEvents(void *userdata, SDL_Event *event);
     bool isBlinkFrame() const;
     void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
     void triggerCheckpoint();
 
-    Player getPlayer(){
+    const Player& getPlayer(){
         return m_player;
     }
-    std::vector<Platform> getPlatforms(){
+    const std::vector<Platform>& getPlatforms(){
         return m_platforms;
     }
-    SDL_FRect getLevelWalls(){
+    const SDL_FRect& getLevelWalls(){
         return m_wallCollisionRect;
     }
-    std::vector<LevelGround> getLevelGrounds(){
+    const std::vector<LevelGround>& getLevelGrounds(){
         return m_grounds;
     }
-    std::vector<Fruit> getFruits(){
+    const std::vector<Fruit>& getFruits(){
         return m_fruits;
     }
-    TrapBuilder& getTrapBuilder(){
+    const TrapBuilder& getTrapBuilder(){
         return m_trapBuilder;
     }
-    std::vector<Trap>& getTraps(){
+    const std::vector<Trap>& getTraps(){
         return m_trapBuilder.getTraps();
     }
-    CheckPoint getCheckPoint(){
+    const CheckPoint& getCheckPoint(){
         return m_checkPoint;
     }
 private:
@@ -139,6 +147,7 @@ private:
     std::vector<Block> m_blocks;
     std::vector<BackGroundElement> m_backgroundElements;
     std::vector<ForeGroundElement> m_foregroundElements;
+    std::vector<PrecomputedWallTile> m_wallTiles;
 
     SDL_FRect  m_wallCollisionRect{0.00f};
     FruitBuilder m_fruitBuilder;

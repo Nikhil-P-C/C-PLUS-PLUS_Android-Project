@@ -23,6 +23,10 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             InputDispatcher::getInstance().setJump(true);
             return true;
         }
+        if(event.key.key == SDLK_K){
+            InputDispatcher::getInstance().triggerAttack();
+            return true;
+        }
     }
     else if(event.type == SDL_EVENT_KEY_UP){
         if(event.key.key == SDLK_A){

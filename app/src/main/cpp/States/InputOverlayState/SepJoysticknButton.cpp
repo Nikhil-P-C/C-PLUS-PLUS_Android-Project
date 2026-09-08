@@ -8,24 +8,29 @@
 
 void SepJoysticknButton::render(SDL_Renderer *renderer) {
     SDL_FRect joystick{m_joystick.x,m_joystick.y,m_joystick.w,m_joystick.h};
-    SDL_RenderTexture(renderer,m_joystickTexture,NULL,&joystick);
-
+    SDL_FRect attackButtonDst{m_AttackButton.x,m_AttackButton.y,m_AttackButton.w,m_AttackButton.h};
     SDL_FRect joystickHandle{ m_joystickHandle.x-m_joystickHandle.h/2,
                               m_joystickHandle.y-m_joystickHandle.h/2,
                               m_joystickHandle.w,m_joystickHandle.h};
-
-    SDL_RenderTexture(renderer,m_joystickHandleTexture,NULL,&joystickHandle);
-
     SDL_FRect jumpButtonDst{m_JumpButton.x, m_JumpButton.y, m_JumpButton.w, m_JumpButton.h};
+
+    SDL_RenderTexture(renderer,m_joystickTexture,NULL,&joystick);
+    SDL_RenderTexture(renderer,m_joystickHandleTexture,NULL,&joystickHandle);
     SDL_RenderTexture(renderer,m_jumpButtonTexture,NULL, &jumpButtonDst);
+    SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
 
 }
 
 void SepJoysticknButton::update(float dt) {
+    if(m_attackFingerActive){
+        InputDispatcher::getInstance().triggerAttack();
+        m_attackFingerActive =false;
+    }
 
     if(m_jumpFingerActive){
         InputDispatcher::getInstance().setJump(true);
     }
+
     float centerX = (m_joystick.x + m_joystick.w / 2);
     float centerY = (m_joystick.y + m_joystick.h / 2);
     float dY = m_touchY - centerY;
@@ -67,20 +72,15 @@ void SepJoysticknButton::update(float dt) {
     if(!m_joystickFingerActive){
         InputDispatcher::getInstance().setMovingLeft(false);
         InputDispatcher::getInstance().setMovingRight(false);
-        InputDispatcher::getInstance().setInputReleased(true);
     }
     if(!m_jumpFingerActive){
         InputDispatcher::getInstance().setJump(false);
     }
-    if(!m_joystickFingerActive && !m_jumpFingerActive)
-        InputDispatcher::getInstance().inputLogClear();
-//    LOGI(" jump:%d left:%d right:%d",InputDispatcher::getInstance().getJump(),
-//                InputDispatcher::getInstance().getMovingLeft(),
-//                InputDispatcher::getInstance().getMovingRight());
+
 }
 
 bool SepJoysticknButton::handleEvents(SDL_Event &event) {
-    if(event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION){
+    if(event.type == SDL_EVENT_FINGER_DOWN ){
         InputDispatcher::getInstance().setInputReleased(false);
         float touchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
@@ -94,10 +94,7 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
             m_joystickFingerActive = true;
             InputDispatcher::getInstance().setInputReleased(false);
         }
-        if(event.tfinger.fingerID == m_joystickFingerID){
-            m_touchX = touchX;
-            m_touchY = touchY;
-        }
+
 
         if((touchX > m_JumpButton.x && touchX < m_JumpButton.x + m_JumpButton.w&&
             touchY > m_JumpButton.y && touchY < m_JumpButton.y + m_JumpButton.h )&& !m_jumpFingerActive){
@@ -105,9 +102,24 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
             m_jumpFingerActive=true;
         }
 
+
+        if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
+            touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
+
+            m_attackFingerID = event.tfinger.fingerID;
+            m_attackFingerActive =true;
+        }
         return true;
     }
+    if(event.type == SDL_EVENT_FINGER_MOTION){
+        float touchX =event.tfinger.x * (float)GameData::getInstance().getWinWidth();
+        float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
 
+        if(event.tfinger.fingerID == m_joystickFingerID){
+            m_touchX = touchX;
+            m_touchY = touchY;
+        }
+    }
     if(event.type == SDL_EVENT_FINGER_UP){
         if(event.tfinger.fingerID == m_joystickFingerID){
             m_joystickFingerActive =false;
@@ -130,6 +142,7 @@ SepJoysticknButton::SepJoysticknButton(SDL_Renderer *renderer) {
 
     m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
 
+    m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
 
 
     LOGI("SepJoysticknButton overlay constructor:%p",this);

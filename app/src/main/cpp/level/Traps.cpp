@@ -9,7 +9,7 @@ namespace {
         return (static_cast<uint32_t>(type) <<8 |static_cast<uint32_t>(status));
     }
 }
-std::vector<Trap> &TrapBuilder::getTraps()
+const std::vector<Trap> &TrapBuilder::getTraps()
 {
     return m_traps;
 }
