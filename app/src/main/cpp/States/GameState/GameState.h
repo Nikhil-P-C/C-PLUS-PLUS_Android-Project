@@ -16,6 +16,7 @@
 
 #include "level/Fruits.h"
 #include "level/Traps.h"
+#include "level/Enemies.h"
 #include "level/BlockShapeBuilder.h"
 #include "level/CheckPoint.h"
 #include "level/BackGroundBuilder.h"

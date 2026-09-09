@@ -5,6 +5,7 @@
       <w>animationindexes</w>
       <w>backgroundsurface</w>
       <w>checkcollision</w>
+      <w>daspeltosaurus</w>
       <w>definebutton</w>
       <w>endtext</w>
       <w>etextrect</w>
@@ -33,6 +34,7 @@
       <w>movingright</w>
       <w>musicfile</w>
       <w>mysdlapp</w>
+      <w>neovenator</w>
       <w>nextletter</w>
       <w>opengles</w>
       <w>optionstate</w>
@@ -40,6 +42,7 @@
       <w>playersurface</w>
       <w>sdlcall</w>
       <w>sdlttf</w>
+      <w>tarbosaurus</w>
       <w>tilesurface</w>
     </words>
   </dictionary>

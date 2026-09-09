@@ -15,9 +15,13 @@ void FruitBuilder::render(SDL_Renderer *renderer) {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     for(const auto& fruit : m_fruits){
+
         if(fruit.collectedAniDone) continue;
+
         SDL_FRect fruitDst{fruit.x-camX,fruit.y-camY,m_spriteWidth*SCALE,m_spriteHeight*SCALE};
         SDL_FRect fruitSrc{0.00f+m_spriteWidth*m_currentFrame,0.00f,m_spriteWidth,m_spriteHeight};
+
+
         if(fruit.type == FruitType::BANANA)
             SDL_RenderTexture(renderer,m_bananaTexture,&fruitSrc,&fruitDst);
         else if(fruit.type == FruitType::APPLE)

@@ -282,15 +282,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 }
 
 void GameState::update(float dt){
-    if(m_isAttacking){
-        m_playerHitBox = {m_player.x+40,m_player.y +20,29* P_scale,15 * P_scale};
-        if (!m_isPlayerfacingRight) {
-            m_playerHitBox.x = m_playerHitBox.x - 185;
-        }
-    }
-    else {
 
-    }
     if(PlayerDetail::getInstance().getPlayerHP() <= 0){
         //respawn
         PlayerDetail::getInstance().addPlayerHP(5);
@@ -301,6 +293,16 @@ void GameState::update(float dt){
     m_previousY =m_player.y;
 
     handlePhysicAndInput(dt);
+
+    if(m_isAttacking){
+        m_playerHitBox = {m_player.x+40,m_player.y +15,29* P_scale,15 * P_scale};
+        if (!m_isPlayerfacingRight) {
+            m_playerHitBox.x = m_playerHitBox.x - 185;
+        }
+    }
+    else {
+        m_playerHitBox ={0.00f};
+    }
 
     m_isGrounded=false;
 
@@ -725,6 +727,16 @@ void GameState::handlePhysicAndInput(float dt) {
 
 void GameState::setLevel(int level) {
 
+    m_blocks.clear();
+    m_platforms.clear();
+    m_grounds.clear();
+    m_wallTiles.clear();
+    m_levelWalls.clear();
+    m_traps.clear();
+    m_fruits.clear();
+    m_backgroundElements.clear();
+    m_foregroundElements.clear();
+
     m_levelLoader.loadLevel(level);
 
     m_checkPoint=m_levelLoader.getCheckPoint();
@@ -852,6 +864,7 @@ void GameState::buildWallTiles() {
         }
     }
 }
+
 bool GameState::hasWallAbove(float x, float y) {
     float checkX = x;
     float checkY = y - (TILE_SIZE * SCALE);

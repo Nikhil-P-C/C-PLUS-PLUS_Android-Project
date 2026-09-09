@@ -98,6 +98,7 @@ set(MYAPP_SOURCES
         level/BlockShapeBuilder.cpp
         level/Fruits.cpp
         level/Traps.cpp
+        level/Enemies.cpp
         level/BackGroundBuilder.cpp
         level/ForeGroundBuilder.cpp
 

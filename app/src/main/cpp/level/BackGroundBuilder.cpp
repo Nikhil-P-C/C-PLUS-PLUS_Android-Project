@@ -56,6 +56,10 @@ void BackGroundBuilder::render(SDL_Renderer *renderer) {
                       element.rect.y - camY * element.parallaxFloatY,
                       element.rect.w, element.rect.h};
 //        SDL_FRect src{0.00f,0.00f,};
+//        if((dst.x >= 0.00f && dst.x+dst.w <= GameData::getInstance().getWinWidth())&&
+//            dst.y <= 0.00f && dst.y+dst.h <= GameData::getInstance().getWinHeight()){
+//            continue;
+//        }
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(toTextureType(element.type));
         SDL_RenderTexture(renderer,texture, nullptr,&dst);
         if(element.type == BackGroundType::GREENERY_MOUNTAINS){//try fill gap ,manually
