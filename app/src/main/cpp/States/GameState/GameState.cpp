@@ -193,6 +193,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     m_particleSystem.render(m_renderer);
     m_trapBuilder.render(m_renderer);
+    m_enemyBuilder.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
 
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer); // composites Group 1 onto the window
@@ -354,7 +355,7 @@ void GameState::update(float dt){
     }
 
     m_trapBuilder.updatePath(dt);
-
+    m_enemyBuilder.update(dt,m_player.x,m_player.y);
     TrapType type;
     gameMath::collisionSide side =gameMath::collisionSide::NONE;
 
@@ -753,7 +754,7 @@ void GameState::setLevel(int level) {
     m_blockBuilder.init(m_blocks,TILE_SIZE,SCALE);
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
-
+    m_enemyBuilder.init(m_enemies);
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
     m_backgroundBuilder.init(m_backgroundElements);

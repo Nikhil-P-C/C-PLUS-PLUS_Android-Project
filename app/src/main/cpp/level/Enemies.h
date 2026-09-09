@@ -54,6 +54,7 @@ enum class EnemyAction{
     PATROL=0,
     SEEK,
     ATTACK,
+    RETURN,
     NONE
 };
 enum class AttackType{
@@ -108,7 +109,8 @@ struct Enemy{
     float radius = 0.00f;
 
     int pathIndex = 1;
-
+    bool isMovingForward =true;
+    bool isActivated =false;
     bool isFacingRight =true;
     bool hasHitEnd =false;
 
@@ -125,11 +127,22 @@ struct Enemy{
 };
 class EnemiesBuilder{
 public:
+
     void init(const std::vector<Enemy> enemies);
 
     void render(SDL_Renderer* renderer);
 
-    void update(float dt);
+    void update(float dt,float playerX,float playerY);
+
+private:
+
+    void moveToward(Enemy &e, float targetX, float targetY, float speed, float dt);
+
+    void updateAI(Enemy &e, float playerX, float playerY, float dt);
+
+    void updatePath(Enemy& enemy, float dt);
+
 private:
     std::vector<Enemy> m_enemies;
+
 };

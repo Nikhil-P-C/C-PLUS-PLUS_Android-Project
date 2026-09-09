@@ -15,20 +15,335 @@ namespace {
     }
 }
 
+void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
+    m_enemies.emplace_back(700.0f,600.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::SLASH,
+                           0.00f,600.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
+}
 
 void EnemiesBuilder::render(SDL_Renderer *renderer) {
+    int camX = (int)std::round(Camera::getInstance().getCamera().x);
+    int camY = (int)std::round(Camera::getInstance().getCamera().y);
+    for(const auto& enemy: m_enemies){
+        auto info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+        if(info == nullptr) {
+            LOGI("enemy info null");
+            continue;
+        }
+        SDL_FRect dst{enemy.x-camX,enemy.y-camY,static_cast<float>(info->frameW),static_cast<float>(info->frameH)};
+        SDL_SetRenderDrawColor(renderer,255,0,0,255);
+        SDL_RenderFillRect(renderer,&dst);
+    }
 
 }
 
-void EnemiesBuilder::update(float dt) {
+void EnemiesBuilder::update(float dt,float playerX,float playerY) {
+    for(auto& enemy:m_enemies){
+        updateAI(enemy,playerX,playerY,dt);
+        if(enemy.action == EnemyAction::ATTACK){
+            LOGI("enemy is Attacking");
+        }
+    }
+}
+void EnemiesBuilder::updateAI(Enemy& enemy, float playerX, float playerY, float dt) {
+    float dx = playerX - enemy.x, dy = playerY - enemy.y;
+    float distToPlayer = std::sqrt(dx*dx + dy*dy);
+    const auto cfg = getEnemyAIConfig(enemy.type);
 
+    switch (enemy.action) {
+        case EnemyAction::PATROL:
+            updatePath(enemy, dt);                       // existing trap-style movement
+            if (distToPlayer <= cfg->detectRadius)
+                enemy.action = EnemyAction::SEEK;
+            break;
+
+        case EnemyAction::SEEK: {
+            moveToward(enemy, playerX, playerY, enemy.movingSpeed, dt);
+            enemy.isFacingRight = (dx > 0);
+
+            float homeDx = enemy.x - enemy.baseX, homeDy = enemy.y - enemy.baseY;
+            float distFromHome = std::sqrt(homeDx*homeDx + homeDy*homeDy);
+
+            if (distToPlayer <= cfg->attackRange)
+                enemy.action = EnemyAction::ATTACK;
+            else if (distToPlayer > cfg->loseRadius)
+                enemy.action = EnemyAction::RETURN;
+            break;
+        }
+
+        case EnemyAction::ATTACK:
+            if (distToPlayer > cfg->attackRange * 1.2f)      // player escaped mid-attack
+                enemy.action = EnemyAction::SEEK;
+            else if (enemy.aniDone)                              // let animation drive the timing
+                enemy.action = EnemyAction::SEEK;                 // reposition, re-enter ATTACK if still in range
+            break;
+
+        case EnemyAction::RETURN: {
+            moveToward(enemy, enemy.baseX, enemy.baseY, enemy.movingSpeed, dt);
+            float rdx = enemy.baseX - enemy.x, rdy = enemy.baseY - enemy.y;
+            if (std::sqrt(rdx*rdx + rdy*rdy) < 4.0f) {
+                enemy.x = enemy.baseX; enemy.y = enemy.baseY;
+                enemy.action = EnemyAction::PATROL;   // pathIndex/hasHitEnd were untouched during the chase, so it resumes cleanly
+            } else if (distToPlayer <= cfg->detectRadius) {
+                enemy.action = EnemyAction::SEEK;     // player wandered back in range while it was heading home
+            }
+            break;
+        }
+        default: break;
+    }
+}
+
+void EnemiesBuilder::moveToward(Enemy& enemy, float targetX, float targetY, float speed, float dt) {
+    float dx = targetX - enemy.x, dy = targetY - enemy.y;
+    float dist = std::sqrt(dx*dx + dy*dy);
+    if (dist < 0.01f) return;
+    enemy.x += (dx/dist) * speed * dt;
+    enemy.y += (dy/dist) * speed * dt;
+}
+
+void EnemiesBuilder::updatePath(Enemy& enemy,float dt)
+{
+
+    enemy.previousX=enemy.x;
+    enemy.previousY=enemy.y;
+
+    if(enemy.pathShape == PathShape::RECT)
+    {
+        SDL_FPoint paths[4]={
+                {enemy.baseX,enemy.baseY},
+                {enemy.startPath,enemy.baseY},
+                {enemy.startPath,enemy.endPath},
+                {enemy.baseX,enemy.endPath}
+        };
+        SDL_FPoint target = paths[enemy.pathIndex];
+
+        float stepDist = enemy.movingSpeed*dt;
+        if(enemy.x != target.x)
+        {
+            float dir = (target.x > enemy.x) ? 1.0f : -1.0f;
+            if(SDL_fabsf(target.x - enemy.x) <= stepDist)
+            {
+                enemy.x = target.x;
+            }
+            else
+            {
+                enemy.x += stepDist*dir;
+            }
+        }
+        if(enemy.y != target.y)
+        {
+            float dir = (target.y > enemy.y) ? 1.0f : -1.0f;
+            if(SDL_fabsf(target.y - enemy.y) <= stepDist)
+            {
+                enemy.y = target.y;
+            }
+            else
+            {
+                enemy.y += stepDist*dir;
+            }
+        }
+        if(target.x == enemy.x && target.y == enemy.y)
+        {
+            unsigned int now = SDL_GetTicks();
+            if(!enemy.hasHitEnd)
+            {
+                enemy.hasHitEnd =true;
+                enemy.lastSwitchTime=now;
+
+                enemy.aniStartFrame = 0;
+                enemy.aniDone = false;
+            }
+            else
+                enemy.pathIndex = (enemy.pathIndex + 1) % 4;
+
+        }
+        else{
+            enemy.hasHitEnd =false;
+        }
+        return;
+    }
+
+    if(enemy.pathShape == PathShape::LINE)
+    {
+
+        float& coord = (enemy.axis == PathAxis::HORIZONTAL)?enemy.x:enemy.y;
+        float target = (enemy.isMovingForward)?enemy.endPath:enemy.startPath;
+        float dir = (coord < target) ? 1.00f : -1.00f;
+
+        float stepDist = enemy.movingSpeed*dt;
+
+        if(SDL_fabsf(target - coord) <= stepDist)
+        {
+            unsigned int now = SDL_GetTicks();
+            coord = target;
+            if(!enemy.hasHitEnd)
+            {
+                enemy.hasHitEnd =true;
+                enemy.lastSwitchTime=now;
+
+                enemy.aniStartFrame = 0;
+                enemy.aniDone = false;
+
+                enemy.isMovingForward = !enemy.isMovingForward;
+            }
+
+        }
+        else
+        {
+            enemy.hasHitEnd =false;
+
+            coord += stepDist*dir;
+
+        }
+    }
+    if(enemy.pathShape == PathShape::CIRCLE)
+    {// no target we just move endlessly
+        enemy.pathAngle += enemy.movingSpeed/enemy.radius *dt;
+        enemy.x =enemy.baseX +enemy.radius *cosf(enemy.pathAngle);
+        enemy.y =enemy.baseY +enemy.radius * sinf(enemy.pathAngle);
+    }
+    if(enemy.pathShape == PathShape::ARC)
+    {
+        // endPath/startPath as angle bounds (radians)
+        float target = enemy.isMovingForward ? enemy.endPath : enemy.startPath;
+
+        float dir = (enemy.pathAngle < target) ? 1.0f : -1.0f;
+        float angularSpeed = enemy.movingSpeed / enemy.radius;
+        float step = angularSpeed * dt;
+
+        if(SDL_fabsf(target - enemy.pathAngle) <= step) {
+            enemy.pathAngle = target;
+            enemy.isMovingForward = !enemy.isMovingForward;
+        } else {
+            enemy.pathAngle += step * dir;
+        }
+        enemy.x = enemy.baseX + enemy.radius * cosf(enemy.pathAngle);
+        enemy.y = enemy.baseY + enemy.radius * sinf(enemy.pathAngle);
+    }
+//    for(auto& enemy: m_enemies)
+//    {
+//        if(enemy.action != EnemyAction::PATROL)
+//            continue;
+//
+//        enemy.previousX=enemy.x;
+//        enemy.previousY=enemy.y;
+//
+//        if(enemy.pathShape == PathShape::RECT)
+//        {
+//            SDL_FPoint paths[4]={
+//                    {enemy.baseX,enemy.baseY},
+//                    {enemy.startPath,enemy.baseY},
+//                    {enemy.startPath,enemy.endPath},
+//                    {enemy.baseX,enemy.endPath}
+//            };
+//            SDL_FPoint target = paths[enemy.pathIndex];
+//
+//            float stepDist = enemy.movingSpeed*dt;
+//            if(enemy.x != target.x)
+//            {
+//                float dir = (target.x > enemy.x) ? 1.0f : -1.0f;
+//                if(SDL_fabsf(target.x - enemy.x) <= stepDist)
+//                {
+//                    enemy.x = target.x;
+//                }
+//                else
+//                {
+//                    enemy.x += stepDist*dir;
+//                }
+//            }
+//            if(enemy.y != target.y)
+//            {
+//                float dir = (target.y > enemy.y) ? 1.0f : -1.0f;
+//                if(SDL_fabsf(target.y - enemy.y) <= stepDist)
+//                {
+//                    enemy.y = target.y;
+//                }
+//                else
+//                {
+//                    enemy.y += stepDist*dir;
+//                }
+//            }
+//            if(target.x == enemy.x && target.y == enemy.y)
+//            {
+//                unsigned int now = SDL_GetTicks();
+//                if(!enemy.hasHitEnd)
+//                {
+//                    enemy.hasHitEnd =true;
+//                    enemy.lastSwitchTime=now;
+//
+//                    enemy.aniStartFrame = 0;
+//                    enemy.aniDone = false;
+//                }
+//                else
+//                    enemy.pathIndex = (enemy.pathIndex + 1) % 4;
+//
+//            }
+//            else{
+//                enemy.hasHitEnd =false;
+//            }
+//            continue;
+//        }
+//
+//        if(enemy.pathShape == PathShape::LINE)
+//        {
+//
+//            float& coord = (enemy.axis == PathAxis::HORIZONTAL)?enemy.x:enemy.y;
+//            float target = (enemy.isMovingForward)?enemy.endPath:enemy.startPath;
+//            float dir = (coord < target) ? 1.00f : -1.00f;
+//
+//            float stepDist = enemy.movingSpeed*dt;
+//
+//            if(SDL_fabsf(target - coord) <= stepDist)
+//            {
+//                unsigned int now = SDL_GetTicks();
+//                coord = target;
+//                if(!enemy.hasHitEnd)
+//                {
+//                    enemy.hasHitEnd =true;
+//                    enemy.lastSwitchTime=now;
+//
+//                    enemy.aniStartFrame = 0;
+//                    enemy.aniDone = false;
+//
+//                    enemy.isMovingForward = !enemy.isMovingForward;
+//                }
+//
+//            }
+//            else
+//            {
+//                enemy.hasHitEnd =false;
+//
+//                coord += stepDist*dir;
+//
+//            }
+//        }
+//        if(enemy.pathShape == PathShape::CIRCLE)
+//        {// no target we just move endlessly
+//            enemy.pathAngle += enemy.movingSpeed/enemy.radius *dt;
+//            enemy.x =enemy.baseX +enemy.radius *cosf(enemy.pathAngle);
+//            enemy.y =enemy.baseY +enemy.radius * sinf(enemy.pathAngle);
+//        }
+//        if(enemy.pathShape == PathShape::ARC)
+//        {
+//            // endPath/startPath as angle bounds (radians)
+//            float target = enemy.isMovingForward ? enemy.endPath : enemy.startPath;
+//
+//            float dir = (enemy.pathAngle < target) ? 1.0f : -1.0f;
+//            float angularSpeed = enemy.movingSpeed / enemy.radius;
+//            float step = angularSpeed * dt;
+//
+//            if(SDL_fabsf(target - enemy.pathAngle) <= step) {
+//                enemy.pathAngle = target;
+//                enemy.isMovingForward = !enemy.isMovingForward;
+//            } else {
+//                enemy.pathAngle += step * dir;
+//            }
+//            enemy.x = enemy.baseX + enemy.radius * cosf(enemy.pathAngle);
+//            enemy.y = enemy.baseY + enemy.radius * sinf(enemy.pathAngle);
+//        }
+//    }
 }
 
 
-void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
-    m_enemies.emplace_back(0.0f,0.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::NONE,
-                           0.00f,0.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
-}
 
 Enemy::Enemy(float x, float y, EnemyType type, EnemyAction action, AttackType attackType,
              float startPath, float endPath, float speed, PathAxis axis, PathShape shape,
@@ -111,66 +426,88 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
     static const std::unordered_map<uint32_t, EnemyFrameInfo> table{
             {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SPIDER_CHILD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SPIDER_CHILD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SPIDER_CHILD_PATROL,64,64,4,90,true}},
 
             {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::PATROL), {TextureType::ENEMY_MOSS_GLOW_WORM_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_GLOW_WORM_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::RETURN), {TextureType::ENEMY_MOSS_GLOW_WORM_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::PATROL), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_BAT_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::RETURN), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SINNERS_CHILD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SINNERS_CHILD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SINNERS_CHILD_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::PATROL), {TextureType::ENEMY_CAVE_PREDATOR_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_PREDATOR_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::RETURN), {TextureType::ENEMY_CAVE_PREDATOR_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::PATROL), {TextureType::ENEMY_CAVE_RAT_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_RAT_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::RETURN), {TextureType::ENEMY_CAVE_RAT_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::SHAFTS_RAPTOR,EnemyAction::PATROL), {TextureType::ENEMY_SHAFTS_RAPTOR_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::SHAFTS_RAPTOR,EnemyAction::SEEK), {TextureType::ENEMY_SHAFTS_RAPTOR_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::SHAFTS_RAPTOR,EnemyAction::RETURN), {TextureType::ENEMY_SHAFTS_RAPTOR_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::PATROL), {TextureType::ENEMY_GIANT_BATS_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::SEEK), {TextureType::ENEMY_GIANT_BATS_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::RETURN), {TextureType::ENEMY_GIANT_BATS_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::SHAFTS_WORKER,EnemyAction::PATROL), {TextureType::ENEMY_SHAFTS_WORKER_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::SHAFTS_WORKER,EnemyAction::SEEK), {TextureType::ENEMY_SHAFTS_WORKER_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::SHAFTS_WORKER,EnemyAction::RETURN), {TextureType::ENEMY_SHAFTS_WORKER_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::ANKYLOSAURUS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_ANKYLOSAURUS_CHILD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::ANKYLOSAURUS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_ANKYLOSAURUS_CHILD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::ANKYLOSAURUS_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_ANKYLOSAURUS_CHILD_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::HUNTER_RAPTOR,EnemyAction::PATROL), {TextureType::ENEMY_HUNTER_RAPTOR_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::HUNTER_RAPTOR,EnemyAction::SEEK), {TextureType::ENEMY_HUNTER_RAPTOR_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::HUNTER_RAPTOR,EnemyAction::RETURN), {TextureType::ENEMY_HUNTER_RAPTOR_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::HUNTER_EAGLE,EnemyAction::PATROL), {TextureType::ENEMY_HUNTER_EAGLE_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::HUNTER_EAGLE,EnemyAction::SEEK), {TextureType::ENEMY_HUNTER_EAGLE_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::HUNTER_EAGLE,EnemyAction::RETURN), {TextureType::ENEMY_HUNTER_EAGLE_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::PREDATOR_THEROPOD,EnemyAction::PATROL), {TextureType::ENEMY_PREDATOR_THEROPOD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::PREDATOR_THEROPOD,EnemyAction::SEEK), {TextureType::ENEMY_PREDATOR_THEROPOD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::PREDATOR_THEROPOD,EnemyAction::RETURN), {TextureType::ENEMY_PREDATOR_THEROPOD_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::THEROPOD_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_THEROPOD_CHILD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::THEROPOD_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_THEROPOD_CHILD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::THEROPOD_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_THEROPOD_CHILD_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::PATROL), {TextureType::ENEMY_PREDATOR_CAT_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::SEEK), {TextureType::ENEMY_PREDATOR_CAT_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::RETURN), {TextureType::ENEMY_PREDATOR_CAT_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::PATROL), {TextureType::ENEMY_MOUNTAIN_CAT_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::SEEK), {TextureType::ENEMY_MOUNTAIN_CAT_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::RETURN), {TextureType::ENEMY_MOUNTAIN_CAT_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::CROCODYLOMORPH,EnemyAction::PATROL), {TextureType::ENEMY_CROCODYLOMORPH_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::CROCODYLOMORPH,EnemyAction::SEEK), {TextureType::ENEMY_CROCODYLOMORPH_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::CROCODYLOMORPH,EnemyAction::RETURN), {TextureType::ENEMY_CROCODYLOMORPH_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::TARBOSAURUS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_TARBOSAURUS_CHILD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::TARBOSAURUS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_TARBOSAURUS_CHILD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::TARBOSAURUS_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_TARBOSAURUS_CHILD_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::TYRANNOSAURUS_REX_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_TYRANNOSAURUS_REX_CHILD_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::TYRANNOSAURUS_REX_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_TYRANNOSAURUS_REX_CHILD_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::TYRANNOSAURUS_REX_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_TYRANNOSAURUS_REX_CHILD_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::ALBERTOSAURUS,EnemyAction::PATROL), {TextureType::ENEMY_ALBERTOSAURUS_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::ALBERTOSAURUS,EnemyAction::SEEK), {TextureType::ENEMY_ALBERTOSAURUS_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::ALBERTOSAURUS,EnemyAction::RETURN), {TextureType::ENEMY_ALBERTOSAURUS_PATROL,64,64,4,120,true}},
 
             {enemyActionKey(EnemyType::DASPELTOSAURUS,EnemyAction::PATROL), {TextureType::ENEMY_DASPELTOSAURUS_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::DASPELTOSAURUS,EnemyAction::SEEK), {TextureType::ENEMY_DASPELTOSAURUS_SEEK,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::DASPELTOSAURUS,EnemyAction::RETURN), {TextureType::ENEMY_DASPELTOSAURUS_PATROL,64,64,4,120,true}},
+
     };
     auto it = table.find(enemyActionKey(type, Action));
     return it != table.end() ? &it->second : nullptr;

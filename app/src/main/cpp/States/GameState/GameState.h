@@ -148,6 +148,7 @@ private:
     std::vector<LevelGround> m_levelWalls;
     std::vector<Fruit> m_fruits;
     std::vector<Trap> m_traps;
+    std::vector<Enemy> m_enemies;
     std::vector<Block> m_blocks;
     std::vector<BackGroundElement> m_backgroundElements;
     std::vector<ForeGroundElement> m_foregroundElements;
@@ -156,6 +157,7 @@ private:
     SDL_FRect  m_wallCollisionRect{0.00f};
     FruitBuilder m_fruitBuilder;
     TrapBuilder m_trapBuilder;
+    EnemiesBuilder m_enemyBuilder;
     GroundShape m_wallShape;
     BlockBuilder m_blockBuilder;
     BackGroundBuilder m_backgroundBuilder;
