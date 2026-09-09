@@ -5,6 +5,7 @@
 #include <vector>
 #include "Traps.h"
 #include "engine/Engine.h"
+#include <SDL3/SDL.h>
 
 enum class EnemyType{
     //Moss cave enemies
@@ -97,6 +98,7 @@ struct Enemy{
     EnemyAction action =EnemyAction::NONE;
     AttackType attackType =AttackType::NONE;
 
+    int hp = 50;
     // copied from trap , check traps for usage
     float startPath=0.00f,endPath=0.00f;
     float baseX =0.00f,baseY =0.00f;
@@ -123,7 +125,11 @@ struct Enemy{
 };
 class EnemiesBuilder{
 public:
+    void init(const std::vector<Enemy> enemies);
 
+    void render(SDL_Renderer* renderer);
+
+    void update(float dt);
 private:
     std::vector<Enemy> m_enemies;
 };
