@@ -11,6 +11,8 @@ public:
     bool jump =false;
     bool released =true;
     bool attack =false;
+    bool heal =false;
+    bool beaming =false;
 public:
     void inputLogClear(){
         movingLeft  =false;
@@ -18,6 +20,8 @@ public:
         jump =false;
         released =true;
         attack =false;
+        heal =false;
+        beaming =false;
     }
     void setInputReleased(bool shouldRelease){
         released=shouldRelease;
@@ -38,6 +42,17 @@ public:
         bool prevAttack =attack;
         attack = false;
         return prevAttack;
+    }
+    void triggerHeal(){
+        heal=true;
+    }
+    bool consumeHeal(){
+        bool prevHeal =heal;
+        heal = false;
+        return prevHeal;
+    }
+    void setBeaming(bool shouldBeam){
+        beaming=shouldBeam;
     }
     bool getJump(){
         return jump;

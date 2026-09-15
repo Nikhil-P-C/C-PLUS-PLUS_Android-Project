@@ -289,6 +289,9 @@ void GameState::update(float dt){
         PlayerDetail::getInstance().addPlayerHP(5);
         m_player.setPosition(109.00f,0.00f,P_scale);
     }
+    if(!m_isBeaming){
+        PlayerDetail::getInstance().addMagic(MAGIC_REGEN_PER_SEC * dt);   // no regen while channeling the beam
+    }
     m_fruitBuilder.update(dt);
 
     m_previousY =m_player.y;
@@ -575,6 +578,31 @@ void GameState::triggerCheckpoint(){
     m_checkPoint.aniType = m_checkPoint.aniType == CheckPointAni::NO_FLAG ? CheckPointAni::FLAG_OUT:CheckPointAni::FLAG_IDLE;
 }
 
+void GameState::tryHeal(unsigned int now) {
+    if(now < m_healCooldownEndTime) return;                                  // still on cooldown
+    if(PlayerDetail::getInstance().getMagic() < HEAL_MAGIC_COST) return;     // not enough magic
+    if(PlayerDetail::getInstance().getPlayerHP() >= 5) return;               // already full (5 is the game's hp cap)
+
+    PlayerDetail::getInstance().subMagic(HEAL_MAGIC_COST);
+    PlayerDetail::getInstance().addPlayerHP(HEAL_AMOUNT);
+    m_healCooldownEndTime = now + HEAL_COOLDOWN_MS;
+}
+
+void GameState::tryBeam(float dt) {
+    float drain = BEAM_MAGIC_DRAIN_PER_SEC * dt;
+    if(PlayerDetail::getInstance().getMagic() < drain){
+        // ran out mid-channel - force it to stop
+        m_isBeaming = false;
+        InputDispatcher::getInstance().setBeaming(false);
+        return;
+    }
+    PlayerDetail::getInstance().subMagic(drain);
+    m_isBeaming = true;
+    // TODO: no beam sprite/hitbox yet - this only drains magic for now.
+    // Once beam art exists, build a hitbox here (same idea as m_playerHitBox
+    // in the attack path) and resolve damage against m_enemies.
+}
+
 void GameState::updateAnimation() {
     if(SDL_GetTicks() < m_hurtAnimEndTime) m_playerAction = PlayerAction::HURT;
     switch(m_playerAction){
@@ -660,6 +688,12 @@ void GameState::updateAnimation() {
 }
 
 void GameState::handlePhysicAndInput(float dt) {
+
+    if(m_isBeaming)
+    {
+        LOGI("Player is beaming");
+    }
+
     if(m_wasGrounded && m_isGrounded){
         m_particleSystem.emitLandDust(m_player.x+20.00f, m_player.y+m_player.h-50.00f,
                                       m_player.x-40.00f, m_player.y+m_player.h-50.00f);
@@ -719,6 +753,16 @@ void GameState::handlePhysicAndInput(float dt) {
 
     if(InputDispatcher::getInstance().consumeAttack()){
         m_isAttacking =true;
+    }
+
+    if(InputDispatcher::getInstance().consumeHeal()){
+        tryHeal(SDL_GetTicks());
+    }
+
+    if(InputDispatcher::getInstance().beaming){
+        tryBeam(dt);
+    } else {
+        m_isBeaming = false;
     }
 
     m_player.x +=m_velocityX * dt;
@@ -871,7 +915,7 @@ bool GameState::hasWallAbove(float x, float y) {
     float checkY = y - (TILE_SIZE * SCALE);
     for(const auto& wall : m_levelWalls){
         if(checkX >= wall.x&& checkX < wall.x + wall.w &&
-            checkY >=wall.y&& checkY<wall.y+wall.h)
+           checkY >=wall.y&& checkY<wall.y+wall.h)
             return true;
     }
     return false;
@@ -938,11 +982,3 @@ bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event)
     }
     return true; // Return true to keep the event in the queue for other systems
 }
-
-
-
-
-
-
-
-

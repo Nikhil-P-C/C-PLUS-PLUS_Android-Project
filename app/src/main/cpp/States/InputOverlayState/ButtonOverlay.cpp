@@ -19,6 +19,11 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
 
+    // no magic button art yet - placeholder rect until it exists
+    SDL_FRect magicButtonDst{m_MagicButton.x, m_MagicButton.y, m_MagicButton.w, m_MagicButton.h};
+    SDL_SetRenderDrawColor(renderer, 80, 120, 255, 200);
+    SDL_RenderFillRect(renderer, &magicButtonDst);
+
 //    SDL_FRect crouchButtonDst{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
 //    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 //    SDL_RenderRect(renderer, &crouchButtonDst);
@@ -36,23 +41,35 @@ void ButtonOverlay::update(float dt) {
         m_attackFingerActive =false;
     }
 
+    if(m_magicFingerActive){
+        if(!m_magicBeamStarted && (SDL_GetTicks() - m_magicPressStartTime) >= MAGIC_HOLD_THRESHOLD_MS){
+            m_magicBeamStarted = true;   // held past the threshold -> it's a beam, not a tap
+        }
+        if(m_magicBeamStarted){
+            InputDispatcher::getInstance().setBeaming(true);
+        }
+    }
+    else{
+        InputDispatcher::getInstance().setBeaming(false);
+    }
+
 
     if(m_dFingerActive){
 
-         if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w &&
-            m_TouchY > m_LeftButton.y && m_TouchY < m_LeftButton.y + m_LeftButton.h){
+        if(m_TouchX > m_LeftButton.x && m_TouchX < m_LeftButton.x + m_LeftButton.w &&
+           m_TouchY > m_LeftButton.y && m_TouchY < m_LeftButton.y + m_LeftButton.h){
 
-             InputDispatcher::getInstance().setMovingLeft(true);
-             InputDispatcher::getInstance().setMovingRight(false);
+            InputDispatcher::getInstance().setMovingLeft(true);
+            InputDispatcher::getInstance().setMovingRight(false);
 
-         }
-         if(m_TouchX > m_RightButton.x && m_TouchX < m_RightButton.x + m_RightButton.w &&
-            m_TouchY > m_RightButton.y && m_TouchY < m_RightButton.y + m_RightButton.h){
+        }
+        if(m_TouchX > m_RightButton.x && m_TouchX < m_RightButton.x + m_RightButton.w &&
+           m_TouchY > m_RightButton.y && m_TouchY < m_RightButton.y + m_RightButton.h){
 
-             InputDispatcher::getInstance().setMovingRight(true);
-             InputDispatcher::getInstance().setMovingLeft(false);
+            InputDispatcher::getInstance().setMovingRight(true);
+            InputDispatcher::getInstance().setMovingLeft(false);
 
-         }
+        }
 
 
     }
@@ -100,6 +117,14 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
             m_attackFingerID = event.tfinger.fingerID;
             m_attackFingerActive =true;
         }
+        if((touchX > m_MagicButton.x && touchX < m_MagicButton.x + m_MagicButton.w&&
+            touchY > m_MagicButton.y && touchY < m_MagicButton.y + m_MagicButton.h )&& !m_magicFingerActive){
+
+            m_magicFingerID = event.tfinger.fingerID;
+            m_magicFingerActive =true;
+            m_magicPressStartTime = SDL_GetTicks();
+            m_magicBeamStarted = false;
+        }
 
     }
     if(event.type == SDL_EVENT_FINGER_MOTION){
@@ -127,6 +152,14 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
         }
         if(event.tfinger.fingerID == m_attackFingerID){
             m_attackFingerActive =false;
+        }
+        if(event.tfinger.fingerID == m_magicFingerID){
+            m_magicFingerActive =false;
+            if(!m_magicBeamStarted){
+                InputDispatcher::getInstance().triggerHeal();   // released before the hold threshold -> tap -> heal
+            }
+            InputDispatcher::getInstance().setBeaming(false);
+            m_magicBeamStarted = false;
         }
         return true;
     }

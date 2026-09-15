@@ -30,6 +30,12 @@ const int TILE_SIZE =16;
 const int HURT_ANIM_MS =300;
 const int KNOCKBACK_MS =300;
 
+const float MAGIC_REGEN_PER_SEC = 8.0f;      // only ticks while not beaming
+const float BEAM_MAGIC_DRAIN_PER_SEC = 25.0f;
+const float HEAL_MAGIC_COST = 30.0f;
+const int HEAL_AMOUNT = 1;                    // hearts - matches the existing integer hp scale
+const unsigned int HEAL_COOLDOWN_MS = 800;
+
 enum PlayerAction{
     IDLE =0,
     MOVINGLEFT=1,
@@ -77,6 +83,8 @@ public:
     bool isBlinkFrame() const;
     void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
     void triggerCheckpoint();
+    void tryHeal(unsigned int now);
+    void tryBeam(float dt);
 
     const Player& getPlayer(){
         return m_player;
@@ -188,6 +196,8 @@ private:
     float m_jumpVelocity =1000.00f;
 
     bool m_isAttacking =false;
+    bool m_isBeaming =false;
+    unsigned int m_healCooldownEndTime =0;
     bool  m_isGrounded =true;
     bool  m_wasGrounded =false;
     bool m_isPlayerfacingRight =true;

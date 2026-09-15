@@ -27,6 +27,12 @@ public:
     int getPlayerHP() const{
         return m_hp;
     }
+    float getMagic() const{
+        return m_magic;
+    }
+    float getMaxMagic() const{
+        return m_maxMagic;
+    }
     unsigned int getLastHitTime() const{
         return m_lastHit;
     }
@@ -57,6 +63,17 @@ public:
     void setPlayerHP(int value){
         m_hp = value;
     }
+    void addMagic(float amount){
+        m_magic += amount;
+        if(m_magic > m_maxMagic) m_magic = m_maxMagic;
+    }
+    void subMagic(float amount){
+        m_magic -= amount;
+        if(m_magic < 0.0f) m_magic = 0.0f;
+    }
+    void setMagic(float value){
+        m_magic = value;
+    }
     void setInvincibility(bool invincibility){
         m_isInvincible = invincibility;
     }
@@ -68,6 +85,8 @@ private:
     int m_fruitCollectionScore = 0;
     unsigned int m_lastHit =0;
     int m_hp =5;
+    float m_magic =100.0f;
+    float m_maxMagic =100.0f;
     bool m_isInvincible=false;
     std::string m_name = "Name";
     PlayerSkin m_playerSkin = PlayerSkin::YELLOW; //default:0(yellow) , 1(blue),2(red),3(green)
