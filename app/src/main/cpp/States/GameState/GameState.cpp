@@ -1,3 +1,8 @@
+
+//
+// Created by LENOVO on 27-04-2026.
+//
+
 #include "GameState.h"
 #include "States/MenuState/TitleScreenState.h"
 #include "States/TransitionState/TransitionState.h"
@@ -8,9 +13,6 @@
 #include <cmath>
 
 
-//
-// Created by LENOVO on 27-04-2026.
-//
 GameState::GameState(SDL_Renderer *renderer,int level) {
 
     this->Name = "GameState";
@@ -195,11 +197,27 @@ void GameState::render(SDL_Renderer* renderer)  {
     m_enemyBuilder.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
 
+    if(m_isDoubleJumping){
+        SDL_FRect doubleJumpDst{
+                m_player.x + m_player.spriteOffsetX - (float)camX,
+                m_player.y + m_player.spriteOffsetY - (float)camY,
+                m_player.spriteW, m_player.spriteH};
+        SDL_FRect doubleJumpSrc{
+                static_cast<float>(0 + (m_doubleJumpFrame * DOUBLE_JUMP_FRAME_W)), 0,
+                (float)DOUBLE_JUMP_FRAME_W, (float)DOUBLE_JUMP_FRAME_H};
+        if(!m_isPlayerfacingRight){
+            SDL_RenderTextureRotated(renderer, Engine::Get().getAssetManager().getTexture(
+                                             TextureType::PLAYER_DOUBLE_JUMP), &doubleJumpSrc, &doubleJumpDst, 0.0f, nullptr,
+                                     SDL_FLIP_HORIZONTAL);
+        } else {
+            SDL_RenderTexture(renderer, Engine::Get().getAssetManager().getTexture(
+                    TextureType::PLAYER_DOUBLE_JUMP), &doubleJumpSrc, &doubleJumpDst);
+        }
+    }
+
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer); // composites Group 1 onto the window
 
-    // Player draws directly to the backbuffer from here — sharp, untouched
-    // by bloom regardless of what's happening in it (invincibility flicker,
-    // skin color, etc).
+
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-(float)camX,
                      m_player.y+m_player.spriteOffsetY-(float)camY,
                      m_player.spriteW,m_player.spriteH};
@@ -228,7 +246,7 @@ void GameState::render(SDL_Renderer* renderer)  {
     SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
 
 
-    m_blockBuilder.render(m_renderer); // platforms stay sharp — not in a bloom group
+    m_blockBuilder.render(m_renderer);
 
     // Group 2: foreground only, drawn after the player/blocks so it composites on top of them.
     Engine::Get().getPostProcessor().beginBloomGroup(m_renderer);
@@ -248,7 +266,6 @@ void GameState::render(SDL_Renderer* renderer)  {
                     TextureType::ATTACK_PLAYER_SLASH), &slashSrc, &slashDst);
         }
     }
-//    SDL_RenderTexture(m_renderer,Engine::Get().getAssetManager().getTexture(TextureType::ATTACK_PLAYER_SLASH),&slashSrc,&slashDst);
     if(m_isBeaming && m_beamHitBox.w > 0.0f){
         // TODO: no beam sprite yet - draw the collision rect as a placeholder.
         SDL_FRect beamDst{m_beamHitBox.x - camX, m_beamHitBox.y - camY,
@@ -362,6 +379,7 @@ void GameState::update(float dt){
             m_velocityY=0.0f;
             m_isGrounded = false;
             m_velocityY += -1500;
+            m_jumpsUsed = 1;
         }
 
     }
@@ -404,6 +422,8 @@ void GameState::update(float dt){
         m_isGrounded = false;
     }
 
+
+    if(m_isGrounded) m_jumpsUsed = 0;
 
     if(gameMath::checkcollision(m_player.x,m_player.y,m_checkPoint.x,m_checkPoint.y,
                                 m_player.h,m_player.w,m_checkPoint.h,m_checkPoint.w)){
@@ -604,14 +624,9 @@ namespace {
     }
 }
 
-// Returns how far a beam can travel from originX before it would hit a solid
-// (level wall, ground, block, or SOLID platform) that overlaps the beam's
-// vertical span [beamY, beamY+beamH). Nothing solid in the way -> the beam
-// reaches all the way to the level's outer wall.
+
 float GameState::computeBeamLength(float originX, float beamY, float beamH, bool facingRight) {
-    // The level's outer walls are only a border of thickness TILE_SIZE*SCALE
-    // around m_wallCollisionRect (see handleCollision) - only the x-bounds
-    // matter for a horizontal beam.
+
     const float leftWall  = m_wallCollisionRect.x + TILE_SIZE * SCALE;
     const float rightWall = m_wallCollisionRect.x + m_wallCollisionRect.w - TILE_SIZE * SCALE;
 
@@ -660,10 +675,7 @@ void GameState::tryBeam(float dt) {
     PlayerDetail::getInstance().subMagic(drain);
     m_isBeaming = true;
 
-    // Build the beam hitbox: same height as the player, starting at the
-    // player's facing edge and stretching out until it meets the first
-    // solid (wall/ground/block/platform) - same idea as m_playerHitBox
-    // in the attack path.
+
     float beamY = m_player.y;
     float beamH = m_player.h;
     float originX = m_isPlayerfacingRight ? (m_player.x + m_player.w) : m_player.x;
@@ -715,6 +727,14 @@ void GameState::updateAnimation() {
                 m_isAttacking =false;
             }
 
+        }
+
+        if(m_isDoubleJumping){
+            m_doubleJumpFrame++;
+            if(m_doubleJumpFrame > DOUBLE_JUMP_LAST_FRAME){
+                m_doubleJumpFrame = 0;
+                m_isDoubleJumping = false;
+            }
         }
 
         if(m_currentFrame < m_Animation.startIndex)
@@ -820,10 +840,19 @@ void GameState::handlePhysicAndInput(float dt) {
             m_walkTimer =0.00f;
         }
     }
-    if(InputDispatcher::getInstance().jump && m_isGrounded){
+    bool jumpPressed = InputDispatcher::getInstance().consumeJumpPressed();
+    if(jumpPressed && m_isGrounded){
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
         m_wasGrounded =true;
+        m_jumpsUsed =1;
+        m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
+    }
+    else if(jumpPressed && !m_isGrounded && m_jumpsUsed < m_maxJumps){
+        m_velocityY = -m_jumpVelocity * 0.85f;
+        m_jumpsUsed++;
+        m_isDoubleJumping = true;
+        m_doubleJumpFrame = 0;
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
     }
 
