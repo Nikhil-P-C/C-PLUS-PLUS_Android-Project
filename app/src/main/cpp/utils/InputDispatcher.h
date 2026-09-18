@@ -14,7 +14,8 @@ public:
     bool heal =false;
     bool beaming =false;
 
-
+private:
+    bool m_jumpPressed =false;
 
 public:
     void inputLogClear(){
@@ -25,12 +26,19 @@ public:
         attack =false;
         heal =false;
         beaming =false;
+        m_jumpPressed =false;
     }
     void setInputReleased(bool shouldRelease){
         released=shouldRelease;
     }
     void setJump(bool shouldJump){
+        if(shouldJump && !jump) m_jumpPressed =true; // rising edge only, fires once per press
         jump =shouldJump;
+    }
+    bool consumeJumpPressed(){
+        bool prevJumpPressed =m_jumpPressed;
+        m_jumpPressed =false;
+        return prevJumpPressed;
     }
     void setMovingLeft(bool shouldMoveLeft){
         movingLeft=shouldMoveLeft;

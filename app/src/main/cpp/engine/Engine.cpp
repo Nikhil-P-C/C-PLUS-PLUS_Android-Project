@@ -42,7 +42,6 @@ void Engine::run(){
         lastTime = currentTime;
         const float kMaxDeltaTime = 1.0f / 30.0f;
         if (deltaTime > kMaxDeltaTime) deltaTime = kMaxDeltaTime;
-        //RENDER
 
         for (auto& cmd : m_CommandQueue) {
             if (cmd.type == commandType::PUSH)
@@ -68,7 +67,7 @@ void Engine::run(){
 
         SDL_RenderClear(m_renderer);
 
-
+        //RENDER
         for(const auto &state : m_States)
             state->render(m_renderer);
 

@@ -30,10 +30,14 @@ const int TILE_SIZE =16;
 const int HURT_ANIM_MS =300;
 const int KNOCKBACK_MS =300;
 
+const int DOUBLE_JUMP_FRAME_W =30;
+const int DOUBLE_JUMP_FRAME_H =30;
+const int DOUBLE_JUMP_LAST_FRAME =5; // 6 frames: 0-5
+
 const float MAGIC_REGEN_PER_SEC = 8.0f;      // only ticks while not beaming
 const float BEAM_MAGIC_DRAIN_PER_SEC = 25.0f;
 const float HEAL_MAGIC_COST = 30.0f;
-const int HEAL_AMOUNT = 1;                    // hearts - matches the existing integer hp scale
+const int HEAL_AMOUNT = 1;
 const unsigned int HEAL_COOLDOWN_MS = 800;
 
 enum PlayerAction{
@@ -202,6 +206,13 @@ private:
 
     bool m_isAttacking =false;
     bool m_isBeaming =false;
+
+    //double jump
+    int m_jumpsUsed =0;
+    int m_maxJumps =2;
+    bool m_isDoubleJumping =false;
+    int m_doubleJumpFrame =0;
+
     unsigned int m_healCooldownEndTime =0;
     bool  m_isGrounded =true;
     bool  m_wasGrounded =false;
