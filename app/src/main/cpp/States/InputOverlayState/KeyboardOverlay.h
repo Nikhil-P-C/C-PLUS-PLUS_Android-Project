@@ -13,5 +13,13 @@ public:
     KeyboardOverlay(SDL_Renderer* renderer);
     ~KeyboardOverlay()override;
 private:
+    static const unsigned int MAGIC_HOLD_THRESHOLD_MS = 180;
+
+
+
     SDL_Renderer* m_renderer =nullptr;
+
+    uint32_t m_magicPressStartTime = 0;
+    bool m_magicBeamStarted = false;
+    bool m_magicKeyActive = false;
 };

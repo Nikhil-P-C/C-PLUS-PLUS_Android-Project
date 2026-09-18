@@ -13,6 +13,9 @@ public:
     bool attack =false;
     bool heal =false;
     bool beaming =false;
+
+
+
 public:
     void inputLogClear(){
         movingLeft  =false;

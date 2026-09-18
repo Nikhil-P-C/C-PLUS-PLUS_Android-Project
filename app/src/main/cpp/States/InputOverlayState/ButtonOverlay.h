@@ -30,10 +30,13 @@ private:
     SDL_Texture* m_leftButtonTexture = nullptr;
     SDL_Texture* m_rightButtonTexture = nullptr;
     SDL_Texture* m_slashButtonTexture = nullptr;
+    SDL_Texture* m_magicButtonTexture = nullptr;
+
     SDL_FingerID m_jumpFingerID=0;
     SDL_FingerID m_dFingerID=0;
     SDL_FingerID m_attackFingerID=0;
     SDL_FingerID m_magicFingerID=0;
+
     float m_TouchX =0;
     float m_TouchY =0;
     bool m_jumpFingerActive = false;
@@ -41,7 +44,7 @@ private:
     bool m_attackFingerActive = false;
     bool m_magicFingerActive = false;
     bool m_magicBeamStarted = false;       // true once the hold has crossed the threshold
-    unsigned int m_magicPressStartTime = 0;
+    uint32_t m_magicPressStartTime = 0;
 
 };
 

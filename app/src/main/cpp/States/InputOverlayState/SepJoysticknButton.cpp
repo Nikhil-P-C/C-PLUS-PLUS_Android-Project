@@ -13,11 +13,13 @@ void SepJoysticknButton::render(SDL_Renderer *renderer) {
                               m_joystickHandle.y-m_joystickHandle.h/2,
                               m_joystickHandle.w,m_joystickHandle.h};
     SDL_FRect jumpButtonDst{m_JumpButton.x, m_JumpButton.y, m_JumpButton.w, m_JumpButton.h};
+    SDL_FRect magicButtonDst{m_MagicButton.x, m_MagicButton.y, m_MagicButton.w, m_MagicButton.h};
 
     SDL_RenderTexture(renderer,m_joystickTexture,NULL,&joystick);
     SDL_RenderTexture(renderer,m_joystickHandleTexture,NULL,&joystickHandle);
     SDL_RenderTexture(renderer,m_jumpButtonTexture,NULL, &jumpButtonDst);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
+    SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
 
 }
 
@@ -26,7 +28,17 @@ void SepJoysticknButton::update(float dt) {
         InputDispatcher::getInstance().triggerAttack();
         m_attackFingerActive =false;
     }
-
+    if(m_magicFingerActive){
+        if(!m_magicBeamStarted && (SDL_GetTicks() - m_magicPressStartTime) >= MAGIC_HOLD_THRESHOLD_MS){
+            m_magicBeamStarted = true;
+        }
+        if(m_magicBeamStarted){
+            InputDispatcher::getInstance().setBeaming(true);
+        }
+    }
+    else{
+        InputDispatcher::getInstance().setBeaming(false);
+    }
     if(m_jumpFingerActive){
         InputDispatcher::getInstance().setJump(true);
     }
@@ -102,12 +114,20 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
             m_jumpFingerActive=true;
         }
 
-
         if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
             touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
 
             m_attackFingerID = event.tfinger.fingerID;
             m_attackFingerActive =true;
+        }
+
+        if((touchX > m_MagicButton.x && touchX < m_MagicButton.x + m_MagicButton.w&&
+            touchY > m_MagicButton.y && touchY < m_MagicButton.y + m_MagicButton.h )&& !m_magicFingerActive){
+
+            m_magicFingerID = event.tfinger.fingerID;
+            m_magicFingerActive =true;
+            m_magicPressStartTime = SDL_GetTicks();
+            m_magicBeamStarted = false;
         }
         return true;
     }
@@ -121,13 +141,25 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
         }
     }
     if(event.type == SDL_EVENT_FINGER_UP){
+
         if(event.tfinger.fingerID == m_joystickFingerID){
             m_joystickFingerActive =false;
         }
+
         if(event.tfinger.fingerID == m_jumpFingerID){
             m_jumpFingerActive =false;
 
         }
+
+        if(m_magicFingerActive && event.tfinger.fingerID == m_magicFingerID){
+            m_magicFingerActive =false;
+            if(!m_magicBeamStarted){
+                InputDispatcher::getInstance().triggerHeal();   // released before the hold threshold -> tap -> heal
+            }
+            InputDispatcher::getInstance().setBeaming(false);
+            m_magicBeamStarted = false;
+        }
+
         return true;
     }
     return false;
@@ -144,6 +176,7 @@ SepJoysticknButton::SepJoysticknButton(SDL_Renderer *renderer) {
 
     m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
 
+    m_magicButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_MAGIC_BUTTON);
 
     LOGI("SepJoysticknButton overlay constructor:%p",this);
 }

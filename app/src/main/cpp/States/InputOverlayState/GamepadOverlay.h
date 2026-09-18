@@ -13,6 +13,8 @@ public:
     GamepadOverlay(SDL_Renderer* renderer);
     ~GamepadOverlay()override;
 private:
+    static const unsigned int MAGIC_HOLD_THRESHOLD_MS = 180;
+
     SDL_Renderer* m_renderer =nullptr;
 
     SDL_Gamepad* m_gamepad = nullptr;
@@ -20,4 +22,7 @@ private:
     float m_leftStickX =0.0f;
     float m_leftStickY =0.0f;
 
+    uint32_t m_magicPressStartTime = 0;
+    bool m_magicBeamStarted = false;
+    bool m_magicButtonActive = false;
 };

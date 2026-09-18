@@ -13,16 +13,13 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     SDL_FRect leftButtonDst{m_LeftButton.x, m_LeftButton.y, m_LeftButton.w, m_LeftButton.h};
     SDL_FRect rightButtonDst{m_RightButton.x, m_RightButton.y, m_RightButton.w, m_RightButton.h};
     SDL_FRect attackButtonDst{m_AttackButton.x,m_AttackButton.y,m_AttackButton.w,m_AttackButton.h};
+    SDL_FRect magicButtonDst{m_MagicButton.x, m_MagicButton.y, m_MagicButton.w, m_MagicButton.h};
 
     SDL_RenderTexture(renderer, m_jumpButtonTexture, nullptr, &jumpButtonDst);
     SDL_RenderTexture(renderer, m_leftButtonTexture, nullptr, &leftButtonDst);
     SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
-
-    // no magic button art yet - placeholder rect until it exists
-    SDL_FRect magicButtonDst{m_MagicButton.x, m_MagicButton.y, m_MagicButton.w, m_MagicButton.h};
-    SDL_SetRenderDrawColor(renderer, 80, 120, 255, 200);
-    SDL_RenderFillRect(renderer, &magicButtonDst);
+    SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
 
 //    SDL_FRect crouchButtonDst{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
 //    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
@@ -144,16 +141,16 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
         }
     }
     if(event.type == SDL_EVENT_FINGER_UP){
-        if(event.tfinger.fingerID == m_jumpFingerID){
+        if(m_jumpFingerActive && event.tfinger.fingerID == m_jumpFingerID){
             m_jumpFingerActive =false;
         }
-        if(event.tfinger.fingerID == m_dFingerID){
+        if(m_dFingerActive && event.tfinger.fingerID == m_dFingerID){
             m_dFingerActive =false;
         }
-        if(event.tfinger.fingerID == m_attackFingerID){
+        if(m_attackFingerActive && event.tfinger.fingerID == m_attackFingerID){
             m_attackFingerActive =false;
         }
-        if(event.tfinger.fingerID == m_magicFingerID){
+        if(m_magicFingerActive && event.tfinger.fingerID == m_magicFingerID){
             m_magicFingerActive =false;
             if(!m_magicBeamStarted){
                 InputDispatcher::getInstance().triggerHeal();   // released before the hold threshold -> tap -> heal
@@ -175,6 +172,7 @@ ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
     m_leftButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_LEFT_BUTTON);
     m_rightButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_RIGHT_BUTTON);
     m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
+    m_magicButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_MAGIC_BUTTON);
 }
 
 ButtonOverlay::~ButtonOverlay(){

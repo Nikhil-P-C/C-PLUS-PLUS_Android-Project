@@ -7,6 +7,15 @@ void KeyboardOverlay::render(SDL_Renderer *renderer) {
 }
 
 void KeyboardOverlay::update(float dt) {
+    if(m_magicKeyActive){
+        if (!m_magicBeamStarted &&
+            (SDL_GetTicks() - m_magicPressStartTime) >= MAGIC_HOLD_THRESHOLD_MS) {
+            m_magicBeamStarted = true;
+        }
+        if (m_magicBeamStarted) {
+            InputDispatcher::getInstance().setBeaming(true);
+        }
+    }
 }
 
 bool KeyboardOverlay::handleEvents(SDL_Event &event) {
@@ -27,6 +36,11 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             InputDispatcher::getInstance().triggerAttack();
             return true;
         }
+        if(event.key.key == SDLK_J){
+            m_magicKeyActive =true;
+            m_magicBeamStarted = false;
+            m_magicPressStartTime = SDL_GetTicks();
+        }
     }
     else if(event.type == SDL_EVENT_KEY_UP){
         if(event.key.key == SDLK_A){
@@ -40,6 +54,14 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
         if(event.key.key == SDLK_SPACE){
             InputDispatcher::getInstance().setJump(false);
             return true;
+        }
+        if(event.key.key == SDLK_J){
+            m_magicKeyActive =false;
+            if(!m_magicBeamStarted){
+                InputDispatcher::getInstance().triggerHeal();
+            }
+            InputDispatcher::getInstance().setBeaming(false);
+            m_magicBeamStarted = false;
         }
     }
 

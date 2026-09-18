@@ -1,4 +1,3 @@
-
 #include "GameState.h"
 #include "States/MenuState/TitleScreenState.h"
 #include "States/TransitionState/TransitionState.h"
@@ -250,6 +249,16 @@ void GameState::render(SDL_Renderer* renderer)  {
         }
     }
 //    SDL_RenderTexture(m_renderer,Engine::Get().getAssetManager().getTexture(TextureType::ATTACK_PLAYER_SLASH),&slashSrc,&slashDst);
+    if(m_isBeaming && m_beamHitBox.w > 0.0f){
+        // TODO: no beam sprite yet - draw the collision rect as a placeholder.
+        SDL_FRect beamDst{m_beamHitBox.x - camX, m_beamHitBox.y - camY,
+                          m_beamHitBox.w, m_beamHitBox.h};
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 80, 200, 255, 140);
+        SDL_RenderFillRect(renderer, &beamDst);
+        SDL_SetRenderDrawColor(renderer, 200, 240, 255, 220);
+        SDL_RenderRect(renderer, &beamDst);
+    }
     m_foregroundBuilder.render(m_renderer);
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
 
@@ -578,14 +587,65 @@ void GameState::triggerCheckpoint(){
     m_checkPoint.aniType = m_checkPoint.aniType == CheckPointAni::NO_FLAG ? CheckPointAni::FLAG_OUT:CheckPointAni::FLAG_IDLE;
 }
 
-void GameState::tryHeal(unsigned int now) {
-    if(now < m_healCooldownEndTime) return;                                  // still on cooldown
-    if(PlayerDetail::getInstance().getMagic() < HEAL_MAGIC_COST) return;     // not enough magic
-    if(PlayerDetail::getInstance().getPlayerHP() >= 5) return;               // already full (5 is the game's hp cap)
+bool GameState::tryHeal(unsigned int now) {
+    if(now < m_healCooldownEndTime) return false;                             // still on cooldown
+    if(PlayerDetail::getInstance().getMagic() < HEAL_MAGIC_COST) return false; // not enough magic
+    if(PlayerDetail::getInstance().getPlayerHP() >= 5) return false;           // already full (5 is the game's hp cap)
 
     PlayerDetail::getInstance().subMagic(HEAL_MAGIC_COST);
     PlayerDetail::getInstance().addPlayerHP(HEAL_AMOUNT);
     m_healCooldownEndTime = now + HEAL_COOLDOWN_MS;
+    return true;
+}
+
+namespace {
+    inline bool verticalOverlap(float y1, float h1, float y2, float h2) {
+        return y1 < y2 + h2 && y1 + h1 > y2;
+    }
+}
+
+// Returns how far a beam can travel from originX before it would hit a solid
+// (level wall, ground, block, or SOLID platform) that overlaps the beam's
+// vertical span [beamY, beamY+beamH). Nothing solid in the way -> the beam
+// reaches all the way to the level's outer wall.
+float GameState::computeBeamLength(float originX, float beamY, float beamH, bool facingRight) {
+    // The level's outer walls are only a border of thickness TILE_SIZE*SCALE
+    // around m_wallCollisionRect (see handleCollision) - only the x-bounds
+    // matter for a horizontal beam.
+    const float leftWall  = m_wallCollisionRect.x + TILE_SIZE * SCALE;
+    const float rightWall = m_wallCollisionRect.x + m_wallCollisionRect.w - TILE_SIZE * SCALE;
+
+    float maxLength = facingRight ? (rightWall - originX) : (originX - leftWall);
+    if(maxLength < 0.0f) maxLength = 0.0f;
+
+    auto clip = [&](float solidX, float solidW, float solidY, float solidH){
+        if(!verticalOverlap(beamY, beamH, solidY, solidH)) return;
+        if(facingRight){
+            if(solidX >= originX){
+                float dist = solidX - originX;
+                if(dist < maxLength) maxLength = dist;
+            }
+        } else {
+            float solidRight = solidX + solidW;
+            if(solidRight <= originX){
+                float dist = originX - solidRight;
+                if(dist < maxLength) maxLength = dist;
+            }
+        }
+    };
+
+    for(const auto& ground : m_grounds){
+        clip(ground.x, ground.w * SCALE, ground.y, ground.h * SCALE);
+    }
+    for(const auto& block : m_blocks){
+        clip(block.rect.x, block.rect.w, block.rect.y, block.rect.h);
+    }
+    for(const auto& platform : m_platforms){
+        if(platform.colliderType != ColliderType::SOLID) continue;
+        clip(platform.x, platform.w * SCALE, platform.y, platform.h * SCALE);
+    }
+
+    return maxLength;
 }
 
 void GameState::tryBeam(float dt) {
@@ -594,13 +654,29 @@ void GameState::tryBeam(float dt) {
         // ran out mid-channel - force it to stop
         m_isBeaming = false;
         InputDispatcher::getInstance().setBeaming(false);
+        m_beamHitBox = {0.0f,0.0f,0.0f,0.0f};
         return;
     }
     PlayerDetail::getInstance().subMagic(drain);
     m_isBeaming = true;
-    // TODO: no beam sprite/hitbox yet - this only drains magic for now.
-    // Once beam art exists, build a hitbox here (same idea as m_playerHitBox
-    // in the attack path) and resolve damage against m_enemies.
+
+    // Build the beam hitbox: same height as the player, starting at the
+    // player's facing edge and stretching out until it meets the first
+    // solid (wall/ground/block/platform) - same idea as m_playerHitBox
+    // in the attack path.
+    float beamY = m_player.y;
+    float beamH = m_player.h;
+    float originX = m_isPlayerfacingRight ? (m_player.x + m_player.w) : m_player.x;
+
+    float length = computeBeamLength(originX, beamY, beamH, m_isPlayerfacingRight);
+
+    m_beamHitBox.y = beamY;
+    m_beamHitBox.h = beamH;
+    m_beamHitBox.w = length;
+    m_beamHitBox.x = m_isPlayerfacingRight ? originX : (originX - length);
+
+    // TODO: no beam sprite yet - resolve damage against m_enemies here once
+    // enemy hp hookup exists.
 }
 
 void GameState::updateAnimation() {
@@ -756,13 +832,17 @@ void GameState::handlePhysicAndInput(float dt) {
     }
 
     if(InputDispatcher::getInstance().consumeHeal()){
-        tryHeal(SDL_GetTicks());
+        if(tryHeal(SDL_GetTicks())){
+            LOGI("tried healing");
+            m_particleSystem.emitHealSparkle(m_player.x + m_player.w * 0.5f, m_player.y);
+        }
     }
 
     if(InputDispatcher::getInstance().beaming){
         tryBeam(dt);
     } else {
         m_isBeaming = false;
+        m_beamHitBox = {0.0f,0.0f,0.0f,0.0f};
     }
 
     m_player.x +=m_velocityX * dt;

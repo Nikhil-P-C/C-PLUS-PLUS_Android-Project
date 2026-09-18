@@ -83,14 +83,18 @@ public:
     bool isBlinkFrame() const;
     void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
     void triggerCheckpoint();
-    void tryHeal(unsigned int now);
+    bool tryHeal(unsigned int now);
     void tryBeam(float dt);
+    float computeBeamLength(float originX, float beamY, float beamH, bool facingRight);
 
     const Player& getPlayer(){
         return m_player;
     }
     const SDL_FRect& getPlayerHitBox(){
         return m_playerHitBox;
+    }
+    const SDL_FRect& getBeamHitBox(){
+        return m_beamHitBox;
     }
     const std::vector<Platform>& getPlatforms(){
         return m_platforms;
@@ -175,6 +179,7 @@ private:
 
     Player   m_player;
     SDL_FRect m_playerHitBox{0.0f,0.0f,0.0f,0.0f};
+    SDL_FRect m_beamHitBox{0.0f,0.0f,0.0f,0.0f};
     //checkPoint
     CheckPoint m_checkPoint;
 
@@ -206,4 +211,3 @@ private:
     bool m_levelTransitioning =false;
 
 };
-

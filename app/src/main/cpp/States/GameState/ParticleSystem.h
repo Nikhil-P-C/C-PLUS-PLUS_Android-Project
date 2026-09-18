@@ -14,6 +14,7 @@ struct Particle{
     float baseSize =70.00f;
     float life=0.04f;
     float maxLife =0.4;
+    uint8_t colorR=255,colorG=255,colorB=255; // white = existing dust look; tinted for effects like healing
 };
 class ParticleSystem{
 public:
@@ -25,6 +26,7 @@ public:
     void emitRightDust(float feetX ,float feetY);
     void emitLandDust(float leftFeetX, float leftFeetY,float rightFeetX,float rightFeetY);
     void emitOneJumpParticle(float feetX, float feetY);
+    void emitHealSparkle(float x, float y);
     void emitParticleWProps(int count,int rangeX1,int rangeX2,int rangeY1, int rangeY2,
                             int velocityX1,int velocityX2 , int velocityY1,int velocityY2,
                             float minLife, float maxLife,int dirX,int dirY,float size);

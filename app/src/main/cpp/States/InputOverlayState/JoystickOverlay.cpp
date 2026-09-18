@@ -15,10 +15,12 @@ void JoystickOverlay::render(SDL_Renderer *renderer) {
     SDL_FRect joystickHandle{ m_joystickHandle.x-m_joystickHandle.h/2,
                               m_joystickHandle.y-m_joystickHandle.h/2,
                               m_joystickHandle.w,m_joystickHandle.h};
+    SDL_FRect magicButtonDst{m_MagicButton.x, m_MagicButton.y, m_MagicButton.w, m_MagicButton.h};
 
     SDL_RenderTexture(renderer,m_joystickTexture, nullptr,&joystick);
     SDL_RenderTexture(renderer,m_joystickHandleTexture, nullptr,&joystickHandle);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
+    SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
 
 }
 
@@ -28,7 +30,17 @@ void JoystickOverlay::update(float dt) {
         InputDispatcher::getInstance().triggerAttack();
         m_attackFingerActive =false;
     }
-
+    if(m_magicFingerActive){
+        if(!m_magicBeamStarted && (SDL_GetTicks() - m_magicPressStartTime) >= MAGIC_HOLD_THRESHOLD_MS){
+            m_magicBeamStarted = true;   // held past the threshold -> it's a beam, not a tap
+        }
+        if(m_magicBeamStarted){
+            InputDispatcher::getInstance().setBeaming(true);
+        }
+    }
+    else{
+        InputDispatcher::getInstance().setBeaming(false);
+    }
     float centerX = (m_joystick.x + m_joystick.w / 2);
     float centerY = (m_joystick.y + m_joystick.h / 2);
 
@@ -106,6 +118,14 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
             m_attackFingerID = event.tfinger.fingerID;
             m_attackFingerActive =true;
         }
+        if((touchX > m_MagicButton.x && touchX < m_MagicButton.x + m_MagicButton.w&&
+            touchY > m_MagicButton.y && touchY < m_MagicButton.y + m_MagicButton.h )&& !m_magicFingerActive){
+
+            m_magicFingerID = event.tfinger.fingerID;
+            m_magicFingerActive =true;
+            m_magicPressStartTime = SDL_GetTicks();
+            m_magicBeamStarted = false;
+        }
         return true;
     }
     if(event.type == SDL_EVENT_FINGER_MOTION){
@@ -122,8 +142,17 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
             m_joystickFingerActive =false;
             InputDispatcher::getInstance().inputLogClear();
         }
+        if(m_magicFingerActive && event.tfinger.fingerID == m_magicFingerID){
+            m_magicFingerActive =false;
+            if(!m_magicBeamStarted){
+                InputDispatcher::getInstance().triggerHeal();   // released before the hold threshold -> tap -> heal
+            }
+            InputDispatcher::getInstance().setBeaming(false);
+            m_magicBeamStarted = false;
+        }
         return true;
     }
+
     return false;
 }
 
@@ -133,6 +162,7 @@ JoystickOverlay::JoystickOverlay(SDL_Renderer *renderer) {
     m_joystickTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING);
     m_joystickHandleTexture =Engine::Get().getAssetManager().getTexture(TextureType::JOYSTICK_JOYSTICK_HANDLE);
     m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
+    m_magicButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_MAGIC_BUTTON);
 
     LOGI("joystick overlay constructor:%p",this);
 }

@@ -20,6 +20,7 @@ void ParticleSystem::render(SDL_Renderer* renderer)
             continue;
         float alpha = particle.life / particle.maxLife;
         if(particle.size<0)continue;
+        SDL_SetTextureColorMod(m_particleTexture, particle.colorR, particle.colorG, particle.colorB);
         SDL_SetTextureAlphaMod(
                 m_particleTexture,
                 static_cast<Uint8>(alpha * 255)
@@ -62,6 +63,7 @@ void ParticleSystem::emitOneJumpParticle(float feetX, float feetY)
 
             particle.life = 0.4f;
             particle.maxLife=0.4f;
+            particle.colorR=255; particle.colorG=255; particle.colorB=255;
             return;
         }
     }
@@ -89,6 +91,7 @@ void ParticleSystem::emitLeftDust(float feetX, float feetY)
             particle.vY =randomFloat(-100,100);
             particle.life = 0.4f;
             particle.maxLife=0.4f;
+            particle.colorR=255; particle.colorG=255; particle.colorB=255;
             return;
         }
     }
@@ -106,6 +109,7 @@ void ParticleSystem::emitRightDust(float feetX, float feetY) {
             particle.vY =randomFloat(-100,100);
             particle.life = 0.4f;
             particle.maxLife=0.4f;
+            particle.colorR=255; particle.colorG=255; particle.colorB=255;
             return;
         }
     }
@@ -122,6 +126,32 @@ void ParticleSystem::emitLandDust(float leftFeetX, float leftFeetY,float rightFe
 
         emitLeftDust(randomX1, leftFeetY);
         emitRightDust(randomX2, rightFeetY);
+    }
+}
+
+
+void ParticleSystem::emitHealSparkle(float x, float y)
+{
+    int burst = randomInt(15,20);
+    for(int i = 0; i<burst; i++)
+    {
+        for(auto& particle:m_particles){
+            if(!particle.isAlive){
+                particle.isAlive = true;
+                particle.x = x + randomFloat(-50.00f,50.00f);
+                particle.y = y+ randomFloat(-50.00f,50.00f);
+                particle.size = 50.00f;
+                particle.baseSize = particle.size;
+                particle.vX = randomFloat(-50.00f,50.00f);
+                particle.vY = randomFloat(-50.00f,-20.00f);
+                particle.life = 1.0f;
+                particle.maxLife = 1.0f;
+                particle.colorR = (uint8_t)randomInt(130,255);
+                particle.colorG = 255;
+                particle.colorB = 150;
+                break;
+            }
+        }
     }
 }
 
@@ -144,6 +174,7 @@ void ParticleSystem::emitDust(float pointX, float pointY,int velocityX,int veloc
 
             particle.life = life;
             particle.maxLife=life;
+            particle.colorR=255; particle.colorG=255; particle.colorB=255;
             return;
         }
     }

@@ -64,6 +64,13 @@ void DebugState::render(SDL_Renderer *renderer) {
                                    playerHitBox.w,playerHitBox.h};
     SDL_SetRenderDrawColor(renderer,0,0,255,255);
     SDL_RenderRect(renderer,&playerHitBoxBorder);
+
+    //beam hitbox
+    const SDL_FRect& beamHitBox = m_gameState->getBeamHitBox();
+    SDL_FRect beamHitBoxBorder ={beamHitBox.x -camX,beamHitBox.y - camY,
+                                 beamHitBox.w,beamHitBox.h};
+    SDL_SetRenderDrawColor(renderer,255,0,255,255);
+    SDL_RenderRect(renderer,&beamHitBoxBorder);
     //traps
     const std::vector<Trap>& m_traps = m_gameState->getTraps();
 
@@ -139,4 +146,3 @@ DebugState::~DebugState(){
         SDL_DestroyTexture(m_fpsTexture);
     LOGI("debug state destructor :%p",this);
 }
-

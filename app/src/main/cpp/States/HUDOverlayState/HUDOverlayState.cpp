@@ -15,23 +15,29 @@ void HUDOverlayState::render(SDL_Renderer *renderer) {
 
 void HUDOverlayState::update(float dt) {
     updateAnimation();
-    if (PlayerDetail::getInstance().getPlayerHP() == 0) {
-        m_lastHeart = 5;
-        for (size_t i = 0; i < 5; i++) {
 
-            m_hearts[i].heartAniType = HeartAniType::IDLE;
-            m_hearts[i].currentFrame = 0;
+    int currentHP = PlayerDetail::getInstance().getPlayerHP();
+    if (currentHP < 0) currentHP = 0;
+    if (currentHP > 5) currentHP = 5;
+
+    if (m_prevHealth > currentHP) {
+        // lost one or more hearts - kick off the hurt animation on each newly-lost heart
+        for (int i = currentHP; i < m_prevHealth; i++) {
+            m_hearts[i].heartAniType = HeartAniType::HURT;
         }
-        return;
+    } else if (m_prevHealth < currentHP) {
+        // gained one or more hearts (heal/respawn) - bring the newly-restored ones
+        // straight back to IDLE. Previously this used the stale m_lastHeart index and
+        // re-idled a heart that was already alive, leaving the actually-restored heart
+        // stuck on its LOST frame - which is why the HUD could drift out of sync with HP.
+        for (int i = m_prevHealth; i < currentHP; i++) {
+            m_hearts[i].heartAniType = HeartAniType::IDLE;
+            m_hearts[i].currentFrame = m_hearts[i].animation.startIndex;
+        }
     }
-    if (m_prevHealth > PlayerDetail::getInstance().getPlayerHP()) {
-        m_hearts[m_lastHeart - 1].heartAniType = HeartAniType::HURT;
-    } else if (m_prevHealth < PlayerDetail::getInstance().getPlayerHP()) {
-        if (m_lastHeart > 5) m_lastHeart = 5;
-        m_hearts[m_lastHeart - 1].heartAniType = HeartAniType::IDLE;
-    }
-    m_prevHealth = PlayerDetail::getInstance().getPlayerHP();
-    m_lastHeart = m_prevHealth;
+
+    m_prevHealth = currentHP;
+    m_lastHeart = currentHP;
 }
 
 bool HUDOverlayState::handleEvents(SDL_Event &event) {
@@ -98,5 +104,3 @@ HUDOverlayState::HUDOverlayState(SDL_Renderer *renderer) {
 HUDOverlayState::~HUDOverlayState() {
     LOGI("HUD overlay state destructor:%p",this);
 }
-
-

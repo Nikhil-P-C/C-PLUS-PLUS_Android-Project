@@ -9,7 +9,15 @@ void GamepadOverlay::render(SDL_Renderer *renderer) {
 
 void GamepadOverlay::update(float dt) {
     float deadzone = 0.25f;
-
+    if(m_magicButtonActive){
+        if (!m_magicBeamStarted &&
+            (SDL_GetTicks() - m_magicPressStartTime) >= MAGIC_HOLD_THRESHOLD_MS) {
+            m_magicBeamStarted = true;
+        }
+        if (m_magicBeamStarted) {
+            InputDispatcher::getInstance().setBeaming(true);
+        }
+    }
     if(m_leftStickX>deadzone){
         InputDispatcher::getInstance().setMovingRight(true);
         InputDispatcher::getInstance().setMovingLeft(false);
@@ -57,12 +65,25 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_WEST){
                 InputDispatcher::getInstance().triggerAttack();
             }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST){
+                m_magicButtonActive =true;
+                m_magicPressStartTime = SDL_GetTicks();
+                m_magicBeamStarted =false;
+            }
             break;
 
         case SDL_EVENT_GAMEPAD_BUTTON_UP:
 
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH){
                 InputDispatcher::getInstance().setJump(false);
+            }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST){
+                m_magicButtonActive =false;
+                if(!m_magicBeamStarted){
+                    InputDispatcher::getInstance().triggerHeal();
+                }
+                InputDispatcher::getInstance().setBeaming(false);
+                m_magicBeamStarted =false;
             }
     }
     return false;
