@@ -5,7 +5,10 @@
 #include <vector>
 #include "Traps.h"
 #include "engine/Engine.h"
+#include "level/BlockShapeBuilder.h"
 #include <SDL3/SDL.h>
+
+const float ENEMY_GRAVITY = 1800.00f;
 
 enum class EnemyType{
     //Moss cave enemies
@@ -90,14 +93,17 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type,EnemyAction Action,Attack
 
 struct Enemy{
     Enemy(float x,float y,EnemyType type,EnemyAction action,AttackType attackType,
-          float startPath,float endPath,float speed,PathAxis axis,PathShape shape,float radius =0);
+          float startPath,float endPath,float speed,PathAxis axis,PathShape shape,float radius =0,
+          combatType combat =combatType::GROUND);
 
 
     float x=0.00f,y=0.00f;
+    float w=64.00f,h=64.00f;
 
     EnemyType type = EnemyType::NONE;
     EnemyAction action =EnemyAction::NONE;
     AttackType attackType =AttackType::NONE;
+    combatType combat =combatType::GROUND;
 
     int hp = 50;
     // copied from trap , check traps for usage
@@ -107,6 +113,10 @@ struct Enemy{
     float previousX = 0.00f, previousY = 0.00f;
     float pathAngle = 0.00f;
     float radius = 0.00f;
+
+    // physics, only applied/used when combat==combatType::GROUND
+    float velocityY =0.00f;
+    bool isGrounded =false;
 
     int pathIndex = 1;
     bool isMovingForward =true;
@@ -132,7 +142,11 @@ public:
 
     void render(SDL_Renderer* renderer);
 
-    void update(float dt,float playerX,float playerY);
+    void update(float dt,float playerX,float playerY,
+                const SDL_FRect& wallCollisionRect,
+                const std::vector<LevelGround>& grounds,
+                const std::vector<Platform>& platforms,
+                const std::vector<Block>& blocks);
 
 private:
 
@@ -141,6 +155,12 @@ private:
     void updateAI(Enemy &e, float playerX, float playerY, float dt);
 
     void updatePath(Enemy& enemy, float dt);
+
+    void applyGravityAndCollision(Enemy& enemy, float dt,
+                                  const SDL_FRect& wallCollisionRect,
+                                  const std::vector<LevelGround>& grounds,
+                                  const std::vector<Platform>& platforms,
+                                  const std::vector<Block>& blocks);
 
 private:
     std::vector<Enemy> m_enemies;

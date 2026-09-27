@@ -2,6 +2,7 @@
 // Created by LENOVO on 08-09-2026.
 //
 #include "Enemies.h"
+#include "States/GameState/GameState.h"
 
 
 namespace {
@@ -17,7 +18,7 @@ namespace {
 
 void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
     m_enemies.emplace_back(700.0f,600.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::SLASH,
-                           0.00f,600.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
+                           64.00f,600.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
 }
 
 void EnemiesBuilder::render(SDL_Renderer *renderer) {
@@ -36,11 +37,119 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
 
 }
 
-void EnemiesBuilder::update(float dt,float playerX,float playerY) {
+void EnemiesBuilder::update(float dt,float playerX,float playerY,
+                            const SDL_FRect& wallCollisionRect,
+                            const std::vector<LevelGround>& grounds,
+                            const std::vector<Platform>& platforms,
+                            const std::vector<Block>& blocks) {
+
     for(auto& enemy:m_enemies){
+        LOGI("enemy state:%d",enemy.action);
+
         updateAI(enemy,playerX,playerY,dt);
+        applyGravityAndCollision(enemy,dt,wallCollisionRect,grounds,platforms,blocks);
         if(enemy.action == EnemyAction::ATTACK){
             LOGI("enemy is Attacking");
+        }
+    }
+}
+
+void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
+                                              const SDL_FRect& wallCollisionRect,
+                                              const std::vector<LevelGround>& grounds,
+                                              const std::vector<Platform>& platforms,
+                                              const std::vector<Block>& blocks) {
+    if(enemy.combat != combatType::GROUND) return; // aerial enemies fly freely, no gravity/ground collision
+
+    const float previousY = enemy.y; // captured before gravity moves this frame, for the one-way sweep test below
+
+    enemy.isGrounded = false;
+    enemy.velocityY += ENEMY_GRAVITY * dt;
+    enemy.y += enemy.velocityY * dt;
+
+    //walls - mirrors GameState::handleCollision()'s player-vs-wallCollisionRect checks
+    const float renderedHeight = (std::ceil(wallCollisionRect.h / (SCALE*TILE_SIZE)) * (SCALE*TILE_SIZE));
+    gameMath::collisionSide wallSide;
+
+    wallSide = gameMath::checkcollisionXY(enemy.x, enemy.y, wallCollisionRect.x, wallCollisionRect.y,
+                                          enemy.h, enemy.w, TILE_SIZE * SCALE, wallCollisionRect.w);
+    if(wallSide == gameMath::collisionSide::BOTTOM)
+        enemy.velocityY = 0.0f;
+
+    wallSide = gameMath::checkcollisionXY(enemy.x, enemy.y, wallCollisionRect.x, wallCollisionRect.y,
+                                          enemy.h, enemy.w, renderedHeight, TILE_SIZE * SCALE);
+    if(wallSide == gameMath::collisionSide::BOTTOM)
+        enemy.velocityY = 0.0f;
+
+    wallSide = gameMath::checkcollisionXY(enemy.x, enemy.y,
+                                          wallCollisionRect.x + wallCollisionRect.w - TILE_SIZE * SCALE,
+                                          wallCollisionRect.y, enemy.h, enemy.w, renderedHeight, TILE_SIZE * SCALE);
+    if(wallSide == gameMath::collisionSide::BOTTOM)
+        enemy.velocityY = 0.0f;
+
+    wallSide = gameMath::checkcollisionXY(enemy.x, enemy.y, wallCollisionRect.x,
+                                          wallCollisionRect.y + renderedHeight - TILE_SIZE * SCALE,
+                                          enemy.h, enemy.w, TILE_SIZE * SCALE, wallCollisionRect.w);
+    if(wallSide == gameMath::collisionSide::BOTTOM)
+        enemy.velocityY = 0.0f;
+    if(wallSide == gameMath::collisionSide::TOP){
+        enemy.isGrounded = true;
+        enemy.velocityY = 0.0f;
+    }
+
+    //platforms
+    for(const auto& platform : platforms){
+        if(platform.colliderType == ColliderType::SOLID){
+            gameMath::collisionSide side = gameMath::checkcollisionXY(enemy.x, enemy.y,
+                                                                      platform.x, platform.y,
+                                                                      enemy.h, enemy.w,
+                                                                      platform.h * SCALE, platform.w * SCALE);
+            if(side == gameMath::collisionSide::TOP){
+                enemy.velocityY = 0.0f;
+                enemy.isGrounded = true;
+            }
+            if(side == gameMath::collisionSide::BOTTOM){
+                enemy.velocityY = 0.0f;
+            }
+        } else if(platform.colliderType == ColliderType::ONE_WAY){
+            float previousBottom = previousY + enemy.h;
+            float currentBottom = enemy.y + enemy.h;
+            float platformTop = platform.y;
+
+            if(enemy.velocityY > 0 && previousBottom <= platformTop
+               && currentBottom >= platformTop
+               && gameMath::checkcollisionX(enemy.x, enemy.y, platform.x, platform.y,
+                                            enemy.h, enemy.w, platform.h * SCALE, platform.w * SCALE)){
+                enemy.y = platformTop - enemy.h;
+                enemy.velocityY = 0.0f;
+                enemy.isGrounded = true;
+            }
+        }
+    }
+
+    //ground
+    for(const auto& ground : grounds){
+        gameMath::collisionSide side = gameMath::checkcollisionXY(enemy.x, enemy.y, ground.x, ground.y,
+                                                                  enemy.h, enemy.w, ground.h*SCALE, ground.w*SCALE);
+        if(side == gameMath::collisionSide::TOP){
+            enemy.isGrounded = true;
+            enemy.velocityY = 0.0f;
+        }
+        if(side == gameMath::collisionSide::BOTTOM){
+            enemy.velocityY = 0.0f;
+        }
+    }
+
+    //blocks
+    for(const auto& block : blocks){
+        gameMath::collisionSide side = gameMath::checkcollisionXY(enemy.x, enemy.y, block.rect.x, block.rect.y,
+                                                                  enemy.h, enemy.w, block.rect.h, block.rect.w);
+        if(side == gameMath::collisionSide::TOP){
+            enemy.isGrounded = true;
+            enemy.velocityY = 0.0f;
+        }
+        if(side == gameMath::collisionSide::BOTTOM){
+            enemy.velocityY = 0.0f;
         }
     }
 }
@@ -61,6 +170,8 @@ void EnemiesBuilder::updateAI(Enemy& enemy, float playerX, float playerY, float 
             enemy.isFacingRight = (dx > 0);
 
             float homeDx = enemy.x - enemy.baseX, homeDy = enemy.y - enemy.baseY;
+            if(enemy.combat == combatType::GROUND)
+                homeDy = enemy.y;
             float distFromHome = std::sqrt(homeDx*homeDx + homeDy*homeDy);
 
             if (distToPlayer <= cfg->attackRange)
@@ -78,10 +189,21 @@ void EnemiesBuilder::updateAI(Enemy& enemy, float playerX, float playerY, float 
             break;
 
         case EnemyAction::RETURN: {
-            moveToward(enemy, enemy.baseX, enemy.baseY, enemy.movingSpeed, dt);
+            if(enemy.combat != combatType::GROUND){
+                moveToward(enemy, enemy.baseX, enemy.baseY, enemy.movingSpeed, dt);
+            }
+            else{
+                moveToward(enemy, enemy.baseX, enemy.y, enemy.movingSpeed,dt);
+            }
             float rdx = enemy.baseX - enemy.x, rdy = enemy.baseY - enemy.y;
+            if(enemy.combat ==combatType::GROUND){
+                rdy = 0;
+            }
             if (std::sqrt(rdx*rdx + rdy*rdy) < 4.0f) {
-                enemy.x = enemy.baseX; enemy.y = enemy.baseY;
+                enemy.x = enemy.baseX;
+                if(enemy.combat != combatType::GROUND){
+                    enemy.y = enemy.baseY;
+                }
                 enemy.action = EnemyAction::PATROL;   // pathIndex/hasHitEnd were untouched during the chase, so it resumes cleanly
             } else if (distToPlayer <= cfg->detectRadius) {
                 enemy.action = EnemyAction::SEEK;     // player wandered back in range while it was heading home
@@ -97,12 +219,13 @@ void EnemiesBuilder::moveToward(Enemy& enemy, float targetX, float targetY, floa
     float dist = std::sqrt(dx*dx + dy*dy);
     if (dist < 0.01f) return;
     enemy.x += (dx/dist) * speed * dt;
-    enemy.y += (dy/dist) * speed * dt;
+    if(enemy.combat != combatType::GROUND){
+        enemy.y += (dy / dist) * speed * dt;
+    }
 }
 
 void EnemiesBuilder::updatePath(Enemy& enemy,float dt)
 {
-
     enemy.previousX=enemy.x;
     enemy.previousY=enemy.y;
 
@@ -129,23 +252,34 @@ void EnemiesBuilder::updatePath(Enemy& enemy,float dt)
                 enemy.x += stepDist*dir;
             }
         }
-        if(enemy.y != target.y)
-        {
-            float dir = (target.y > enemy.y) ? 1.0f : -1.0f;
-            if(SDL_fabsf(target.y - enemy.y) <= stepDist)
-            {
-                enemy.y = target.y;
-            }
-            else
-            {
-                enemy.y += stepDist*dir;
+        if(enemy.combat != combatType::GROUND){
+            if (enemy.y != target.y) {
+                float dir = (target.y > enemy.y) ? 1.0f : -1.0f;
+                if (SDL_fabsf(target.y - enemy.y) <= stepDist) {
+                    enemy.y = target.y;
+                } else {
+                    enemy.y += stepDist * dir;
+                }
             }
         }
-        if(target.x == enemy.x && target.y == enemy.y)
-        {
+        if(enemy.combat == combatType::GROUND){
+            if(target.x == enemy.x){
+                unsigned int now = SDL_GetTicks();
+                if(!enemy.hasHitEnd){
+                    enemy.hasHitEnd =true;
+                    enemy.lastSwitchTime=now;
+
+                    enemy.aniStartFrame = 0;
+                    enemy.aniDone = false;
+                }
+                else
+                    enemy.pathIndex = (enemy.pathIndex + 1) % 4;
+
+            }
+        }
+        else if(target.x == enemy.x && target.y == enemy.y){
             unsigned int now = SDL_GetTicks();
-            if(!enemy.hasHitEnd)
-            {
+            if(!enemy.hasHitEnd){
                 enemy.hasHitEnd =true;
                 enemy.lastSwitchTime=now;
 
@@ -156,6 +290,7 @@ void EnemiesBuilder::updatePath(Enemy& enemy,float dt)
                 enemy.pathIndex = (enemy.pathIndex + 1) % 4;
 
         }
+
         else{
             enemy.hasHitEnd =false;
         }
@@ -219,137 +354,15 @@ void EnemiesBuilder::updatePath(Enemy& enemy,float dt)
         enemy.x = enemy.baseX + enemy.radius * cosf(enemy.pathAngle);
         enemy.y = enemy.baseY + enemy.radius * sinf(enemy.pathAngle);
     }
-//    for(auto& enemy: m_enemies)
-//    {
-//        if(enemy.action != EnemyAction::PATROL)
-//            continue;
-//
-//        enemy.previousX=enemy.x;
-//        enemy.previousY=enemy.y;
-//
-//        if(enemy.pathShape == PathShape::RECT)
-//        {
-//            SDL_FPoint paths[4]={
-//                    {enemy.baseX,enemy.baseY},
-//                    {enemy.startPath,enemy.baseY},
-//                    {enemy.startPath,enemy.endPath},
-//                    {enemy.baseX,enemy.endPath}
-//            };
-//            SDL_FPoint target = paths[enemy.pathIndex];
-//
-//            float stepDist = enemy.movingSpeed*dt;
-//            if(enemy.x != target.x)
-//            {
-//                float dir = (target.x > enemy.x) ? 1.0f : -1.0f;
-//                if(SDL_fabsf(target.x - enemy.x) <= stepDist)
-//                {
-//                    enemy.x = target.x;
-//                }
-//                else
-//                {
-//                    enemy.x += stepDist*dir;
-//                }
-//            }
-//            if(enemy.y != target.y)
-//            {
-//                float dir = (target.y > enemy.y) ? 1.0f : -1.0f;
-//                if(SDL_fabsf(target.y - enemy.y) <= stepDist)
-//                {
-//                    enemy.y = target.y;
-//                }
-//                else
-//                {
-//                    enemy.y += stepDist*dir;
-//                }
-//            }
-//            if(target.x == enemy.x && target.y == enemy.y)
-//            {
-//                unsigned int now = SDL_GetTicks();
-//                if(!enemy.hasHitEnd)
-//                {
-//                    enemy.hasHitEnd =true;
-//                    enemy.lastSwitchTime=now;
-//
-//                    enemy.aniStartFrame = 0;
-//                    enemy.aniDone = false;
-//                }
-//                else
-//                    enemy.pathIndex = (enemy.pathIndex + 1) % 4;
-//
-//            }
-//            else{
-//                enemy.hasHitEnd =false;
-//            }
-//            continue;
-//        }
-//
-//        if(enemy.pathShape == PathShape::LINE)
-//        {
-//
-//            float& coord = (enemy.axis == PathAxis::HORIZONTAL)?enemy.x:enemy.y;
-//            float target = (enemy.isMovingForward)?enemy.endPath:enemy.startPath;
-//            float dir = (coord < target) ? 1.00f : -1.00f;
-//
-//            float stepDist = enemy.movingSpeed*dt;
-//
-//            if(SDL_fabsf(target - coord) <= stepDist)
-//            {
-//                unsigned int now = SDL_GetTicks();
-//                coord = target;
-//                if(!enemy.hasHitEnd)
-//                {
-//                    enemy.hasHitEnd =true;
-//                    enemy.lastSwitchTime=now;
-//
-//                    enemy.aniStartFrame = 0;
-//                    enemy.aniDone = false;
-//
-//                    enemy.isMovingForward = !enemy.isMovingForward;
-//                }
-//
-//            }
-//            else
-//            {
-//                enemy.hasHitEnd =false;
-//
-//                coord += stepDist*dir;
-//
-//            }
-//        }
-//        if(enemy.pathShape == PathShape::CIRCLE)
-//        {// no target we just move endlessly
-//            enemy.pathAngle += enemy.movingSpeed/enemy.radius *dt;
-//            enemy.x =enemy.baseX +enemy.radius *cosf(enemy.pathAngle);
-//            enemy.y =enemy.baseY +enemy.radius * sinf(enemy.pathAngle);
-//        }
-//        if(enemy.pathShape == PathShape::ARC)
-//        {
-//            // endPath/startPath as angle bounds (radians)
-//            float target = enemy.isMovingForward ? enemy.endPath : enemy.startPath;
-//
-//            float dir = (enemy.pathAngle < target) ? 1.0f : -1.0f;
-//            float angularSpeed = enemy.movingSpeed / enemy.radius;
-//            float step = angularSpeed * dt;
-//
-//            if(SDL_fabsf(target - enemy.pathAngle) <= step) {
-//                enemy.pathAngle = target;
-//                enemy.isMovingForward = !enemy.isMovingForward;
-//            } else {
-//                enemy.pathAngle += step * dir;
-//            }
-//            enemy.x = enemy.baseX + enemy.radius * cosf(enemy.pathAngle);
-//            enemy.y = enemy.baseY + enemy.radius * sinf(enemy.pathAngle);
-//        }
-//    }
 }
 
 
 
 Enemy::Enemy(float x, float y, EnemyType type, EnemyAction action, AttackType attackType,
              float startPath, float endPath, float speed, PathAxis axis, PathShape shape,
-             float radius)
-             :x(x),y(y),type(type),action(action),attackType(attackType),startPath(startPath),endPath(endPath),
-             movingSpeed(speed),axis(axis),pathShape(shape),radius(radius),baseX(x),baseY(y),previousX(x),previousY(y){
+             float radius, combatType combat)
+        :x(x),y(y),type(type),action(action),attackType(attackType),startPath(startPath),endPath(endPath),
+         movingSpeed(speed),axis(axis),pathShape(shape),radius(radius),combat(combat),baseX(x),baseY(y),previousX(x),previousY(y){
 
 }
 
