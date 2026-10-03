@@ -3,6 +3,7 @@
 //
 #include "Enemies.h"
 #include "States/GameState/GameState.h"
+#include <algorithm>
 
 
 namespace {
@@ -19,6 +20,7 @@ namespace {
 void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
     m_enemies.emplace_back(700.0f,600.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::SLASH,
                            64.00f,600.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
+
 }
 
 void EnemiesBuilder::render(SDL_Renderer *renderer) {
@@ -26,15 +28,51 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     for(const auto& enemy: m_enemies){
         auto info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+        auto renderedRect = getEnemyRenderedRect(enemy);
         if(info == nullptr) {
             LOGI("enemy info null");
             continue;
         }
-        SDL_FRect dst{enemy.x-camX,enemy.y-camY,static_cast<float>(info->frameW),static_cast<float>(info->frameH)};
-        SDL_SetRenderDrawColor(renderer,255,0,0,255);
-        SDL_RenderFillRect(renderer,&dst);
+        SDL_FRect src{0.00f+info->frameW *enemy.aniStartFrame,0.00f,static_cast<float>(info->frameW),static_cast<float>(info->frameH)};
+        SDL_FRect dst{renderedRect.x-camX,renderedRect.y-camY,static_cast<float>(info->frameW)*5,static_cast<float>(info->frameH)*5};
+//        if(enemy.isHurt)
+//            SDL_SetRenderDrawColor(renderer,255,255,255,255); // flash white for ENEMY_HURT_FLASH_MS after being hit
+//        else
+//            SDL_SetRenderDrawColor(renderer,255,0,0,255);
+//        SDL_RenderFillRect(renderer,&dst);
+        auto texture = Engine::Get().getAssetManager().getTexture(info->texture);
+        if(!texture){
+            LOGI("null texture");
+            continue;
+        }
+        if(enemy.isFacingRight | enemy.isMovingForward)
+            SDL_RenderTexture(renderer,texture,&src,&dst);
+        else
+            SDL_RenderTextureRotated(renderer,texture,&src,&dst,0.0f, nullptr,SDL_FLIP_HORIZONTAL);
     }
 
+}
+
+SDL_FRect EnemiesBuilder::getEnemyRenderedRect(Enemy enemy){
+    auto info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+    switch (enemy.type) {
+        case EnemyType::SINNERS_CHILD:
+            if(enemy.action == EnemyAction::ATTACK){
+                return {0};
+            }
+            else if(enemy.action == EnemyAction::SEEK){
+                return{enemy.x - 40,enemy.y-20,static_cast<float>(info->frameW*5),static_cast<float>(info->frameH*5) };
+            }
+            else if(enemy.action == EnemyAction::PATROL){
+                return{enemy.x - 40,enemy.y-20,static_cast<float>(info->frameW*5),static_cast<float>(info->frameH*5) };
+            }
+            else if(enemy.action == EnemyAction::RETURN){
+                return{enemy.x - 40,enemy.y-20,static_cast<float>(info->frameW*5),static_cast<float>(info->frameH*5) };
+            }
+            else{
+                return{enemy.x - 40,enemy.y-20,static_cast<float>(info->frameW*5),static_cast<float>(info->frameH*5) };
+            }
+    }
 }
 
 void EnemiesBuilder::update(float dt,float playerX,float playerY,
@@ -43,15 +81,122 @@ void EnemiesBuilder::update(float dt,float playerX,float playerY,
                             const std::vector<Platform>& platforms,
                             const std::vector<Block>& blocks) {
 
-    for(auto& enemy:m_enemies){
-        LOGI("enemy state:%d",enemy.action);
 
-        updateAI(enemy,playerX,playerY,dt);
+    unsigned int now = SDL_GetTicks();
+    for(auto& enemy:m_enemies){
+        if(enemy.previousX < enemy.x){
+            enemy.isFacingRight =false;
+        }
+        if(enemy.isDead) continue;
+
+        if(enemy.isHurt && now >= enemy.hurtFlashEndTime) enemy.isHurt = false;
+
+
+        bool inKnockback = now < enemy.knockbackEndTime;
+        if(inKnockback){
+            // knockback overrides normal movement for its short duration
+            enemy.x += enemy.knockbackVelocityX * dt;
+        } else {
+            enemy.knockbackVelocityX = 0.0f;
+            updateAI(enemy,playerX,playerY,dt,wallCollisionRect,blocks);
+        }
         applyGravityAndCollision(enemy,dt,wallCollisionRect,grounds,platforms,blocks);
-        if(enemy.action == EnemyAction::ATTACK){
-            LOGI("enemy is Attacking");
+
+        if(enemy.aniDone)continue;
+        const auto* info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+        if(!info) {
+            continue;
+        }
+        if(!info || info->frameCount<=1) continue;
+
+        unsigned int now = SDL_GetTicks();
+        if(now - enemy.lastTime > info->frameDelay)
+        {
+            enemy.lastTime =now;
+            if(enemy.aniStartFrame < info->frameCount-1){
+                enemy.aniStartFrame += 1;
+            }
+            else if(info->loop) enemy.aniStartFrame=0;
+            else {
+                enemy.aniDone=true;
+            }
         }
     }
+}
+
+int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActive,
+                                      const SDL_FRect& beamHitBox, bool beamActive, float dt) {
+    unsigned int now = SDL_GetTicks();
+    int kills = 0;
+
+    for(auto& enemy : m_enemies){
+        if(enemy.isDead) continue;
+
+        bool hitThisFrame = false;
+        float knockDirX = 1.0f; // which way to pop the enemy, decided per-hit below
+
+        // melee: one hit per swing, gated by its own i-frame window so a single
+        // slash that overlaps for several frames doesn't chew through hp instantly
+        // (lastHitByPlayerTime==0 means "never hit yet" - don't let it gate the very first hit)
+        if(meleeActive && (enemy.lastHitByPlayerTime == 0 || (now - enemy.lastHitByPlayerTime) > ENEMY_HIT_IFRAME_MS) &&
+           gameMath::checkcollision(meleeHitBox.x, meleeHitBox.y, enemy.x, enemy.y,
+                                    meleeHitBox.h, meleeHitBox.w, enemy.h, enemy.w)){
+            enemy.hp -= ENEMY_MELEE_DAMAGE;
+            enemy.lastHitByPlayerTime = now;
+            hitThisFrame = true;
+            float hitterCenterX = meleeHitBox.x + meleeHitBox.w * 0.5f;
+            float enemyCenterX  = enemy.x + enemy.w * 0.5f;
+            knockDirX = (enemyCenterX >= hitterCenterX) ? 1.0f : -1.0f;
+        }
+        // beam: continuous damage-per-second while standing in it, no i-frames needed
+        else if(beamActive &&
+                gameMath::checkcollision(beamHitBox.x, beamHitBox.y, enemy.x, enemy.y,
+                                         beamHitBox.h, beamHitBox.w, enemy.h, enemy.w)){
+            enemy.hp -= (int)(ENEMY_BEAM_DAMAGE_PER_SEC * dt);
+            hitThisFrame = true;
+            float hitterCenterX = beamHitBox.x + beamHitBox.w * 0.5f;
+            float enemyCenterX  = enemy.x + enemy.w * 0.5f;
+            knockDirX = (enemyCenterX >= hitterCenterX) ? 1.0f : -1.0f;
+        }
+
+        if(hitThisFrame){
+            enemy.isHurt = true;
+            enemy.hurtFlashEndTime = now + ENEMY_HURT_FLASH_MS;
+            enemy.knockbackVelocityX = knockDirX * ENEMY_KNOCKBACK_SPEED_X;
+            enemy.knockbackEndTime = now + ENEMY_KNOCKBACK_MS;
+            if(enemy.hp <= 0){
+                enemy.isDead = true;
+                kills++;
+            }
+        }
+    }
+
+    if(kills > 0){
+        m_enemies.erase(std::remove_if(m_enemies.begin(), m_enemies.end(),
+                                       [](const Enemy& e){ return e.isDead; }),
+                        m_enemies.end());
+    }
+    return kills;
+}
+
+bool EnemiesBuilder::checkAttackOnPlayer(float playerX, float playerY, float playerW, float playerH,
+                                         unsigned int now, gameMath::collisionSide& outSide) {
+    for(auto& enemy : m_enemies){
+        if(enemy.isDead || !enemy.isAttackBoxActive) continue;
+
+        const auto cfg = getEnemyAIConfig(enemy.type);
+        unsigned int cooldown = cfg ? cfg->attackCooldownMs : 500u;
+        // lastAttackHitTime==0 means "hasn't landed a hit yet" - don't gate the first one
+        if(enemy.lastAttackHitTime != 0 && now - enemy.lastAttackHitTime < cooldown) continue;
+
+        if(gameMath::checkcollision(enemy.attackHitBox.x, enemy.attackHitBox.y, playerX, playerY,
+                                    enemy.attackHitBox.h, enemy.attackHitBox.w, playerH, playerW)){
+            enemy.lastAttackHitTime = now;
+            outSide = enemy.isFacingRight ? gameMath::collisionSide::RIGHT : gameMath::collisionSide::LEFT;
+            return true;
+        }
+    }
+    return false;
 }
 
 void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
@@ -67,7 +212,6 @@ void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
     enemy.velocityY += ENEMY_GRAVITY * dt;
     enemy.y += enemy.velocityY * dt;
 
-    //walls - mirrors GameState::handleCollision()'s player-vs-wallCollisionRect checks
     const float renderedHeight = (std::ceil(wallCollisionRect.h / (SCALE*TILE_SIZE)) * (SCALE*TILE_SIZE));
     gameMath::collisionSide wallSide;
 
@@ -153,14 +297,67 @@ void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
         }
     }
 }
-void EnemiesBuilder::updateAI(Enemy& enemy, float playerX, float playerY, float dt) {
+bool EnemiesBuilder::isHorizontalPathClear(const Enemy& e, float nextX,
+                                           const SDL_FRect& wallCollisionRect,
+                                           const std::vector<Block>& blocks) const {
+    if(e.combat != combatType::GROUND) return true; // aerial enemies fly over/around obstacles
+
+    // the solid wall is a one-tile-thick band right at the rect's edges (see
+    // applyGravityAndCollision above / GameState::computeBeamLength), so the usable
+    // interior is inset by one tile on each side - not the raw rect bounds.
+    const float leftWall  = wallCollisionRect.x + TILE_SIZE * SCALE;
+    const float rightWall = wallCollisionRect.x + wallCollisionRect.w - TILE_SIZE * SCALE;
+    if(nextX < leftWall || nextX + e.w > rightWall) return false;
+
+    for(const auto& block : blocks){
+        if(gameMath::checkcollision(nextX, e.y, block.rect.x, block.rect.y,
+                                    e.h, e.w, block.rect.h, block.rect.w))
+            return false;
+    }
+    return true;
+}
+
+bool EnemiesBuilder::updateStuckTimer(Enemy& e, unsigned int now) {
+    float dx = e.x - e.stuckAnchorX, dy = e.y - e.stuckAnchorY;
+    float moved = std::sqrt(dx*dx + dy*dy);
+
+    if(!e.stuckTimerActive || moved > ENEMY_STUCK_MOVE_EPS){
+        // either just started tracking, or it made real progress - reset the clock
+        e.stuckTimerActive = true;
+        e.stuckAnchorX = e.x;
+        e.stuckAnchorY = e.y;
+        e.stuckTimerStart = now;
+        return false;
+    }
+    return (now - e.stuckTimerStart) > ENEMY_STUCK_TIME_MS;
+}
+
+void EnemiesBuilder::updateAI(Enemy& enemy, float playerX, float playerY, float dt,
+                              const SDL_FRect& wallCollisionRect, const std::vector<Block>& blocks) {
     float dx = playerX - enemy.x, dy = playerY - enemy.y;
     float distToPlayer = std::sqrt(dx*dx + dy*dy);
     const auto cfg = getEnemyAIConfig(enemy.type);
+    unsigned int now = SDL_GetTicks();
+
+    if(enemy.action != EnemyAction::ATTACK) enemy.isAttackBoxActive = false;
+    if(enemy.action != EnemyAction::PATROL) enemy.stuckTimerActive = false;
 
     switch (enemy.action) {
         case EnemyAction::PATROL:
             updatePath(enemy, dt);                       // existing trap-style movement
+
+            // stuck-in-the-middle-of-the-path check: only while actually travelling
+            // between waypoints (not while it's paused/switching direction at an end)
+            if(!enemy.hasHitEnd){
+                if(updateStuckTimer(enemy, now)){
+                    enemy.stuckTimerActive = false;
+                    enemy.action = EnemyAction::RETURN;   // give up on this leg, head back to where it started
+                    break;
+                }
+            } else {
+                enemy.stuckTimerActive = false;
+            }
+
             if (distToPlayer <= cfg->detectRadius)
                 enemy.action = EnemyAction::SEEK;
             break;
@@ -181,20 +378,44 @@ void EnemiesBuilder::updateAI(Enemy& enemy, float playerX, float playerY, float 
             break;
         }
 
-        case EnemyAction::ATTACK:
-            if (distToPlayer > cfg->attackRange * 1.2f)      // player escaped mid-attack
+        case EnemyAction::ATTACK: {
+            // attack hitbox: reaches attackRange out from the enemy, in the direction it's facing
+            float boxW = cfg->attackRange;
+            enemy.attackHitBox.w = boxW;
+            enemy.attackHitBox.h = enemy.h;
+            enemy.attackHitBox.y = enemy.y;
+            enemy.attackHitBox.x = enemy.isFacingRight ? (enemy.x + enemy.w) : (enemy.x - boxW);
+            enemy.isAttackBoxActive = true;
+
+            if (distToPlayer > cfg->attackRange * 1.2f){      // player escaped mid-attack
                 enemy.action = EnemyAction::SEEK;
-            else if (enemy.aniDone)                              // let animation drive the timing
+                enemy.isAttackBoxActive = false;
+            }
+            else if (enemy.aniDone){                              // let animation drive the timing
                 enemy.action = EnemyAction::SEEK;                 // reposition, re-enter ATTACK if still in range
+                enemy.isAttackBoxActive = false;
+            }
             break;
+        }
 
         case EnemyAction::RETURN: {
-            if(enemy.combat != combatType::GROUND){
-                moveToward(enemy, enemy.baseX, enemy.baseY, enemy.movingSpeed, dt);
+            float targetX = enemy.baseX;
+            float dir = (targetX > enemy.x) ? 1.0f : (targetX < enemy.x ? -1.0f : 0.0f);
+            float nextX = enemy.x + dir * enemy.movingSpeed * dt;
+
+            // don't let the trip home walk it straight into a wall/block - if the
+            // very next step is obstructed, just hold position this frame instead
+            bool clear = isHorizontalPathClear(enemy, nextX, wallCollisionRect, blocks);
+
+            if(clear){
+                if(enemy.combat != combatType::GROUND){
+                    moveToward(enemy, enemy.baseX, enemy.baseY, enemy.movingSpeed, dt);
+                }
+                else{
+                    moveToward(enemy, enemy.baseX, enemy.y, enemy.movingSpeed,dt);
+                }
             }
-            else{
-                moveToward(enemy, enemy.baseX, enemy.y, enemy.movingSpeed,dt);
-            }
+
             float rdx = enemy.baseX - enemy.x, rdy = enemy.baseY - enemy.y;
             if(enemy.combat ==combatType::GROUND){
                 rdy = 0;
@@ -449,9 +670,9 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
             {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_BAT_SEEK,64,64,4,90,true}},
             {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::RETURN), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,4,120,true}},
 
-            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SINNERS_CHILD_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SINNERS_CHILD_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SINNERS_CHILD_PATROL,64,64,4,120,true}},
+            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SINNERS_CHILD_PATROL,24,24,10,50,true}},
+            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SINNERS_CHILD_SEEK,24,24,7,50,true}},
+            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SINNERS_CHILD_PATROL,24,24,10,50,true}},
 
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::PATROL), {TextureType::ENEMY_CAVE_PREDATOR_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_PREDATOR_SEEK,64,64,4,90,true}},

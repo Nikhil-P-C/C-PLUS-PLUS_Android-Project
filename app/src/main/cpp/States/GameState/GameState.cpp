@@ -74,6 +74,7 @@ void GameState::render(SDL_Renderer* renderer)  {
     Engine::Get().getPostProcessor().beginBloomGroup(m_renderer);
 
     m_backgroundBuilder.render(m_renderer);
+    m_ambientParticles.renderBack(m_renderer);
 
     for(const auto& tile : m_wallTiles)
     {
@@ -309,6 +310,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 
     m_foregroundBuilder.render(m_renderer);
+    m_ambientParticles.renderFront(m_renderer);
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
 
     //TODO: remove this temporary test,and load light data from level file
@@ -419,6 +421,15 @@ void GameState::update(float dt){
 
     m_trapBuilder.updatePath(dt);
     m_enemyBuilder.update(dt,m_player.x,m_player.y,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
+
+    // player's weapons vs enemies: m_playerHitBox (melee) was just computed above,
+    // m_beamHitBox (beam) was computed earlier this frame inside handlePhysicAndInput->tryBeam
+    int enemiesKilled = m_enemyBuilder.applyPlayerDamage(m_playerHitBox, m_isAttacking,
+                                                         m_beamHitBox, m_isBeaming, dt);
+    if(enemiesKilled > 0){
+        PlayerDetail::getInstance().addScore(enemiesKilled * ENEMY_KILL_SCORE);
+    }
+
     TrapType type;
     gameMath::collisionSide side =gameMath::collisionSide::NONE;
 
@@ -430,9 +441,18 @@ void GameState::update(float dt){
 
     if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer){
         PlayerDetail::getInstance().setInvincibility(false);
+
+        gameMath::collisionSide enemySide = gameMath::collisionSide::NONE;
         if(hazardColl)
         {
             handlePlayerHit(type, side, hitNow);
+        }
+        else if(m_enemyBuilder.checkAttackOnPlayer(m_player.x, m_player.y, m_player.w, m_player.h,
+                                                   hitNow, enemySide))
+        {
+            // reuses the same hp/i-frame logic as a trap hit, but with a lighter knockback
+            handlePlayerHit(TrapType::NONE, enemySide, hitNow,
+                            PLAYER_ENEMY_KNOCKBACK_SPEED, PLAYER_ENEMY_KNOCKBACK_MS);
         }
     }
 
@@ -487,6 +507,7 @@ void GameState::update(float dt){
     updateAnimation();
 
     m_particleSystem.update(dt);
+    m_ambientParticles.update(dt);
     m_fruitBuilder.update(dt);
     m_trapBuilder.update(dt);
 
@@ -618,7 +639,8 @@ void GameState::handleCollision() {
     }
 }
 
-void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide side, unsigned int now) {
+void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide side, unsigned int now,
+                                float knockbackStrength, unsigned int knockbackDurationMs) {
 
     PlayerDetail::getInstance().setLastHitTime(now);
 
@@ -626,8 +648,8 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
 
     PlayerDetail::getInstance().setInvincibility(true);
     m_hurtAnimEndTime = now + HURT_ANIM_MS;
-    m_knockbackEndTime = now + KNOCKBACK_MS;
-    const float KNOCK_H = 600.0f, KNOCK_V = 600.0f;
+    m_knockbackEndTime = now + knockbackDurationMs;
+    const float KNOCK_H = knockbackStrength, KNOCK_V = knockbackStrength;
     switch(side){
         case gameMath::collisionSide::TOP:    m_velocityY = -KNOCK_V; break; // pushed up
         case gameMath::collisionSide::BOTTOM: m_velocityY =  KNOCK_V; break; // pushed down
@@ -952,7 +974,7 @@ void GameState::setLevel(int level) {
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
     m_backgroundBuilder.init(m_backgroundElements);
     m_foregroundBuilder.init(m_foregroundElements);
-    m_foregroundBuilder.init(m_foregroundElements);
+    m_ambientParticles.init(m_renderer, AmbientParticles::themeFromBackground(m_backgroundElements));
 
     buildWallTiles();
 

@@ -147,6 +147,10 @@ void AssetManager::init(SDL_Renderer *renderer) {
     loadTexture(TextureType::PLAYER_DOUBLE_JUMP, "Skill/broken_wings.png");
     loadTexture(TextureType::ATTACK_PLAYER_SLASH,"Attacks/slash.png");
     loadTexture(TextureType::ATTACK_PLAYER_BEAM,"Attacks/beam_sprite.png");
+
+    loadTexture(TextureType::ENEMY_SINNERS_CHILD_PATROL,"Enemy/sinner_child/sinner_child_patrol.png");
+    loadTexture(TextureType::ENEMY_SINNERS_CHILD_SEEK,"Enemy/sinner_child/sinner_child_seek.png");
+
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }

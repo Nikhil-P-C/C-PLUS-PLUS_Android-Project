@@ -13,6 +13,7 @@
 #include "utils/utils.h"
 #include "level/GroundShapeBuilder.h"
 #include "ParticleSystem.h"
+#include "AmbientParticles.h"
 
 #include "level/Fruits.h"
 #include "level/Traps.h"
@@ -39,6 +40,10 @@ const float BEAM_MAGIC_DRAIN_PER_SEC = 25.0f;
 const float HEAL_MAGIC_COST = 30.0f;
 const int HEAL_AMOUNT = 1;
 const unsigned int HEAL_COOLDOWN_MS = 800;
+const int ENEMY_KILL_SCORE = 10;
+// lighter than a trap hit (600px/s, 300ms) - just a firm nudge so it doesn't feel like a launch
+const float PLAYER_ENEMY_KNOCKBACK_SPEED = 220.0f;
+const unsigned int PLAYER_ENEMY_KNOCKBACK_MS = 150;
 
 enum PlayerAction{
     IDLE =0,
@@ -85,7 +90,11 @@ public:
 
     static bool HandleBackgroundEvents(void *userdata, SDL_Event *event);
     bool isBlinkFrame() const;
-    void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now);
+    void handlePlayerHit(TrapType hazardType,gameMath::collisionSide side,unsigned int now,
+                         float knockbackStrength = 600.0f, unsigned int knockbackDurationMs = KNOCKBACK_MS);
+    const std::vector<Enemy>& getEnemies(){
+        return m_enemyBuilder.getEnemies();
+    }
     void triggerCheckpoint();
     bool tryHeal(unsigned int now);
     void tryBeam(float dt);
@@ -179,6 +188,7 @@ private:
     BackGroundBuilder m_backgroundBuilder;
     ForeGroundBuilder m_foregroundBuilder;
     ParticleSystem m_particleSystem;
+    AmbientParticles m_ambientParticles;
     float m_walkTimer=0.0f;
 
     Player   m_player;
