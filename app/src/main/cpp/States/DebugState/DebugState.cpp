@@ -99,6 +99,40 @@ void DebugState::render(SDL_Renderer *renderer) {
         }
         SDL_RenderRect(renderer,&trapCollRect);
     }
+    //enemies: body (yellow), sprite rect (grey - should sit centred on the body, feet on its bottom),
+    //attack reach zone (dim orange, where the player must stand to trigger an attack),
+    //live attack hitbox (red, only while it can actually damage the player)
+    for(const auto& enemy : m_gameState->getEnemies()){
+        if(enemy.isDead) continue;
+
+        SDL_FRect sprite = m_gameState->getEnemyBuilder().getSpriteRect(enemy);
+        SDL_FRect spriteBorder{sprite.x-camX,sprite.y-camY,sprite.w,sprite.h};
+        SDL_SetRenderDrawColor(renderer,120,120,120,255);
+        SDL_RenderRect(renderer,&spriteBorder);
+
+        SDL_FRect body{enemy.x-camX,enemy.y-camY,enemy.w,enemy.h};
+        SDL_SetRenderDrawColor(renderer,255,255,0,255);
+        SDL_RenderRect(renderer,&body);
+
+        const EnemyAIConfig* cfg = getEnemyAIConfig(enemy.type);
+        if(cfg){
+            float range = cfg->attackRange;
+            for(int i = 0; i < 2; ++i)
+                if(cfg->attacks[i] == enemy.attackType) range = cfg->attackRanges[i];
+            SDL_FRect reach = EnemiesBuilder::getAttackBox(enemy, range);
+            SDL_FRect reachBorder{reach.x-camX,reach.y-camY,reach.w,reach.h};
+            SDL_SetRenderDrawColor(renderer,255,140,0,255);
+            SDL_RenderRect(renderer,&reachBorder);
+        }
+
+        if(enemy.isAttackBoxActive){
+            SDL_FRect atk{enemy.attackHitBox.x-camX,enemy.attackHitBox.y-camY,
+                          enemy.attackHitBox.w,enemy.attackHitBox.h};
+            SDL_SetRenderDrawColor(renderer,255,0,0,255);
+            SDL_RenderFillRect(renderer,&atk);
+        }
+    }
+
     SDL_SetRenderDrawColor(renderer,0,255,0,255);
     SDL_FRect checkPointBorder{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
     SDL_RenderRect(renderer,&checkPointBorder);

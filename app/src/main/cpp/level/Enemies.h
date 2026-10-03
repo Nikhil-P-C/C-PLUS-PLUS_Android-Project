@@ -23,6 +23,21 @@ const unsigned int ENEMY_STUCK_TIME_MS  = 600;     // how long it can fail to ma
 // knockback (on the enemy, when the player hits it)
 const float ENEMY_KNOCKBACK_SPEED_X     = 220.0f;  // px/s, horizontal pop away from the hit
 const unsigned int ENEMY_KNOCKBACK_MS   = 120;     // brief - just enough to read as a flinch, then AI resumes
+const unsigned int ENEMY_HIT_RECOVER_MS = 400;     // after being hit mid-attack, can't start a new attack for this long
+
+// rendering
+const int ENEMY_SPRITE_SCALE            = 5;       // source px -> screen px (same as the player's P_scale)
+const float ENEMY_FACE_DEADZONE         = 6.0f;    // ignore tiny left/right offsets so facing doesn't flicker when lined up with the target
+
+// attack timing: the attack hitbox is only live during this slice of the attack animation
+// (fractions of frameCount), so there is a wind-up the player can react to and no damage
+// before the swing is actually visible
+const float ENEMY_ATTACK_ACTIVE_START   = 0.34f;
+const float ENEMY_ATTACK_ACTIVE_END     = 0.75f;
+
+// melee lunge: DASH attacks (the tackle) carry the enemy forward during the active window
+const float ENEMY_DASH_SPEED            = 520.0f;  // px/s while the dash is live
+const float ENEMY_CHASE_STOP_FRACTION   = 0.8f;    // chase stops once the gap to the player is <= this * attack range
 
 enum class EnemyType{
     //Moss cave enemies
@@ -89,6 +104,7 @@ struct EnemyFrameInfo{
     int frameCount;
     int frameDelay;
     bool loop;
+    int footPad = 0;   // transparent source pixels under the feet in this sheet, so the feet land on the hitbox bottom
 };
 
 struct EnemyAIConfig {
@@ -151,13 +167,16 @@ struct Enemy{
     // --- attack hitbox (EnemyAction::ATTACK only) ---
     SDL_FRect attackHitBox{0.0f,0.0f,0.0f,0.0f};
     bool isAttackBoxActive =false;
-    unsigned int lastAttackHitTime =0; // gates damage-to-player, cooldown = cfg->attackCooldownMs
+    unsigned int lastAttackHitTime =0;
+    bool attackHasHit =false;          // this attack swing has already connected (or whiffed on an invincible player) - one hit per swing
+    unsigned int nextAttackTime =0;    // earliest tick a new attack may start (cooldown lives here, not on the damage)
 
     // --- damaged-by-player state ---
     bool isDead =false;
     bool isHurt =false;
     unsigned int hurtFlashEndTime =0;
-    unsigned int lastHitByPlayerTime =0; // i-frames vs the player's weapons
+    int lastMeleeAttackId =-1;           // id of the last player swing that damaged this enemy (one hit per swing)
+    float beamDamageAccum =0.0f;         // fractional beam damage carried between frames (hp is an int)
 
     // --- knockback (from being hit by the player) ---
     float knockbackVelocityX =0.0f;
@@ -176,7 +195,7 @@ public:
 
     void render(SDL_Renderer* renderer);
 
-    void update(float dt,float playerX,float playerY,
+    void update(float dt,const SDL_FRect& playerRect,
                 const SDL_FRect& wallCollisionRect,
                 const std::vector<LevelGround>& grounds,
                 const std::vector<Platform>& platforms,
@@ -185,23 +204,48 @@ public:
     // Call after computing the player's melee/beam hitboxes for this frame.
     // Damages any overlapping, off-cooldown enemy and removes the ones that die.
     // Returns how many enemies died this call (e.g. to award score).
+    // attackId must change once per player swing (see GameState::m_attackId) - that is
+    // what limits a swing to a single hit per enemy.
     int applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActive,
-                          const SDL_FRect& beamHitBox, bool beamActive, float dt);
+                          const SDL_FRect& beamHitBox, bool beamActive, float dt, int attackId);
 
     // Call once per frame (while the player isn't already invincible) to see if
     // an attacking enemy's hitbox is touching the player. Returns true and fills
     // outSide (which way to knock the player) on the first hit found.
+    // canDamage=false (player invincible, or already hit by something else this frame) still
+    // 'spends' an overlapping swing so it can't land later in the same attack.
     bool checkAttackOnPlayer(float playerX, float playerY, float playerW, float playerH,
-                             unsigned int now, gameMath::collisionSide& outSide);
+                             unsigned int now, bool canDamage, gameMath::collisionSide& outSide);
 
     const std::vector<Enemy>& getEnemies() const { return m_enemies; }
 
+    // ranged attacks may hit from outside melee reach; everything else (SLASH/BITE/DASH) only hurts
+    // while the player is inside the enemy's attack hitbox
+    static bool isRangedAttack(AttackType t){
+        return t == AttackType::PROJECTILE || t == AttackType::SHOOT || t == AttackType::BEAM;
+    }
+    // the box this enemy's attack would occupy right now (in front of it, `range` long, body height)
+    static SDL_FRect getAttackBox(const Enemy& e, float range){
+        return { e.isFacingRight ? (e.x + e.w) : (e.x - range), e.y, range, e.h };
+    }
+    // where the sprite is actually drawn (world space) - for DebugState to compare against the hitbox
+    SDL_FRect getSpriteRect(const Enemy& e) const;
+
 private:
-    SDL_FRect getEnemyRenderedRect(Enemy enemy);
+    // sprite rect in world space: bottom-centre of the frame is anchored to the bottom-centre
+    // of the hitbox, so changing sheet/frame size or flipping never shifts the enemy.
+    SDL_FRect getEnemyRenderedRect(const Enemy& enemy, const EnemyFrameInfo& info) const;
+
+    // single place to change action: resets animation + per-attack state
+    void setAction(Enemy& e, EnemyAction next);
+    // sets isFacingRight toward a world-space X (deadzoned)
+    void faceToward(Enemy& e, float targetCenterX);
+    // keeps ground enemies from stacking on top of each other
+    void separateEnemies();
 
     void moveToward(Enemy &e, float targetX, float targetY, float speed, float dt);
 
-    void updateAI(Enemy &e, float playerX, float playerY, float dt,
+    void updateAI(Enemy &e, const SDL_FRect& player, float dt,
                  const SDL_FRect& wallCollisionRect, const std::vector<Block>& blocks);
 
     void updatePath(Enemy& enemy, float dt);

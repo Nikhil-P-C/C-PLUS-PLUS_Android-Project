@@ -95,6 +95,7 @@ public:
     const std::vector<Enemy>& getEnemies(){
         return m_enemyBuilder.getEnemies();
     }
+    const EnemiesBuilder& getEnemyBuilder() const { return m_enemyBuilder; }
     void triggerCheckpoint();
     bool tryHeal(unsigned int now);
     void tryBeam(float dt);
@@ -215,6 +216,7 @@ private:
     float m_jumpVelocity =1000.00f;
 
     bool m_isAttacking =false;
+    int  m_attackId =0;   // bumped at the start of every melee swing (see applyPlayerDamage)
     bool m_isBeaming =false;
 
     //double jump

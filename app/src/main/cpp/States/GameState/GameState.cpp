@@ -193,7 +193,6 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     m_particleSystem.render(m_renderer);
     m_trapBuilder.render(m_renderer);
-    m_enemyBuilder.render(m_renderer);
     m_fruitBuilder.render(m_renderer);
     if(m_isDoubleJumping){
 
@@ -214,6 +213,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         }
     }
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
+    m_enemyBuilder.render(m_renderer);
 
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-(float)camX,
                      m_player.y+m_player.spriteOffsetY-(float)camY,
@@ -420,12 +420,13 @@ void GameState::update(float dt){
     }
 
     m_trapBuilder.updatePath(dt);
-    m_enemyBuilder.update(dt,m_player.x,m_player.y,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
+    SDL_FRect playerRect{m_player.x,m_player.y,m_player.w,m_player.h};
+    m_enemyBuilder.update(dt,playerRect,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
 
     // player's weapons vs enemies: m_playerHitBox (melee) was just computed above,
     // m_beamHitBox (beam) was computed earlier this frame inside handlePhysicAndInput->tryBeam
     int enemiesKilled = m_enemyBuilder.applyPlayerDamage(m_playerHitBox, m_isAttacking,
-                                                         m_beamHitBox, m_isBeaming, dt);
+                                                         m_beamHitBox, m_isBeaming, dt, m_attackId);
     if(enemiesKilled > 0){
         PlayerDetail::getInstance().addScore(enemiesKilled * ENEMY_KILL_SCORE);
     }
@@ -439,16 +440,21 @@ void GameState::update(float dt){
 
     unsigned int hitNow =SDL_GetTicks();
 
-    if(hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer){
+    const bool canBeHit = hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer;
+    if(canBeHit)
         PlayerDetail::getInstance().setInvincibility(false);
 
-        gameMath::collisionSide enemySide = gameMath::collisionSide::NONE;
+    // Always run the enemy check, even while invincible: a swing that overlaps the player during
+    // i-frames is spent (attackHasHit) instead of waiting and landing the moment i-frames end.
+    gameMath::collisionSide enemySide = gameMath::collisionSide::NONE;
+    bool enemyHit = m_enemyBuilder.checkAttackOnPlayer(m_player.x, m_player.y, m_player.w, m_player.h,
+                                                       hitNow, canBeHit && !hazardColl, enemySide);
+    if(canBeHit){
         if(hazardColl)
         {
             handlePlayerHit(type, side, hitNow);
         }
-        else if(m_enemyBuilder.checkAttackOnPlayer(m_player.x, m_player.y, m_player.w, m_player.h,
-                                                   hitNow, enemySide))
+        else if(enemyHit)
         {
             // reuses the same hp/i-frame logic as a trap hit, but with a lighter knockback
             handlePlayerHit(TrapType::NONE, enemySide, hitNow,
@@ -918,6 +924,7 @@ void GameState::handlePhysicAndInput(float dt) {
     }
 
     if(InputDispatcher::getInstance().consumeAttack()){
+        if(!m_isAttacking) m_attackId++;   // new swing -> new id; enemies take at most one hit per id
         m_isAttacking =true;
     }
 
