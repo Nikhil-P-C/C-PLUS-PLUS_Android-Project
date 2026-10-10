@@ -16,6 +16,14 @@ namespace {
     {
         return (static_cast<uint32_t>(type) << 8 | static_cast<uint32_t>(attack));
     }
+    // frameCount == 0 in the table means "count the frames from the sheet" (sheet = one horizontal strip)
+    inline int resolveFrameCount(const EnemyFrameInfo& info, SDL_Texture* texture)
+    {
+        if(info.frameCount > 0) return info.frameCount;
+        float w = 0.0f, h = 0.0f;
+        if(texture) SDL_GetTextureSize(texture, &w, &h);
+        return std::max(1, (int)(w / (float)info.frameW));
+    }
 }
 
 void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
@@ -68,13 +76,21 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     for(const auto& enemy: m_enemies){
-        if(enemy.isDead) continue;
         const EnemyFrameInfo* info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+        SDL_Texture* texture = info ? Engine::Get().getAssetManager().getTexture(info->texture) : nullptr;
+        bool placeholderCorpse = false;
+
+        if(enemy.isDead && !texture){
+            // no DEAD art for this enemy yet (no table row, or the png isn't loaded): show a greyed-out
+            // SEEK frame so the corpse is still visible instead of vanishing
+            info = getEnemyFrameInfo(enemy.type,EnemyAction::SEEK,AttackType::NONE);
+            texture = info ? Engine::Get().getAssetManager().getTexture(info->texture) : nullptr;
+            placeholderCorpse = true;
+        }
         if(info == nullptr) {
             LOGI("enemy info null");
             continue;
         }
-        SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(info->texture);
         if(!texture && enemy.action == EnemyAction::ATTACK){
             // attack art isn't loaded yet (only PATROL/SEEK are in AssetManager::loadAll) - borrow the
             // SEEK sheet so the enemy doesn't vanish during its attack
@@ -89,7 +105,8 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
             continue;
         }
 
-        int frame = std::clamp(enemy.aniStartFrame, 0, std::max(0, info->frameCount - 1));
+        int frameCount = resolveFrameCount(*info, texture);
+        int frame = placeholderCorpse ? 0 : std::clamp(enemy.aniStartFrame, 0, std::max(0, frameCount - 1));
         SDL_FRect world = getEnemyRenderedRect(enemy, *info);
         SDL_FRect src{static_cast<float>(info->frameW * frame), 0.0f,
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
@@ -99,10 +116,25 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
         // hitbox, the flip mirrors around the hitbox centre and the body doesn't jump sideways.
         SDL_FlipMode flip = enemy.isFacingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
-        if(enemy.isHurt) SDL_SetTextureColorMod(texture, 255, 110, 110);
+        if(placeholderCorpse)  SDL_SetTextureColorMod(texture, 90, 90, 90);
+        else if(enemy.isHurt)  SDL_SetTextureColorMod(texture, 255, 110, 110);
         SDL_RenderTextureRotated(renderer, texture, &src, &dst, 0.0, nullptr, flip);
-        if(enemy.isHurt) SDL_SetTextureColorMod(texture, 255, 255, 255);
+        if(placeholderCorpse || enemy.isHurt) SDL_SetTextureColorMod(texture, 255, 255, 255);
     }
+}
+
+// 0 hp. The enemy stays exactly where it is: AI, attacks and damage stop, the DEAD animation plays once
+// (driven from update()) and then holds its last frame. Gravity keeps applying, so a corpse that was
+// airborne (or loses its ground) still falls and lands.
+void EnemiesBuilder::startDeath(Enemy& e) {
+    if(e.isDead) return;
+    e.isDead = true;
+    setAction(e, EnemyAction::DEAD);      // resets aniStartFrame/aniDone/lastTime, drops the attack box
+    e.isHurt = false;
+    e.attackHasHit = true;
+    e.knockbackVelocityX = 0.0f;
+    e.knockbackEndTime = 0;
+    m_deathEvents.push_back({e.x + e.w * 0.5f, e.y + e.h * 0.5f});
 }
 
 void EnemiesBuilder::update(float dt,const SDL_FRect& player,
@@ -113,7 +145,24 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
 
     unsigned int now = SDL_GetTicks();
     for(auto& enemy:m_enemies){
-        if(enemy.isDead) continue;
+        if(enemy.isDead){
+            // corpse: gravity + the one-shot DEAD animation, nothing else
+            applyGravityAndCollision(enemy,dt,wallCollisionRect,grounds,platforms,blocks);
+            if(!enemy.aniDone){
+                const auto* deathInfo = getEnemyFrameInfo(enemy.type,EnemyAction::DEAD,AttackType::NONE);
+                SDL_Texture* deathTex = deathInfo ? Engine::Get().getAssetManager().getTexture(deathInfo->texture) : nullptr;
+                if(!deathInfo || !deathTex){
+                    enemy.aniDone = true;                   // no art: nothing to animate
+                } else if(now - enemy.lastTime > (unsigned int)deathInfo->frameDelay){
+                    enemy.lastTime = now;
+                    if(enemy.aniStartFrame < resolveFrameCount(*deathInfo, deathTex) - 1)
+                        enemy.aniStartFrame += 1;
+                    else
+                        enemy.aniDone = true;               // hold the last frame (lying on the floor)
+                }
+            }
+            continue;
+        }
 
         if(enemy.isHurt && now >= enemy.hurtFlashEndTime) enemy.isHurt = false;
 
@@ -238,15 +287,9 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
         }
 
         if(enemy.hp <= 0){
-            enemy.isDead = true;
-            kills++;
+            startDeath(enemy);   // stays in the list as a corpse (see update())
+            kills++;             // score is awarded immediately
         }
-    }
-
-    if(kills > 0){
-        m_enemies.erase(std::remove_if(m_enemies.begin(), m_enemies.end(),
-                                       [](const Enemy& e){ return e.isDead; }),
-                        m_enemies.end());
     }
     return kills;
 }
@@ -274,7 +317,8 @@ void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
                                               const std::vector<LevelGround>& grounds,
                                               const std::vector<Platform>& platforms,
                                               const std::vector<Block>& blocks) {
-    if(enemy.combat != combatType::GROUND) return; // aerial enemies fly freely, no gravity/ground collision
+    // aerial enemies fly freely, no gravity/ground collision - except corpses, which drop like everything else
+    if(enemy.combat != combatType::GROUND && !enemy.isDead) return;
 
     const float previousY = enemy.y; // captured before gravity moves this frame, for the one-way sweep test below
 
@@ -806,6 +850,9 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SINNERS_CHILD_PATROL,24,24,10,50,true,3}},
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SINNERS_CHILD_SEEK,24,24,7,50,true,2}},
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SINNERS_CHILD_PATROL,24,24,10,50,true,3}},
+            // frameCount 0 = counted from the sheet width. Last value is footPad: transparent source px under the
+            // body in the lying-down frames, raise it if the corpse floats above / sinks into the floor.
+            {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::DEAD), {TextureType::ENEMY_SINNERS_CHILD_DEAD,24,24,0,80,false,0}},
 
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::PATROL), {TextureType::ENEMY_CAVE_PREDATOR_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_PREDATOR_SEEK,64,64,4,90,true}},

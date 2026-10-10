@@ -91,6 +91,7 @@ enum class EnemyAction{
     SEEK,
     ATTACK,
     RETURN,
+    DEAD,      // death animation: plays once, then the last frame is held (corpse stays where it fell)
     NONE
 };
 enum class AttackType{
@@ -105,7 +106,7 @@ enum class AttackType{
 struct EnemyFrameInfo{
     TextureType texture;
     int frameW, frameH;
-    int frameCount;
+    int frameCount;      // 0 = work it out from the texture width (width / frameW) - used by the DEAD row
     int frameDelay;
     bool loop;
     int footPad = 0;   // transparent source pixels under the feet in this sheet, so the feet land on the hitbox bottom
@@ -226,6 +227,14 @@ public:
 
     const std::vector<Enemy>& getEnemies() const { return m_enemies; }
 
+    // Centres (world space) of enemies that were killed since the last call -
+    // GameState turns these into a puff of particles. Clears the list.
+    std::vector<SDL_FPoint> consumeDeathEvents(){
+        std::vector<SDL_FPoint> out;
+        out.swap(m_deathEvents);
+        return out;
+    }
+
     // ranged attacks may hit from outside melee reach; everything else (SLASH/BITE/DASH) only hurts
     // while the player is inside the enemy's attack hitbox
     static bool isRangedAttack(AttackType t){
@@ -245,6 +254,8 @@ private:
 
     // single place to change action: resets animation + per-attack state
     void setAction(Enemy& e, EnemyAction next);
+    // killing blow: switches to the DEAD action, freezes AI/attacks and queues a death-puff event
+    void startDeath(Enemy& e);
     // sets isFacingRight toward a world-space X (deadzoned)
     void faceToward(Enemy& e, float targetCenterX);
     // keeps ground enemies from stacking on top of each other
@@ -278,5 +289,6 @@ private:
 
 private:
     std::vector<Enemy> m_enemies;
+    std::vector<SDL_FPoint> m_deathEvents;
 
 };

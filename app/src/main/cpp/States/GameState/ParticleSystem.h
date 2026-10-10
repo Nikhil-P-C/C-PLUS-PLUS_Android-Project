@@ -27,6 +27,10 @@ public:
     void emitLandDust(float leftFeetX, float leftFeetY,float rightFeetX,float rightFeetY);
     void emitOneJumpParticle(float feetX, float feetY);
     void emitHealSparkle(float x, float y);
+    // radial burst centred on (x,y): used for death puffs. Speeds in px/s, size in px.
+    void emitBurst(float x, float y, int count, float speedMin, float speedMax,
+                   float lifeMin, float lifeMax, float size,
+                   uint8_t r, uint8_t g, uint8_t b);
     void emitParticleWProps(int count,int rangeX1,int rangeX2,int rangeY1, int rangeY2,
                             int velocityX1,int velocityX2 , int velocityY1,int velocityY2,
                             float minLife, float maxLife,int dirX,int dirY,float size);

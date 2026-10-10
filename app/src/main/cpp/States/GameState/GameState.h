@@ -45,6 +45,15 @@ const int ENEMY_KILL_SCORE = 10;
 const float PLAYER_ENEMY_KNOCKBACK_SPEED = 220.0f;
 const unsigned int PLAYER_ENEMY_KNOCKBACK_MS = 150;
 
+// player death (Mario-style: freeze on the white hurt frame, pop up, tumble off the bottom, respawn)
+const float PLAYER_DEATH_WHITE_S    = 0.12f;    // white silhouette frame (sheet frame 15) at the start of the freeze
+const float PLAYER_DEATH_FREEZE_S   = 0.40f;    // total hold before the pop
+const float PLAYER_DEATH_POP_SPEED  = 900.0f;   // px/s upward
+const float PLAYER_DEATH_SPIN_DEG_S = 420.0f;
+const float PLAYER_DEATH_TOTAL_S    = 2.00f;    // time from the fatal hit until the respawn
+const int   PLAYER_DEATH_FRAME_WHITE = 15;      // hurt row is 14-16, 15 is the all-white flash frame
+const int   PLAYER_DEATH_FRAME_POSE  = 14;
+
 enum PlayerAction{
     IDLE =0,
     MOVINGLEFT=1,
@@ -80,6 +89,10 @@ public:
 
     void handleCollision();
     void handlePhysicAndInput(float dt);
+    void startPlayerDeath();
+    void updateDeath(float dt);
+    void respawnPlayer();
+    void flushEnemyDeathEffects();
     void updateAnimation();
 
     void render(SDL_Renderer* renderer) override;
@@ -214,6 +227,12 @@ private:
     float m_velocityX =0.0f;
     float m_gravity =1800.00f;
     float m_jumpVelocity =1000.00f;
+
+    // death
+    bool  m_isDead =false;
+    bool  m_deathPopped =false;
+    float m_deathTimer =0.0f;
+    float m_deathDir =1.0f;
 
     bool m_isAttacking =false;
     int  m_attackId =0;   // bumped at the start of every melee swing (see applyPlayerDamage)

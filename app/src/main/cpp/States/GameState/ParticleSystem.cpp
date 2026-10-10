@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 #include "utils/utils.h"
 #include <random>
+#include <cmath>
 
 static std::mt19937 rng(std::random_device{}());
 void ParticleSystem::render(SDL_Renderer* renderer)
@@ -160,6 +161,31 @@ ParticleSystem::ParticleSystem()
     m_particleTexture = Engine::Get().getAssetManager().getTexture(TextureType::DUST_PARTICLE);
 
 }
+void ParticleSystem::emitBurst(float x, float y, int count, float speedMin, float speedMax,
+                               float lifeMin, float lifeMax, float size,
+                               uint8_t r, uint8_t g, uint8_t b)
+{
+    for(int i = 0; i < count; i++){
+        for(auto& particle : m_particles){
+            if(particle.isAlive) continue;
+            float angle = randomFloat(0.0f, 6.2831853f);
+            float speed = randomFloat(speedMin, speedMax);
+            float s = size * randomFloat(0.6f, 1.0f);
+            particle.isAlive = true;
+            particle.size = s;
+            particle.baseSize = s;
+            particle.x = x - s * 0.5f;          // particles are drawn from their top-left corner
+            particle.y = y - s * 0.5f;
+            particle.vX = std::cos(angle) * speed;
+            particle.vY = std::sin(angle) * speed;
+            particle.life = randomFloat(lifeMin, lifeMax);
+            particle.maxLife = particle.life;
+            particle.colorR = r; particle.colorG = g; particle.colorB = b;
+            break;
+        }
+    }
+}
+
 void ParticleSystem::emitDust(float pointX, float pointY,int velocityX,int velocityY,float life,float size)
 {
     for(auto& particle:m_particles){

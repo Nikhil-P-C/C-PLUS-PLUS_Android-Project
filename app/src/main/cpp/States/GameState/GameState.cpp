@@ -220,27 +220,39 @@ void GameState::render(SDL_Renderer* renderer)  {
                      m_player.spriteW,m_player.spriteH};
 
     SDL_FRect src = {(float) (0 + (SPRITE_WIDTH * m_currentFrame)), 0, SPRITE_WIDTH, SPRITE_HEIGHT};
-    if(PlayerDetail::getInstance().isInvincible())
-        SDL_SetTextureAlphaMod(m_playerTexture, isBlinkFrame() ? 80 : 150);
-    else
-        SDL_SetTextureAlphaMod(m_playerTexture,255);
+    if(m_isDead){
+        // white silhouette flash, then the hurt pose tumbling away (rotation starts when the pop does)
+        int deathFrame = (m_deathTimer < PLAYER_DEATH_WHITE_S) ? PLAYER_DEATH_FRAME_WHITE : PLAYER_DEATH_FRAME_POSE;
+        src.x = (float)(SPRITE_WIDTH * deathFrame);
+        double angle = (m_deathTimer > PLAYER_DEATH_FREEZE_S)
+                       ? m_deathDir * PLAYER_DEATH_SPIN_DEG_S * (m_deathTimer - PLAYER_DEATH_FREEZE_S) : 0.0;
+        SDL_SetTextureAlphaMod(m_playerTexture, 255);
+        SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, angle, nullptr,
+                                 m_isPlayerfacingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL);
+    }
+    else {
+        if(PlayerDetail::getInstance().isInvincible())
+            SDL_SetTextureAlphaMod(m_playerTexture, isBlinkFrame() ? 80 : 150);
+        else
+            SDL_SetTextureAlphaMod(m_playerTexture,255);
 
-    if(!m_isPlayerfacingRight)
-    {
-        SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, nullptr,
-                                 SDL_FLIP_HORIZONTAL);
+        if(!m_isPlayerfacingRight)
+        {
+            SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, nullptr,
+                                     SDL_FLIP_HORIZONTAL);
+        }
+        else
+        {
+            SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
+        }
     }
-    else
-    {
-        SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
-    }
-    //player name rendering
+    //player name rendering (hidden while dead - it would hover in place while the body tumbles)
     SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-(float)camX+(12.50f*P_scale)
                             -(50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()))/2,
                             m_player.y+m_player.spriteOffsetY-(float)camY-(2.00f*P_scale) -10,
                             50+1*static_cast<float>(PlayerDetail::getInstance().getPlayerName().length()),
                             45.00f};
-    SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
+    if(!m_isDead) SDL_RenderTexture(renderer,m_playerNameTextue, nullptr,&playerNameDst);
 
 
     m_blockBuilder.render(m_renderer);
@@ -344,10 +356,12 @@ void GameState::render(SDL_Renderer* renderer)  {
 
 void GameState::update(float dt){
 
-    if(PlayerDetail::getInstance().getPlayerHP() <= 0){
-        //respawn
-        PlayerDetail::getInstance().addPlayerHP(5);
-        m_player.setPosition(109.00f,0.00f,P_scale);
+    if(PlayerDetail::getInstance().getPlayerHP() <= 0 && !m_isDead){
+        startPlayerDeath();
+    }
+    if(m_isDead){
+        updateDeath(dt);
+        return;     // no input, collisions, hits or camera follow while the death animation plays
     }
     if(!m_isBeaming){
         PlayerDetail::getInstance().addMagic(MAGIC_REGEN_PER_SEC * dt);   // no regen while channeling the beam
@@ -422,6 +436,7 @@ void GameState::update(float dt){
     m_trapBuilder.updatePath(dt);
     SDL_FRect playerRect{m_player.x,m_player.y,m_player.w,m_player.h};
     m_enemyBuilder.update(dt,playerRect,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
+    flushEnemyDeathEffects();
 
     // player's weapons vs enemies: m_playerHitBox (melee) was just computed above,
     // m_beamHitBox (beam) was computed earlier this frame inside handlePhysicAndInput->tryBeam
@@ -643,6 +658,91 @@ void GameState::handleCollision() {
             m_velocityY =0.0f;
         }
     }
+}
+
+// poof where a finished enemy vanished
+void GameState::flushEnemyDeathEffects() {
+    for(const SDL_FPoint& p : m_enemyBuilder.consumeDeathEvents()){
+        m_particleSystem.emitBurst(p.x, p.y, 14, 120.0f, 340.0f, 0.35f, 0.60f, 46.0f, 255, 240, 200);
+    }
+}
+
+void GameState::startPlayerDeath() {
+    m_isDead = true;
+    m_deathPopped = false;
+    m_deathTimer = 0.0f;
+    m_deathDir = m_isPlayerfacingRight ? -1.0f : 1.0f;   // tumble backwards
+
+    // cancel everything the player was in the middle of
+    m_isAttacking = false;
+    m_tempInc = 0;
+    m_isBeaming = false;
+    m_beamHitBox = {0.0f,0.0f,0.0f,0.0f};
+    m_playerHitBox = {0.0f,0.0f,0.0f,0.0f};
+    m_isDoubleJumping = false;
+    m_doubleJumpFrame = 0;
+    m_velocityX = 0.0f;
+    m_velocityY = 0.0f;
+    m_knockbackEndTime = 0;
+}
+
+void GameState::updateDeath(float dt) {
+    m_deathTimer += dt;
+
+    // swallow buffered presses so they don't fire the instant the player respawns
+    InputDispatcher::getInstance().consumeJumpPressed();
+    InputDispatcher::getInstance().consumeAttack();
+    InputDispatcher::getInstance().consumeHeal();
+
+    if(m_deathTimer >= PLAYER_DEATH_FREEZE_S){
+        if(!m_deathPopped){
+            m_deathPopped = true;
+            m_velocityY = -PLAYER_DEATH_POP_SPEED;
+            float cx = m_player.x + m_player.w * 0.5f, cy = m_player.y + m_player.h * 0.5f;
+            uint8_t r = 255, g = 255, b = 255;
+            switch(PlayerDetail::getInstance().getPlayerSkin()){
+                case PlayerSkin::YELLOW: r = 255; g = 220; b = 90;  break;
+                case PlayerSkin::BLUE:   r = 90;  g = 170; b = 255; break;
+                case PlayerSkin::RED:    r = 255; g = 90;  b = 90;  break;
+                case PlayerSkin::GREEN:  r = 110; g = 230; b = 120; break;
+            }
+            m_particleSystem.emitBurst(cx, cy, 22, 180.0f, 480.0f, 0.45f, 0.80f, 56.0f, r, g, b);
+        }
+        // no collision: the body falls straight through the floor and off the bottom of the screen
+        m_velocityY += m_gravity * dt;
+        m_player.y += m_velocityY * dt;
+    }
+
+    // the world keeps running. Enemies are handed a far-away "player" so they drop aggro and walk
+    // home instead of attacking the body.
+    m_trapBuilder.updatePath(dt);
+    SDL_FRect farAway{-100000.0f, -100000.0f, m_player.w, m_player.h};
+    m_enemyBuilder.update(dt, farAway, m_wallCollisionRect, m_grounds, m_platforms, m_blocks);
+    flushEnemyDeathEffects();
+
+    m_particleSystem.update(dt);
+    m_ambientParticles.update(dt);
+    m_fruitBuilder.update(dt);
+    m_trapBuilder.update(dt);
+
+    if(m_deathTimer >= PLAYER_DEATH_TOTAL_S) respawnPlayer();
+}
+
+void GameState::respawnPlayer() {
+    m_isDead = false;
+    m_deathTimer = 0.0f;
+    m_deathPopped = false;
+
+    PlayerDetail::getInstance().setPlayerHP(5);
+    m_player.setPosition(109.00f,0.00f,P_scale);   // same spawn point as before the death animation existed
+
+    m_velocityX = 0.0f;
+    m_velocityY = 0.0f;
+    m_isGrounded = false;
+    m_jumpsUsed = 0;
+    m_playerAction = PlayerAction::IDLE;
+    m_hurtAnimEndTime = 0;
+    m_knockbackEndTime = 0;
 }
 
 void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide side, unsigned int now,

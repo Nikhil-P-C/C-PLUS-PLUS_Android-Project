@@ -2,7 +2,6 @@
 // Created by LENOVO on 23-07-2026.
 //
 #include "AssetManager.h"
-#include "utils/GameData.h"
 #include <SDL3_image/SDL_image.h>
 SDL_Texture* AssetManager::getTexture(TextureType type){
 
@@ -298,3 +297,5 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);
     }
 }
+
+
