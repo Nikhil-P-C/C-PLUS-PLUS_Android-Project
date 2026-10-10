@@ -904,6 +904,14 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
+    // Footsteps: only while actually walking on the ground. playSoundIfIdle() ignores the call
+    // while the previous step clip is still playing, so steps queue up one after another and
+    // every clip plays for its full length (no per-frame spam, no cut-offs).
+    if((InputDispatcher::getInstance().movingLeft || InputDispatcher::getInstance().movingRight)
+       && m_isGrounded && !inKnockback){
+        Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_FOOTSTEPS);
+    }
+
     bool jumpPressed = InputDispatcher::getInstance().consumeJumpPressed();
     if(jumpPressed && m_isGrounded){
         m_playerAction=PlayerAction::JUMP;
@@ -932,13 +940,19 @@ void GameState::handlePhysicAndInput(float dt) {
     m_velocityY+=m_gravity*dt;
     m_player.y +=m_velocityY*dt;
 
+    const unsigned int nowTicks = SDL_GetTicks();
     if(InputDispatcher::getInstance().consumeHeal()){
-        if(tryHeal(SDL_GetTicks())){
+        // A heal request that arrives while beaming, or right after the beam was released, is
+        // the release of the beam button - not a tap. Drop it.
+        constexpr unsigned int HEAL_AFTER_BEAM_LOCKOUT_MS = 250;
+        bool justBeamed = m_isBeaming || (nowTicks - m_lastBeamTime) < HEAL_AFTER_BEAM_LOCKOUT_MS;
+        if(!justBeamed && tryHeal(nowTicks)){
             m_particleSystem.emitHealSparkle(m_player.x + m_player.w * 0.5f, m_player.y);
         }
     }
 
     if(InputDispatcher::getInstance().beaming){
+        m_lastBeamTime = nowTicks;
         tryBeam(dt);
     } else {
         m_isBeaming = false;

@@ -27,6 +27,10 @@ const unsigned int ENEMY_HIT_RECOVER_MS = 400;     // after being hit mid-attack
 
 // rendering
 const int ENEMY_SPRITE_SCALE            = 5;       // source px -> screen px (same as the player's P_scale)
+// footsteps (positional, heard relative to the player)
+const float ENEMY_FOOTSTEP_HEAR_RANGE   = 1100.0f; // px from the player; further enemies are silent (saves mixer voices)
+const float ENEMY_FOOTSTEP_GAIN         = 0.6f;    // below the player's own steps
+const unsigned int ENEMY_FOOTSTEP_MIN_INTERVAL_MS = 300; // floor if the step clip is shorter than this
 const float ENEMY_FACE_DEADZONE         = 6.0f;    // ignore tiny left/right offsets so facing doesn't flicker when lined up with the target
 
 // attack timing: the attack hitbox is only live during this slice of the attack animation
@@ -182,6 +186,9 @@ struct Enemy{
     float knockbackVelocityX =0.0f;
     unsigned int knockbackEndTime =0;
 
+    // --- footsteps ---
+    unsigned int nextFootstepTime =0;    // earliest tick this enemy may play its next step (keeps steps one after another)
+
     // --- stuck detection (PATROL path only) ---
     float stuckAnchorX =0.0f, stuckAnchorY =0.0f;
     unsigned int stuckTimerStart =0;
@@ -246,9 +253,12 @@ private:
     void moveToward(Enemy &e, float targetX, float targetY, float speed, float dt);
 
     void updateAI(Enemy &e, const SDL_FRect& player, float dt,
-                 const SDL_FRect& wallCollisionRect, const std::vector<Block>& blocks);
+                  const SDL_FRect& wallCollisionRect, const std::vector<Block>& blocks);
 
     void updatePath(Enemy& enemy, float dt);
+
+    // plays a positional step if this enemy actually walked this frame (ground enemies only)
+    void updateFootsteps(Enemy& enemy, float prevX, const SDL_FRect& player, unsigned int now);
 
     void applyGravityAndCollision(Enemy& enemy, float dt,
                                   const SDL_FRect& wallCollisionRect,

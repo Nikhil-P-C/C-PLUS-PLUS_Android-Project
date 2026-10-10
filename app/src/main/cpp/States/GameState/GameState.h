@@ -226,6 +226,7 @@ private:
     int m_doubleJumpFrame =0;
 
     unsigned int m_healCooldownEndTime =0;
+    unsigned int m_lastBeamTime =0;            // last tick the beam input was held (heal is locked out shortly after)
     bool  m_isGrounded =true;
     bool  m_wasGrounded =false;
     bool m_isPlayerfacingRight =true;

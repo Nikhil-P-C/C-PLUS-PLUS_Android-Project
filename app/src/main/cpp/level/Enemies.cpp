@@ -4,6 +4,7 @@
 #include "Enemies.h"
 #include "States/GameState/GameState.h"
 #include <algorithm>
+#include <cmath>
 
 
 namespace {
@@ -116,6 +117,9 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
 
         if(enemy.isHurt && now >= enemy.hurtFlashEndTime) enemy.isHurt = false;
 
+        const float prevX = enemy.x;
+        const bool wasKnockedBack = now < enemy.knockbackEndTime;
+
         if(now < enemy.knockbackEndTime){
             // knockback overrides normal movement for its short duration. Facing is deliberately NOT
             // touched here, otherwise getting pushed backwards would flip the sprite around.
@@ -127,6 +131,7 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
             updateAI(enemy,player,dt,wallCollisionRect,blocks);
         }
         applyGravityAndCollision(enemy,dt,wallCollisionRect,grounds,platforms,blocks);
+        if(!wasKnockedBack) updateFootsteps(enemy,prevX,player,now);
 
         const auto* info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
         if(!info || info->frameCount<=1 || enemy.aniDone) continue;
@@ -144,6 +149,27 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
         }
     }
     separateEnemies();
+}
+
+void EnemiesBuilder::updateFootsteps(Enemy& enemy, float prevX, const SDL_FRect& player, unsigned int now) {
+    if(enemy.combat != combatType::GROUND || !enemy.isGrounded) return;
+    if(enemy.action != EnemyAction::PATROL && enemy.action != EnemyAction::SEEK
+       && enemy.action != EnemyAction::RETURN) return;                 // no steps while attacking
+    if(std::fabs(enemy.x - prevX) < 0.01f) return;                      // standing still (paused at a path end, blocked, ...)
+    if(now < enemy.nextFootstepTime) return;                            // previous step of THIS enemy still playing
+
+    // listener = player centre, source = this enemy's feet
+    const float listenerX = player.x + player.w * 0.5f, listenerY = player.y + player.h * 0.5f;
+    const float srcX = enemy.x + enemy.w * 0.5f,        srcY = enemy.y + enemy.h;
+    const float dx = srcX - listenerX, dy = srcY - listenerY;
+    if(dx*dx + dy*dy > ENEMY_FOOTSTEP_HEAR_RANGE * ENEMY_FOOTSTEP_HEAR_RANGE) return;   // too far to hear
+
+    AssetManager& assets = Engine::Get().getAssetManager();
+    assets.playSoundAt(listenerX,listenerY,srcX,srcY,SoundType::SFX_FOOTSTEPS,ENEMY_FOOTSTEP_GAIN);
+
+    // next step only after this clip has finished, so each enemy's steps follow one another
+    unsigned int clipMs = assets.getSoundDurationMs(SoundType::SFX_FOOTSTEPS);
+    enemy.nextFootstepTime = now + std::max(clipMs,ENEMY_FOOTSTEP_MIN_INTERVAL_MS);
 }
 
 void EnemiesBuilder::separateEnemies() {

@@ -9,7 +9,7 @@
 #include "States/MenuState/TitleScreenState.h"
 
 void Engine::run(){
-    m_assetManager.init(m_renderer);
+    m_assetManager.init(m_renderer,m_mixer);
 
     pushState(std::make_unique<TitleScreenState>(m_renderer));
 
@@ -18,6 +18,10 @@ void Engine::run(){
     int framedelay = 1000/60;
 
     GameData::getInstance().setSize(1600,720);
+
+    // apply the saved volume settings once at startup (before, they only applied after the sliders moved)
+    MIX_SetMixerGain(m_mixer,GameData::getInstance().getAudioScale());
+    MIX_SetTrackGain(m_track,GameData::getInstance().getMusicAudioScale());
 
 
     float lastMasterAudioScale = GameData::getInstance().getAudioScale();
@@ -148,7 +152,7 @@ Engine::Engine(){
     m_window = SDL_CreateWindow("Dino", 0, 0, SDL_WINDOW_FULLSCREEN);
     if (!m_window) {
         LOGE("Window creation failed: %s", SDL_GetError());
-}
+    }
 //    SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetNumberProperty(props, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true); // or however you're setting SPIR-V support
@@ -195,7 +199,7 @@ Engine::Engine(){
     m_audio = MIX_LoadAudio_IO(m_mixer,m_musicfile,false,false);
     m_track = MIX_CreateTrack(m_mixer);
     MIX_SetTrackAudio(m_track, m_audio);
-    MIX_PlayTrack(m_track,true);
+    MIX_PlayTrack(m_track,0);
     MIX_SetTrackLoops(m_track,-1);
 
     const char* name = SDL_GetRendererName(m_renderer);
@@ -208,6 +212,3 @@ Engine::~Engine(){
     if(m_renderer)SDL_DestroyRenderer(m_renderer);
     SDL_Quit();
 }
-
-
-

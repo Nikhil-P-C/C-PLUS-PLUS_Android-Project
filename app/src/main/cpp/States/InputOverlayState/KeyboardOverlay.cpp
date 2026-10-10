@@ -37,9 +37,14 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             return true;
         }
         if(event.key.key == SDLK_J){
+            // Holding a key makes the OS send repeated KEY_DOWN events. Without this guard every
+            // repeat re-armed the "tap" state (beamStarted=false, new press time), so releasing
+            // shortly after a repeat looked like a tap and triggered a heal right after the beam.
+            if(event.key.repeat) return true;
             m_magicKeyActive =true;
             m_magicBeamStarted = false;
             m_magicPressStartTime = SDL_GetTicks();
+            return true;
         }
     }
     else if(event.type == SDL_EVENT_KEY_UP){
@@ -79,4 +84,3 @@ KeyboardOverlay::KeyboardOverlay(SDL_Renderer *renderer) {
 KeyboardOverlay::~KeyboardOverlay() {
     LOGI("keyboard overlay destructor:%p",this);
 }
-

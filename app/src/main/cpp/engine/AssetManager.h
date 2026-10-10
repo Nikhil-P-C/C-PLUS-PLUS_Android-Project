@@ -120,6 +120,7 @@ enum class TextureType{
     ENEMY_SINNERS_CHILD_SEEK,
     ENEMY_SINNERS_CHILD_ATTACK1,
     ENEMY_SINNERS_CHILD_ATTACK2,
+    ENEMY_SINNERS_CHILD_DEAD,
     ENEMY_CAVE_PREDATOR_PATROL,
     ENEMY_CAVE_PREDATOR_SEEK,
     ENEMY_CAVE_PREDATOR_ATTACK1,
@@ -191,13 +192,48 @@ enum class TextureType{
 
     COUNT
 };
+enum class SoundType{
+    SFX_FOOTSTEPS=0,
+    SFX_ITEM_COLLECTED,
+    SFX_ATTACK_SLASH,
+    SFX_ATTACK_BEAM,
+    SFX_JUMP,
+    SFX_LAND,
+    MUSIC_BACKGROUND,
+    COUNT
+};
 class AssetManager{
 public:
     SDL_Texture* getTexture(TextureType type);
-    MIX_Audio* getSound(std::string soundName);
+    MIX_Audio* getSound(SoundType type);
     TTF_Font* getFont(std::string fontName);
+
+    // One-shot SFX. Uses a fixed pool of reusable tracks (no track is created per call).
+    // If every voice is busy the sound is dropped instead of piling up.
+    void playSound(SoundType);
+    // listener = whoever is hearing it (the player), src = where the sound comes from.
+    // `gain` lets distant/minor sources (enemy steps) sit below the player's own sounds.
+    void playSoundAt(float listenerX,float listenerY,float srcX ,float srcY,SoundType,float gain =1.0f);
+
+    // length of a loaded sound in milliseconds (0 if not loaded) - used to pace repeating sounds
+    unsigned int getSoundDurationMs(SoundType type);
+
+    // Plays `type` only if the previous play of that same sound has finished. Call it every
+    // frame while the action is happening (footsteps, beam hum...): clips play back to back,
+    // each for its full length, and never overlap or restart. Returns true if it started.
+    bool playSoundIfIdle(SoundType type,float gain =1.0f);
+
+    // Looping music on one dedicated track (a new call replaces the previous music).
+    void playMusic(SoundType);
+    void playMusicAt(float listenerX,float listenerY,float srcX ,float srcY,SoundType);
+
     void loadTexture(TextureType type,const std::string_view& filepath);
-    void init(SDL_Renderer* renderer);
+    void loadSound(SoundType type,const std::string_view& filepath);
+
+    void init(SDL_Renderer* renderer,MIX_Mixer* mixer);
+    static constexpr int MAX_SFX_VOICES = 16;   // simultaneous one-shot sounds
+
+
     AssetManager(const AssetManager&) = delete;
     AssetManager& operator=(const AssetManager&) = delete;
     AssetManager()= default;
@@ -206,8 +242,18 @@ private:
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
 
     std::array<SDL_Texture*,(unsigned int)TextureType::COUNT> m_textureTable{nullptr};
-    std::array<MIX_Audio*,5> m_soundTable{nullptr};
+    std::array<MIX_Audio*,(unsigned int)SoundType::COUNT> m_soundTable{nullptr};
     std::array<TTF_Font*,5> m_fontTable{nullptr};
 
     SDL_Renderer* m_renderer= nullptr;
+    MIX_Mixer* m_mixer =nullptr;
+
+    // Tracks are owned by the mixer (freed by MIX_DestroyMixer) - never destroyed here.
+    std::array<MIX_Track*,MAX_SFX_VOICES> m_sfxPool{nullptr};
+    std::array<MIX_Track*,(unsigned int)SoundType::COUNT> m_idleTracks{nullptr}; // one per sound, for playSoundIfIdle
+    MIX_Track* m_musicTrack =nullptr;
+
+    MIX_Track* acquireSfxTrack();
+    void setTrackWorldPosition(MIX_Track* track,float listenerX,float listenerY,float srcX,float srcY);
+
 };
