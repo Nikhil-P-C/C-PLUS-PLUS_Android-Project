@@ -43,7 +43,25 @@ void ParticleSystem::render(SDL_Renderer* renderer)
             const SDL_FColor col{particle.colorR/255.0f, particle.colorG/255.0f, particle.colorB/255.0f, a};
             const SDL_FColor hot{1.0f, 1.0f, 1.0f, a};          // white-hot core
 
-            if(particle.kind == ParticleKind::STREAK || particle.kind == ParticleKind::SCRATCH){
+            if(particle.kind == ParticleKind::RING){
+                // shock ring: thick bright leading edge, thinning as it expands, fading inward
+                const int N = 56;
+                const float rOut = particle.size * 0.5f;
+                const float rIn  = std::max(0.0f, rOut - (4.0f + 26.0f * a));
+                SDL_Vertex v[2 * N];
+                int idx[6 * N];
+                const SDL_FColor inner{col.r, col.g, col.b, a * 0.15f};
+                for(int i = 0; i < N; i++){
+                    const float ang = i * (6.2831853f / N);
+                    const float ca = std::cos(ang), sa = std::sin(ang);
+                    v[2*i]     = {{cx + ca * rOut, cy + sa * rOut}, col,   {0,0}};
+                    v[2*i + 1] = {{cx + ca * rIn,  cy + sa * rIn},  inner, {0,0}};
+                    const int n = (i + 1) % N;
+                    idx[6*i + 0] = 2*i;     idx[6*i + 1] = 2*i + 1; idx[6*i + 2] = 2*n;
+                    idx[6*i + 3] = 2*n;     idx[6*i + 4] = 2*i + 1; idx[6*i + 5] = 2*n + 1;
+                }
+                SDL_RenderGeometry(renderer, nullptr, v, 2 * N, idx, 6 * N);
+            } else if(particle.kind == ParticleKind::STREAK || particle.kind == ParticleKind::SCRATCH){
                 // thin pointed shard: sharp tip at the head, widest just behind it, tapering to a point
                 // (scratch = same shape, fixed angle, longer + thinner, symmetric)
                 const bool scratch = particle.kind == ParticleKind::SCRATCH;
@@ -128,6 +146,8 @@ void ParticleSystem::update(float dt)
         // sparks shrink to nothing; the flash does the opposite (pops out while fading)
         if(particle.kind == ParticleKind::FLASH)
             particle.size = particle.baseSize * (1.4f - 0.9f * sizefactor);
+        else if(particle.kind == ParticleKind::RING)
+            particle.size = particle.baseSize * (1.0f - sizefactor * sizefactor);   // fast out, then settles
         else if(particle.kind == ParticleKind::SCRATCH)
             particle.size = particle.baseSize * (1.2f - 0.4f * sizefactor);   // snaps out, then fades
         else
@@ -261,6 +281,68 @@ void ParticleSystem::emitHealSparkle(float x, float y)
     }
 }
 
+void ParticleSystem::emitRing(float x, float y, float diameter, float life, uint8_t r, uint8_t g, uint8_t b)
+{
+    if(Particle* p = findFree()){
+        *p = Particle{};
+        p->isAlive = true;
+        p->kind = ParticleKind::RING;
+        p->x = x; p->y = y;
+        p->baseSize = diameter; p->size = 0.0f;
+        p->life = p->maxLife = life;
+        p->colorR = r; p->colorG = g; p->colorB = b;
+    }
+}
+
+void ParticleSystem::emitDamageBurst(float x, float y, float dirX)
+{
+    // 1) shock rings: a big red one and a fast white one inside it
+    emitRing(x, y, 640.0f, 0.42f, 255, 70, 60);
+    emitRing(x, y, 360.0f, 0.26f, 255, 255, 255);
+
+    // 2) fast radial streaks, full circle
+    emitSparkBurst(x, y, dirX, 22, 3.14159f, 700.0f, 1700.0f, 80.0f, 170.0f, 255, 120, 100, 0.0f);
+
+    // 3) debris shards: short, thrown out + up, heavy gravity so they fall back down, red/white mix
+    for(int i = 0; i < 18; i++){
+        Particle* p = findFree();
+        if(!p) break;
+        const float a  = randomFloat(0.0f, 6.2831853f);
+        const float sp = randomFloat(250.0f, 900.0f);
+        *p = Particle{};
+        p->isAlive = true;
+        p->kind = ParticleKind::STREAK;
+        p->x = x + randomFloat(-20.0f, 20.0f); p->y = y + randomFloat(-30.0f, 30.0f);
+        p->vX = std::cos(a) * sp;
+        p->vY = std::sin(a) * sp - 350.0f;
+        p->baseSize = p->size = randomFloat(18.0f, 42.0f);
+        p->life = p->maxLife = randomFloat(0.45f, 0.9f);
+        p->drag = 1.6f;
+        p->gravity = 1700.0f;
+        const bool white = (i % 3 == 0);
+        p->colorR = 255; p->colorG = white ? 235 : 70; p->colorB = white ? 225 : 60;
+    }
+
+    // 4) embers: slow, floaty, linger
+    for(int i = 0; i < 12; i++){
+        Particle* p = findFree();
+        if(!p) break;
+        const float a  = randomFloat(0.0f, 6.2831853f);
+        const float sp = randomFloat(60.0f, 260.0f);
+        *p = Particle{};
+        p->isAlive = true;
+        p->kind = ParticleKind::STREAK;
+        p->x = x; p->y = y;
+        p->vX = std::cos(a) * sp;
+        p->vY = std::sin(a) * sp - 120.0f;
+        p->baseSize = p->size = randomFloat(10.0f, 20.0f);
+        p->life = p->maxLife = randomFloat(0.8f, 1.4f);
+        p->drag = 2.5f;
+        p->gravity = -60.0f;                 // drift upward slightly
+        p->colorR = 255; p->colorG = 150; p->colorB = 90;
+    }
+}
+
 Particle* ParticleSystem::findFree()
 {
     for(auto& p : m_particles) if(!p.isAlive) return &p;
@@ -318,25 +400,25 @@ void ParticleSystem::emitScratch(float x, float y, float angle, float length)
 
 // Enemy hit (Silksong-style): big white starburst, two long crossing scratch lines, white streaks
 // spraying the way the enemy is shoved. Warms toward orange only at high combo.
-void ParticleSystem::emitHitSpark(float x, float y, float dirX, int combo)
+void ParticleSystem::emitHitSpark(float x, float y, float dirX, int combo, float scale)
 {
     const int c = combo < 1 ? 1 : (combo > 10 ? 10 : combo);
     const uint8_t g = (uint8_t)std::max(150, 255 - c * 10);
     const uint8_t b = (uint8_t)std::max(90, 255 - c * 16);
     // art first: spark burst + two crossing thrust scratches (+ ring burst on finisher hits).
     // generated flash/scratches below are only the fallback when the PNGs are missing.
-    if(emitSpriteFx(TextureType::FX_SPARK_ENEMY, x, y, dirX, randomFloat(-10.0f, 10.0f), 0.035f)){
-        emitSpriteFx(TextureType::FX_THRUST_1, x, y, dirX, 16.0f + randomFloat(-6.0f, 6.0f), 0.035f);
-        emitSpriteFx(TextureType::FX_THRUST_2, x, y, dirX, -20.0f + randomFloat(-6.0f, 6.0f), 0.035f);
-        if(combo > 0 && combo % 5 == 0)
-            emitSpriteFx(TextureType::FX_SPARK_FINISHER, x, y, dirX, 0.0f, 0.04f, 7.0f);
+    if(emitSpriteFx(TextureType::FX_SPARK_ENEMY, x, y, dirX, randomFloat(-10.0f, 10.0f), 0.035f, 5.0f * scale)){
+        emitSpriteFx(TextureType::FX_THRUST_1, x, y, dirX, 16.0f + randomFloat(-6.0f, 6.0f), 0.035f, 5.0f * scale);
+        emitSpriteFx(TextureType::FX_THRUST_2, x, y, dirX, -20.0f + randomFloat(-6.0f, 6.0f), 0.035f, 5.0f * scale);
+        if((combo > 0 && combo % 5 == 0) || scale > 1.0f)
+            emitSpriteFx(TextureType::FX_SPARK_FINISHER, x, y, dirX, 0.0f, 0.04f, 7.0f * scale);
         return;
     }
-    emitSparkBurst(x, y, dirX, 6 + c, 0.9f, 500.0f + c * 30.0f, 1100.0f + c * 40.0f,
-                   60.0f + c * 3.0f, 110.0f + c * 6.0f, 255, g, b, 190.0f + c * 8.0f);
+    emitSparkBurst(x, y, dirX, 6 + c, 0.9f, (500.0f + c * 30.0f) * scale, (1100.0f + c * 40.0f) * scale,
+                   (60.0f + c * 3.0f) * scale, (110.0f + c * 6.0f) * scale, 255, g, b, (190.0f + c * 8.0f) * scale);
     const float base = dirX >= 0.0f ? 0.0f : 3.14159265f;
-    emitScratch(x, y, base + 0.45f, 340.0f + c * 8.0f);
-    emitScratch(x, y, base - 0.45f, 260.0f + c * 6.0f);
+    emitScratch(x, y, base + 0.45f, (340.0f + c * 8.0f) * scale);
+    emitScratch(x, y, base - 0.45f, (260.0f + c * 6.0f) * scale);
 }
 
 // Wall / ground / platform: small, warm, flung back off the surface, then they fall

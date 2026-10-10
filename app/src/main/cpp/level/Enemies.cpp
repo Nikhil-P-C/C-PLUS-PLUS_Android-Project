@@ -255,6 +255,10 @@ void EnemiesBuilder::shiftTimers(unsigned int ms) {
         if(e.hurtFlashEndTime)  e.hurtFlashEndTime  += ms;
         if(e.whiteFlashEndTime) e.whiteFlashEndTime += ms;
         if(e.nextAttackTime)    e.nextAttackTime    += ms;
+        if(e.lastTime)          e.lastTime          += ms;   // animation frame clock
+        if(e.lastSwitchTime)    e.lastSwitchTime    += ms;
+        if(e.lastAttackHitTime) e.lastAttackHitTime += ms;
+        if(e.nextFootstepTime)  e.nextFootstepTime  += ms;
     }
 }
 

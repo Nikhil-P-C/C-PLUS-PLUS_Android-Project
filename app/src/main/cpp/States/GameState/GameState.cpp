@@ -247,6 +247,15 @@ void GameState::render(SDL_Renderer* renderer)  {
         {
             SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
         }
+        if(SDL_GetTicks() < m_playerFlashEnd){
+            // damage flash: second additive pass pushes the sprite toward white
+            SDL_SetTextureBlendMode(m_playerTexture, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(m_playerTexture, 230);
+            SDL_RenderTextureRotated(renderer, m_playerTexture, &src, &dst, 0.0f, nullptr,
+                                     m_isPlayerfacingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL);
+            SDL_SetTextureAlphaMod(m_playerTexture, 255);
+            SDL_SetTextureBlendMode(m_playerTexture, SDL_BLENDMODE_BLEND);
+        }
     }
     //player name rendering (hidden while dead - it would hover in place while the body tumbles)
     SDL_FRect playerNameDst{m_player.x+m_player.spriteOffsetX-(float)camX+(12.50f*P_scale)
@@ -357,6 +366,38 @@ void GameState::render(SDL_Renderer* renderer)  {
     }
 
     renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
+
+    updateHurtAudio();              // wall-clock based: the audio also recovers while the pause menu is up
+    if(m_hurtVignette > 0.0f){
+        // red frame, clear middle: outer rectangle red, inner rectangle transparent, vertex colours blend between
+        const float t = std::min(1.0f, m_hurtVignette / 0.9f);
+        const float a = t * t * 0.6f;
+        const float W = Camera::getInstance().getCamera().w, H = Camera::getInstance().getCamera().h;
+        const float ix = W * 0.22f, iy = H * 0.22f;
+        const SDL_FColor edge{0.85f, 0.04f, 0.04f, a}, clear{0.85f, 0.04f, 0.04f, 0.0f};
+        SDL_Vertex v[8] = {
+                {{0,0},edge,{0,0}}, {{W,0},edge,{0,0}}, {{W,H},edge,{0,0}}, {{0,H},edge,{0,0}},
+                {{ix,iy},clear,{0,0}}, {{W-ix,iy},clear,{0,0}}, {{W-ix,H-iy},clear,{0,0}}, {{ix,H-iy},clear,{0,0}}
+        };
+        int idx[24];
+        for(int i = 0; i < 4; i++){
+            const int n = (i + 1) % 4;
+            idx[i*6+0] = i;     idx[i*6+1] = n;     idx[i*6+2] = 4 + n;
+            idx[i*6+3] = i;     idx[i*6+4] = 4 + n; idx[i*6+5] = 4 + i;
+        }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_RenderGeometry(renderer, nullptr, v, 8, idx, 24);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+    if(m_impactFlash > 0.0f){
+        // impact frame: near-solid white on the first frames, fading out fast
+        const float a = std::min(1.0f, m_impactFlash / 0.10f);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, (Uint8)(a * a * 235.0f));
+        SDL_FRect full{0.0f, 0.0f, Camera::getInstance().getCamera().w, Camera::getInstance().getCamera().h};
+        SDL_RenderFillRect(renderer, &full);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
 }
 
 void GameState::update(float dt){
@@ -377,10 +418,34 @@ void GameState::update(float dt){
         m_enemyBuilder.shiftTimers(frozenMs);
         if(m_hurtAnimEndTime)  m_hurtAnimEndTime  += frozenMs;
         if(m_knockbackEndTime) m_knockbackEndTime += frozenMs;
-        Camera::getInstance().updateShake(dt);
         m_fxParticles.update(dt);
-        m_comboPop = std::max(0.0f, m_comboPop - dt * 6.0f);
+        updateRealtimeFx(dt);
         return;
+    }
+
+    // slow motion (after the freeze): scale the simulation dt, and push the wall-clock (SDL_GetTicks) timers
+    // forward by the time we "didn't" simulate so animations / cooldowns / enemy AI slow down with it.
+    const float realDt = dt;
+    if(m_slowMoLeft > 0.0f){
+        m_slowMoLeft -= realDt;
+        const float t = std::min(1.0f, std::max(0.0f, 1.0f - m_slowMoLeft / m_slowMoTotal));
+        const float e = t * t * (3.0f - 2.0f * t);                         // smoothstep back to normal speed
+        m_timeScale = m_slowMoMin + (1.0f - m_slowMoMin) * e;
+    } else {
+        m_timeScale = 1.0f;
+    }
+    if(m_timeScale < 0.999f){
+        dt *= m_timeScale;
+        m_timeDebtMs += (1.0f - m_timeScale) * realDt * 1000.0f;
+        const unsigned int ms = (unsigned int)m_timeDebtMs;
+        m_timeDebtMs -= (float)ms;
+        if(ms > 0){
+            m_aniLastTime = std::min<uint32_t>(m_aniLastTime + ms, SDL_GetTicks());
+            m_enemyBuilder.shiftTimers(ms);
+            if(m_hurtAnimEndTime)  m_hurtAnimEndTime  += ms;
+            if(m_knockbackEndTime) m_knockbackEndTime += ms;
+            if(m_recoilEndTime)    m_recoilEndTime    += ms;
+        }
     }
 
     if(!m_isBeaming){
@@ -506,6 +571,7 @@ void GameState::update(float dt){
             Camera::getInstance().addTrauma(0.08f);
             requestHitStop(0.03f);
             applyRecoil(backDir, 300.0f);
+            Engine::Get().getAssetManager().playSound(SoundType::SFX_ATTACK_SLASH_COLLISION);
         }
     }
 
@@ -565,9 +631,8 @@ void GameState::update(float dt){
 
     SDL_FRect cameraBounds{m_wallCollisionRect.x,m_wallCollisionRect.y,m_wallCollisionRect.w,m_wallCollisionRect.h+TILE_SIZE*SCALE};
     Camera::getInstance().cameraClamp(cameraBounds);
-    Camera::getInstance().updateShake(dt);
-    m_fxParticles.update(dt);
-    m_comboPop = std::max(0.0f, m_comboPop - dt * 6.0f);
+    m_fxParticles.update(dt);            // scaled dt: sparks hang in the air during slow motion
+    updateRealtimeFx(realDt);
     if(m_combo > 0 && SDL_GetTicks() - m_lastComboHit > COMBO_WINDOW_MS) m_combo = 0;
 
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
@@ -757,6 +822,76 @@ void GameState::applyRecoil(float dirX, float speed) {
     m_knockbackEndTime = now + 120;      // also stops the "no input -> velocityX = 0" idle reset
 }
 
+// Impact frame: the same hit spark art as on enemies but ~2x bigger, a radial burst of sharp streaks,
+// and a white full-screen flash that lands on the first frame of the hit-stop.
+void GameState::playerImpactEffect(float dirX) {
+    const float cx = m_player.x + m_player.w * 0.5f;
+    const float cy = m_player.y + m_player.h * 0.5f;
+    m_fxParticles.emitHitSpark(cx, cy, dirX, 10, 2.0f);       // the enemy hit-spark art, doubled in size
+    m_fxParticles.emitDamageBurst(cx, cy, dirX);               // shock rings, streaks, falling shards, embers
+    m_impactFlash = 0.10f;                                     // white impact frame
+    m_hurtVignette = 0.9f;                                     // red screen-edge pulse
+    m_playerFlashEnd = SDL_GetTicks() + 220;                   // player sprite flashes white
+}
+
+void GameState::triggerSlowMo(float seconds, float minScale) {
+    m_slowMoTotal = seconds;
+    m_slowMoLeft = seconds;
+    m_slowMoMin = minScale;
+}
+
+void GameState::updateRealtimeFx(float realDt) {
+    Camera::getInstance().updateShake(realDt);
+    m_comboPop = std::max(0.0f, m_comboPop - realDt * 6.0f);
+    m_impactFlash = std::max(0.0f, m_impactFlash - realDt);
+    m_hurtVignette = std::max(0.0f, m_hurtVignette - realDt);
+    updateHurtAudio();
+}
+
+void GameState::triggerHurtAudio(float intensity, unsigned int ms, bool heartbeat) {
+    m_audioFxStart = SDL_GetTicks();
+    m_audioFxMs = ms;
+    m_audioFxIntensity = intensity;
+    m_audioFxHeartbeat = heartbeat;
+    m_audioFxActive = true;
+    Engine::Get().getAssetManager().playBoom(0.5f + 0.5f * intensity);   // the big low thud on impact
+    updateHurtAudio();
+}
+
+// Envelope (Hollow Knight feel):
+//   0 - 0.25s      : fully muffled + slowed ("stunned")
+//   then           : settles into a heavy, slowed, half-muffled world with the heartbeat running
+//   last 0.7s      : everything eases back to normal, exactly when the invincibility ends
+void GameState::updateHurtAudio() {
+    if(!m_audioFxActive) return;
+    AssetManager& am = Engine::Get().getAssetManager();
+    const float elapsed = (float)(SDL_GetTicks() - m_audioFxStart);
+    const float total = (float)m_audioFxMs;
+    if(elapsed >= total){
+        m_audioFxActive = false;
+        am.setHearingDamage(0.0f);
+        am.setHeartbeat(0.0f);
+        return;
+    }
+    const float HOLD = 250.0f, SETTLE = 500.0f, RELEASE = 700.0f;
+    const float SUSTAIN_MUFFLE = 0.55f;                                  // muffle level while sustained (no pitch/speed change on purpose)
+    float level = 1.0f;                                                // 1 = full "stunned", blends down to sustain
+    float envelope = 1.0f;                                             // 1 during the effect, ->0 on release
+    if(elapsed > HOLD){
+        const float t = std::min(1.0f, (elapsed - HOLD) / SETTLE);
+        level = 1.0f - t * (1.0f - SUSTAIN_MUFFLE);
+    }
+    const float releaseStart = std::max(0.0f, total - RELEASE);
+    if(elapsed > releaseStart){
+        const float t = (elapsed - releaseStart) / std::max(1.0f, total - releaseStart);
+        envelope = (1.0f - t) * (1.0f - t);
+    }
+    const float muffle = level * envelope * m_audioFxIntensity;
+    am.setHearingDamage(muffle);
+    // heartbeat only once the initial hit has passed, fading out with the release
+    am.setHeartbeat((m_audioFxHeartbeat && elapsed > HOLD) ? envelope : 0.0f);
+}
+
 void GameState::requestHitStop(float seconds) {
     if(seconds > m_hitStop) m_hitStop = seconds;
 }
@@ -790,6 +925,7 @@ void GameState::onEnemyHit(const EnemyHitEvent& e) {
     const float k = std::min(m_combo, 10) / 10.0f;          // 0.1 .. 1.0
 
     m_fxParticles.emitHitSpark(e.x, e.y, e.dirX, m_combo);
+    Engine::Get().getAssetManager().playSound(SoundType::SFX_ATTACK_SLASH_HIT);
     cam.kick(e.dirX * (6.0f + 8.0f * k));                   // view lurches the way the enemy is shoved
     cam.addTrauma(0.15f + 0.25f * k);
     float stop = e.killed ? 0.10f : 0.045f + 0.02f * k;
@@ -839,6 +975,8 @@ void GameState::renderComboCounter(SDL_Renderer* renderer) {
 
 void GameState::startPlayerDeath() {
     Camera::getInstance().addTrauma(0.7f);
+    m_slowMoLeft = 0.0f; m_timeScale = 1.0f;
+    triggerHurtAudio(1.0f, 2400, false);
     m_hitStop = 0.0f;
     m_combo = 0;
     m_isDead = true;
@@ -861,8 +999,8 @@ void GameState::startPlayerDeath() {
 
 void GameState::updateDeath(float dt) {
     m_deathTimer += dt;
-    Camera::getInstance().updateShake(dt);
     m_fxParticles.update(dt);
+    updateRealtimeFx(dt);
 
     // swallow buffered presses so they don't fire the instant the player respawns
     InputDispatcher::getInstance().consumeJumpPressed();
@@ -905,6 +1043,7 @@ void GameState::updateDeath(float dt) {
 
 void GameState::respawnPlayer() {
     m_combo = 0;
+    m_slowMoLeft = 0.0f; m_timeScale = 1.0f;
     m_isDead = false;
     m_deathTimer = 0.0f;
     m_deathPopped = false;
@@ -942,11 +1081,14 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
     m_isGrounded = false;
 
     // feedback: shake (+ a kick the way the player is shoved), brief freeze, combo is broken
-    Camera::getInstance().addTrauma(0.5f);
+    Camera::getInstance().addTrauma(0.6f);
     Camera::getInstance().kick(side == gameMath::collisionSide::LEFT ? -12.0f :
                                side == gameMath::collisionSide::RIGHT ? 12.0f : 0.0f);
-    requestHitStop(0.07f);
+    requestHitStop(0.12f);
     m_combo = 0;
+    playerImpactEffect(side == gameMath::collisionSide::LEFT ? -1.0f : 1.0f);
+    triggerSlowMo(1.1f, 0.30f);        // after the 0.12s freeze: ~1s of slow motion easing back to normal
+    triggerHurtAudio(0.9f, (unsigned int)m_invincibilityTimer, true);   // lasts exactly as long as the invincibility
 }
 
 void GameState::triggerCheckpoint(){

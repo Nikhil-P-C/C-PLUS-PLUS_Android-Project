@@ -77,6 +77,9 @@ class GameState : public State{
 public:
     GameState(SDL_Renderer* renderer,int level);
     ~GameState() override{
+        Engine::Get().getAssetManager().setPitchRatio(1.0f);          // never leave the audio muffled/slowed
+        Engine::Get().getAssetManager().setHearingDamage(0.0f);
+        Engine::Get().getAssetManager().setHeartbeat(0.0f);
         LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
@@ -104,6 +107,17 @@ public:
     void requestHitStop(float seconds);
     // pushes the player away from what they just hit (dirX = -facing). A hurt-knockback in progress wins.
     void applyRecoil(float dirX, float speed);
+    // player took damage: big impact frame + the same hit spark made larger + particles
+    void playerImpactEffect(float dirX);
+    // Hollow-Knight style damage audio: boom, then the whole mix stays slowed + muffled for `ms` (= the
+    // invincibility window) with a heartbeat, and eases back at the end. Wall-clock based (recovers while paused).
+    // Call updateHurtAudio() every update AND render.
+    void triggerHurtAudio(float intensity, unsigned int ms, bool heartbeat);
+    // slow motion: after the hit-stop freeze, game time runs at `minScale` and eases back to 1.0 over `seconds`
+    void triggerSlowMo(float seconds, float minScale);
+    // everything that must keep running on REAL time even while the game is frozen / slowed
+    void updateRealtimeFx(float realDt);
+    void updateHurtAudio();
     void renderComboCounter(SDL_Renderer* renderer);
     void updateAnimation();
 
@@ -257,6 +271,16 @@ private:
     int      m_wallHitId =-1;              // last swing that already clinked on a wall
     int      m_enemyHitId =-1;             // last swing that already hit an enemy
     float    m_beamFxTimer =0.0f;
+    float    m_timeScale =1.0f;            // game-time speed (1 = normal)
+    float    m_slowMoLeft =0.0f, m_slowMoTotal =0.0f, m_slowMoMin =1.0f;
+    float    m_timeDebtMs =0.0f;           // fractional ms carried between frames when shifting wall-clock timers
+    float    m_hurtVignette =0.0f;         // seconds of red screen-edge pulse left
+    uint32_t m_playerFlashEnd =0;          // tick until which the player is drawn with a white flash
+    float    m_impactFlash =0.0f;          // seconds of white impact-frame left (real dt)
+    uint32_t m_audioFxStart =0, m_audioFxMs =0;
+    float    m_audioFxIntensity =0.0f;
+    bool     m_audioFxHeartbeat =false;
+    bool     m_audioFxActive =false;
     uint32_t m_recoilEndTime =0;           // while < now: held move input is ignored so the push-back actually plays
     bool     m_wallBump =false;
     SDL_Texture* m_comboTexture =nullptr;

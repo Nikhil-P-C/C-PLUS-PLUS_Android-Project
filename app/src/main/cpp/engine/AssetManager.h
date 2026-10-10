@@ -7,6 +7,8 @@
 #include <SDL3_mixer/SDL_mixer.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <array>
+#include <atomic>
+#include "HearingFx.h"
 #include <string>
 
 #define LOG_TAG "AssetManager"
@@ -235,6 +237,19 @@ public:
     void playMusic(SoundType);
     void playMusicAt(float listenerX,float listenerY,float srcX ,float srcY,SoundType);
 
+    // Master pitch/speed of everything you hear (music + sfx): 1.0 = normal, <1 = slower and lower.
+    // Used for the "pitch drop" when the player gets hurt. Clamped to a sane range.
+    void setPitchRatio(float ratio);
+
+    // Cinematic damage audio on the whole mix (see HearingFx.h):
+    //   muffle    0..1 : steep low-pass + small dark room reverb - the world goes heavy / out of focus (no pitch change)
+    //   heartbeat 0..1 : "lub-dub" heartbeat (0 = off; starts on beat 1 when it turns on)
+    // Both are smoothed on the audio thread, so you can set them every frame without clicks.
+    void setHearingDamage(float muffle);
+    void setHeartbeat(float level);
+    // Synthesised low "boom" thump (no asset needed), strength 0..1.
+    void playBoom(float strength);
+
     void loadTexture(TextureType type,const std::string_view& filepath);
     void loadSound(SoundType type,const std::string_view& filepath);
 
@@ -260,6 +275,11 @@ private:
     std::array<MIX_Track*,MAX_SFX_VOICES> m_sfxPool{nullptr};
     std::array<MIX_Track*,(unsigned int)SoundType::COUNT> m_idleTracks{nullptr}; // one per sound, for playSoundIfIdle
     MIX_Track* m_musicTrack =nullptr;
+
+    // --- hearing-damage DSP (see HearingFx.h): runs on the AUDIO THREAD inside the MIX post-mix callback ---
+    HearingFx m_hearingFx;
+    static void SDLCALL postMixThunk(void* userdata, MIX_Mixer* mixer, const SDL_AudioSpec* spec, float* pcm, int samples);
+    void postMix(const SDL_AudioSpec* spec, float* pcm, int samples);
 
     MIX_Track* acquireSfxTrack();
     void setTrackWorldPosition(MIX_Track* track,float listenerX,float listenerY,float srcX,float srcY);

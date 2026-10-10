@@ -9,7 +9,8 @@
 // PUFF   = the original soft square (dust, heal sparkle, bursts) - top-left anchored, shrinks with life
 // STREAK = hit spark: stretched along its velocity, additive, x/y is its CENTRE
 // FLASH  = impact flash: grows while fading, additive, x/y is its CENTRE
-enum class ParticleKind : uint8_t { PUFF, STREAK, FLASH, SCRATCH };
+enum class ParticleKind : uint8_t { PUFF, STREAK, FLASH, SCRATCH, RING };
+// RING = expanding shock ring (vector, additive): size grows from 0 to baseSize while it fades
 // SCRATCH = long thin sharp line at a fixed angle (the "claw mark" across a hit enemy)
 
 struct Particle{
@@ -59,7 +60,8 @@ public:
                         float speedMin, float speedMax, float lengthMin, float lengthMax,
                         uint8_t r, uint8_t g, uint8_t b, float flashSize);
     // player sword hit on an enemy: bigger, brighter and warmer as the combo grows
-    void emitHitSpark(float x, float y, float dirX, int combo);
+    // scale > 1 = bigger version of the same effect (used for the player-hurt impact)
+    void emitHitSpark(float x, float y, float dirX, int combo, float scale = 1.0f);
     // sword/beam scraping a wall: few, pale-blue, short
     // sword/beam hits a wall/ground/platform: warm yellow-orange sparks bouncing back off the surface
     void emitWallSpark(float x, float y, float dirX);
@@ -67,6 +69,10 @@ public:
     void emitObjectSpark(float x, float y, float dirX);
     // long thin white scratch line across the hit point (enemy hits)
     void emitScratch(float x, float y, float angle, float length);
+    // expanding shock ring, `diameter` = final size
+    void emitRing(float x, float y, float diameter, float life, uint8_t r, uint8_t g, uint8_t b);
+    // everything for "the player got hit": two shock rings, fast radial streaks, falling debris shards, floating embers
+    void emitDamageBurst(float x, float y, float dirX);
     // radial burst centred on (x,y): used for death puffs. Speeds in px/s, size in px.
     void emitBurst(float x, float y, int count, float speedMin, float speedMax,
                    float lifeMin, float lifeMax, float size,

@@ -2,6 +2,7 @@
 // Created by LENOVO on 23-07-2026.
 //
 #include "AssetManager.h"
+#include <cmath>
 #include <SDL3_image/SDL_image.h>
 SDL_Texture* AssetManager::getTexture(TextureType type){
 
@@ -147,6 +148,27 @@ bool AssetManager::playSoundIfIdle(SoundType type,float gain) {
     return MIX_PlayTrack(track,0);
 }
 
+void AssetManager::setPitchRatio(float ratio) {
+    if(!m_mixer) return;
+    if(ratio < 0.25f) ratio = 0.25f;
+    if(ratio > 2.0f)  ratio = 2.0f;
+    MIX_SetMixerFrequencyRatio(m_mixer, ratio);
+}
+
+void AssetManager::setHearingDamage(float muffle) { m_hearingFx.setMuffle(muffle); }
+
+void AssetManager::setHeartbeat(float level) { m_hearingFx.setHeartbeat(level); }
+
+void AssetManager::playBoom(float strength) { m_hearingFx.playBoom(strength); }
+
+void SDLCALL AssetManager::postMixThunk(void* userdata, MIX_Mixer*, const SDL_AudioSpec* spec, float* pcm, int samples) {
+    static_cast<AssetManager*>(userdata)->postMix(spec, pcm, samples);
+}
+
+void AssetManager::postMix(const SDL_AudioSpec* spec, float* pcm, int samples) {
+    m_hearingFx.process(pcm, samples, spec->channels, spec->freq);
+}
+
 void AssetManager::playMusic(SoundType type) {
     if(type >=SoundType::COUNT || !m_soundTable[(unsigned int)type] || !m_mixer) return;
     if(!m_musicTrack){
@@ -194,6 +216,7 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     }
 
     m_mixer =mixer;
+    MIX_SetPostMixCallback(m_mixer, &AssetManager::postMixThunk, this);   // hearing-damage filter lives here
     m_renderer =renderer;
     loadTexture(TextureType::YELLOW_SKIN,"sheets/DinoSprites - tard.png");
     loadTexture(TextureType::BLUE_SKIN,"sheets/DinoSprites - doux.png");
