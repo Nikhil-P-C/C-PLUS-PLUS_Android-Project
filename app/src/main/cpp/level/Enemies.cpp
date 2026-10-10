@@ -120,6 +120,15 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
         else if(enemy.isHurt)  SDL_SetTextureColorMod(texture, 255, 110, 110);
         SDL_RenderTextureRotated(renderer, texture, &src, &dst, 0.0, nullptr, flip);
         if(placeholderCorpse || enemy.isHurt) SDL_SetTextureColorMod(texture, 255, 255, 255);
+
+        // melee hit: second additive pass pushes the sprite toward white for a few frames
+        if(!placeholderCorpse && SDL_GetTicks() < enemy.whiteFlashEndTime){
+            SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(texture, 200);
+            SDL_RenderTextureRotated(renderer, texture, &src, &dst, 0.0, nullptr, flip);
+            SDL_SetTextureAlphaMod(texture, 255);
+            SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+        }
     }
 }
 
@@ -240,8 +249,18 @@ void EnemiesBuilder::separateEnemies() {
     }
 }
 
+void EnemiesBuilder::shiftTimers(unsigned int ms) {
+    for(auto& e : m_enemies){
+        if(e.knockbackEndTime)  e.knockbackEndTime  += ms;
+        if(e.hurtFlashEndTime)  e.hurtFlashEndTime  += ms;
+        if(e.whiteFlashEndTime) e.whiteFlashEndTime += ms;
+        if(e.nextAttackTime)    e.nextAttackTime    += ms;
+    }
+}
+
 int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActive,
-                                      const SDL_FRect& beamHitBox, bool beamActive, float dt, int attackId) {
+                                      const SDL_FRect& beamHitBox, bool beamActive, float dt, int attackId,
+                                      float knockbackMul) {
     unsigned int now = SDL_GetTicks();
     int kills = 0;
 
@@ -259,11 +278,21 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
             float hitterCenterX = meleeHitBox.x + meleeHitBox.w * 0.5f;
             float enemyCenterX  = enemy.x + enemy.w * 0.5f;
             float knockDirX = (enemyCenterX >= hitterCenterX) ? 1.0f : -1.0f;
-            enemy.knockbackVelocityX = knockDirX * ENEMY_KNOCKBACK_SPEED_X;
+            enemy.knockbackVelocityX = knockDirX * ENEMY_KNOCKBACK_SPEED_X * knockbackMul;
             enemy.knockbackEndTime = now + ENEMY_KNOCKBACK_MS;
 
             enemy.isHurt = true;
             enemy.hurtFlashEndTime = now + ENEMY_HURT_FLASH_MS;
+            enemy.whiteFlashEndTime = now + ENEMY_WHITE_FLASH_MS;
+
+            // hit VFX event: centre of the overlap between the slash box and the enemy
+            {
+                const float ox1 = std::max(meleeHitBox.x, enemy.x);
+                const float ox2 = std::min(meleeHitBox.x + meleeHitBox.w, enemy.x + enemy.w);
+                const float oy1 = std::max(meleeHitBox.y, enemy.y);
+                const float oy2 = std::min(meleeHitBox.y + meleeHitBox.h, enemy.y + enemy.h);
+                m_hitEvents.push_back({(ox1 + ox2) * 0.5f, (oy1 + oy2) * 0.5f, knockDirX, enemy.hp <= 0, false});
+            }
 
             // a clean hit interrupts the enemy's attack and delays the next one
             if(enemy.action == EnemyAction::ATTACK) setAction(enemy, EnemyAction::SEEK);
@@ -284,6 +313,19 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
             }
             enemy.isHurt = true;
             enemy.hurtFlashEndTime = now + ENEMY_HURT_FLASH_MS;
+
+            // a spark tick at the beam/enemy overlap every ~90ms (not every frame)
+            if(now >= enemy.nextBeamFxTime){
+                enemy.nextBeamFxTime = now + 90;
+                const float ox1 = std::max(beamHitBox.x, enemy.x);
+                const float ox2 = std::min(beamHitBox.x + beamHitBox.w, enemy.x + enemy.w);
+                const float oy1 = std::max(beamHitBox.y, enemy.y);
+                const float oy2 = std::min(beamHitBox.y + beamHitBox.h, enemy.y + enemy.h);
+                // the beam travels away from the player, so the near edge of the enemy is the contact side
+                const bool beamGoesRight = (beamHitBox.x + beamHitBox.w * 0.5f) < (enemy.x + enemy.w * 0.5f);
+                m_hitEvents.push_back({beamGoesRight ? ox1 : ox2, (oy1 + oy2) * 0.5f,
+                                       beamGoesRight ? -1.0f : 1.0f, enemy.hp <= 0, true});
+            }
         }
 
         if(enemy.hp <= 0){

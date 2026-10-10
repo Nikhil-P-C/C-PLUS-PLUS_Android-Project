@@ -4,9 +4,20 @@
 #pragma once
 #include "SDL3/SDL.h"
 #include <array>
+#include "engine/AssetManager.h"
+
+// PUFF   = the original soft square (dust, heal sparkle, bursts) - top-left anchored, shrinks with life
+// STREAK = hit spark: stretched along its velocity, additive, x/y is its CENTRE
+// FLASH  = impact flash: grows while fading, additive, x/y is its CENTRE
+enum class ParticleKind : uint8_t { PUFF, STREAK, FLASH, SCRATCH };
+// SCRATCH = long thin sharp line at a fixed angle (the "claw mark" across a hit enemy)
 
 struct Particle{
     bool isAlive =false;
+    ParticleKind kind = ParticleKind::PUFF;   // reset to PUFF/0/0 when a particle dies (see update())
+    float angle = 0.0f;                       // SCRATCH only (radians)
+    float drag = 0.0f;                        // 1/s velocity decay (exp)
+    float gravity = 0.0f;                     // px/s^2
 
     float x=0,y=0;
     float vX=0,vY=0;
@@ -16,8 +27,23 @@ struct Particle{
     float maxLife =0.4;
     uint8_t colorR=255,colorG=255,colorB=255; // white = existing dust look; tinted for effects like healing
 };
+// One-shot sprite flipbook (hit effects drawn as art). Frames are square, laid out horizontally.
+struct SpriteFx{
+    bool alive = false;
+    SDL_Texture* tex = nullptr;
+    int frames = 1;
+    int frameW = 0, frameH = 0;   // source px; vertical strip: frame i is at y = i*frameH
+    float x = 0, y = 0;       // world centre
+    float angleDeg = 0;
+    float scale = 5.0f;       // art px -> game px (matches P_scale)
+    float age = 0, frameDur = 0.035f;
+    bool flipX = false;
+};
+
 class ParticleSystem{
 public:
+    // Plays a flipbook from the AssetManager. Returns false if the asset isn't there (caller falls back to generated sparks).
+    bool emitSpriteFx(TextureType type, float x, float y, float dirX, float angleDeg, float frameDur, float scale = 5.0f);
     void render(SDL_Renderer* renderer);
     void update(float dt);
 
@@ -27,6 +53,20 @@ public:
     void emitLandDust(float leftFeetX, float leftFeetY,float rightFeetX,float rightFeetY);
     void emitOneJumpParticle(float feetX, float feetY);
     void emitHealSparkle(float x, float y);
+    // Spark burst centred on (x,y) flying mostly toward dirX (+1 right / -1 left), plus one impact flash.
+    // spread = half-angle in radians; flashSize 0 = no flash.
+    void emitSparkBurst(float x, float y, float dirX, int count, float spread,
+                        float speedMin, float speedMax, float lengthMin, float lengthMax,
+                        uint8_t r, uint8_t g, uint8_t b, float flashSize);
+    // player sword hit on an enemy: bigger, brighter and warmer as the combo grows
+    void emitHitSpark(float x, float y, float dirX, int combo);
+    // sword/beam scraping a wall: few, pale-blue, short
+    // sword/beam hits a wall/ground/platform: warm yellow-orange sparks bouncing back off the surface
+    void emitWallSpark(float x, float y, float dirX);
+    // sword hits a block/trap/object: cold white-blue metallic sparks (distinct from wall + enemy)
+    void emitObjectSpark(float x, float y, float dirX);
+    // long thin white scratch line across the hit point (enemy hits)
+    void emitScratch(float x, float y, float angle, float length);
     // radial burst centred on (x,y): used for death puffs. Speeds in px/s, size in px.
     void emitBurst(float x, float y, int count, float speedMin, float speedMax,
                    float lifeMin, float lifeMax, float size,
@@ -40,8 +80,10 @@ public:
 
     ParticleSystem();
 private:
+    Particle* findFree();
     SDL_Texture* m_particleTexture=nullptr;
     std::array<Particle,256> m_particles;
+    std::array<SpriteFx,32> m_spriteFx;
 
 
 };

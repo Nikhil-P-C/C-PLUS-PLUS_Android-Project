@@ -101,7 +101,7 @@ private:
     SDL_Window*   m_window = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     SDL_Event     m_event;
-    SDL_IOStream* m_musicfile = SDL_IOFromFile("music.mp3", "rb");
+    SDL_IOStream* m_musicfile = SDL_IOFromFile("Sound/Ambient/Ambient 2.ogg", "rb");
 
 
     MIX_Audio* m_audio = nullptr;

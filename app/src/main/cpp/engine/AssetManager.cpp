@@ -286,12 +286,21 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadTexture(TextureType::PLAYER_DOUBLE_JUMP, "Skill/broken_wings.png");
     loadTexture(TextureType::ATTACK_PLAYER_SLASH,"Attacks/slash.png");
     loadTexture(TextureType::ATTACK_PLAYER_BEAM,"Attacks/beam_sprite.png");
+    loadTexture(TextureType::FX_SPARK_ENEMY,    "Attacks/hit_spark_enemy.png");     // hit effects (optional: generated fallback if missing)
+    loadTexture(TextureType::FX_SPARK_FINISHER, "Attacks/hit_spark_finisher.png");
+    loadTexture(TextureType::FX_SPARK_WALL,     "Attacks/hit_spark_wall.png");
+    loadTexture(TextureType::FX_SPARK_OBJECT,   "Attacks/hit_spark_object.png");
+    loadTexture(TextureType::FX_THRUST_1,       "Attacks/hit_thrust_1.png");
+    loadTexture(TextureType::FX_THRUST_2,       "Attacks/hit_thrust_2.png");
 
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_PATROL,"Enemy/sinner_child/sinner_child_patrol.png");
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_SEEK,"Enemy/sinner_child/sinner_child_seek.png");
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_DEAD,"Enemy/sinner_child/sinner_child_death.png");
 
     loadSound(SoundType::SFX_FOOTSTEPS,"Sound/footstep/concrete_step.wav");
+    loadSound(SoundType::SFX_JUMP, "Sound/Jump/Jump.wav");
+    loadSound(SoundType::SFX_ATTACK_SLASH_HIT, "Sound/Slash/Hit/Hit.wav");
+    loadSound(SoundType::SFX_ATTACK_SLASH_COLLISION,"Sound/Slash/Collision/Slash_Collision.wav");
 
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);

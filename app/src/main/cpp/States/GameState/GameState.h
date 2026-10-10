@@ -41,6 +41,10 @@ const float HEAL_MAGIC_COST = 30.0f;
 const int HEAL_AMOUNT = 1;
 const unsigned int HEAL_COOLDOWN_MS = 800;
 const int ENEMY_KILL_SCORE = 10;
+
+// --- hit VFX / combo ---
+const unsigned int COMBO_WINDOW_MS   = 1200;   // a hit within this long of the previous one continues the combo
+const int          COMBO_FINISHER_EVERY = 5;   // every Nth combo hit is a "finisher" beat (bigger shake/stop/knockback)
 // lighter than a trap hit (600px/s, 300ms) - just a firm nudge so it doesn't feel like a launch
 const float PLAYER_ENEMY_KNOCKBACK_SPEED = 220.0f;
 const unsigned int PLAYER_ENEMY_KNOCKBACK_MS = 150;
@@ -76,6 +80,7 @@ public:
         LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
+        if (m_comboTexture)    SDL_DestroyTexture(m_comboTexture);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
         SDL_SetTextureAlphaMod(m_playerTexture,255);
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
@@ -93,6 +98,13 @@ public:
     void updateDeath(float dt);
     void respawnPlayer();
     void flushEnemyDeathEffects();
+    // hit VFX: sparks, screen shake, hit-stop, combo (fed by EnemiesBuilder::consumeHitEvents)
+    void flushEnemyHitEffects();
+    void onEnemyHit(const EnemyHitEvent& e);
+    void requestHitStop(float seconds);
+    // pushes the player away from what they just hit (dirX = -facing). A hurt-knockback in progress wins.
+    void applyRecoil(float dirX, float speed);
+    void renderComboCounter(SDL_Renderer* renderer);
     void updateAnimation();
 
     void render(SDL_Renderer* renderer) override;
@@ -113,6 +125,8 @@ public:
     bool tryHeal(unsigned int now);
     void tryBeam(float dt);
     float computeBeamLength(float originX, float beamY, float beamH, bool facingRight);
+    // nearest solid in front of originX (sword reach check) and what it is: 0 = wall/ground/platform, 1 = object (block/trap)
+    float probeSolidAhead(float originX, float y, float h, bool facingRight, int& kind);
 
     const Player& getPlayer(){
         return m_player;
@@ -202,6 +216,7 @@ private:
     BackGroundBuilder m_backgroundBuilder;
     ForeGroundBuilder m_foregroundBuilder;
     ParticleSystem m_particleSystem;
+    ParticleSystem m_fxParticles;          // hit sparks/flashes: drawn AFTER enemies + player so they sit on top
     AmbientParticles m_ambientParticles;
     float m_walkTimer=0.0f;
 
@@ -233,6 +248,20 @@ private:
     bool  m_deathPopped =false;
     float m_deathTimer =0.0f;
     float m_deathDir =1.0f;
+
+    // hit VFX state
+    float    m_hitStop =0.0f;              // seconds of freeze left (sim paused, shake + sparks keep running)
+    int      m_combo =0;
+    uint32_t m_lastComboHit =0;
+    float    m_comboPop =0.0f;             // 1 -> 0 after each hit, drives the counter's scale pop
+    int      m_wallHitId =-1;              // last swing that already clinked on a wall
+    int      m_enemyHitId =-1;             // last swing that already hit an enemy
+    float    m_beamFxTimer =0.0f;
+    uint32_t m_recoilEndTime =0;           // while < now: held move input is ignored so the push-back actually plays
+    bool     m_wallBump =false;
+    SDL_Texture* m_comboTexture =nullptr;
+    int      m_comboTexValue =0;
+    float    m_comboTexW =0.0f, m_comboTexH =0.0f;
 
     bool m_isAttacking =false;
     int  m_attackId =0;   // bumped at the start of every melee swing (see applyPlayerDamage)

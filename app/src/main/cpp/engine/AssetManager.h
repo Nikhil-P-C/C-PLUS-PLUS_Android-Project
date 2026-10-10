@@ -102,6 +102,13 @@ enum class TextureType{
 
     ATTACK_PLAYER_SLASH,
     ATTACK_PLAYER_BEAM,
+    // hit effects: VERTICAL strips, every frame is (texture width) x 32 px, art points RIGHT (mirrored in code)
+    FX_SPARK_ENEMY,      // burst on an enemy hit
+    FX_SPARK_FINISHER,   // ring burst on every 5th combo hit
+    FX_SPARK_WALL,       // wall / ground / platform
+    FX_SPARK_OBJECT,     // block / trap
+    FX_THRUST_1,         // long scratch through the enemy
+    FX_THRUST_2,         // shorter crossing scratch
     PLAYER_DOUBLE_JUMP,
 
     ENEMY_SPIDER_CHILD_PATROL,
@@ -195,7 +202,8 @@ enum class TextureType{
 enum class SoundType{
     SFX_FOOTSTEPS=0,
     SFX_ITEM_COLLECTED,
-    SFX_ATTACK_SLASH,
+    SFX_ATTACK_SLASH_HIT,
+    SFX_ATTACK_SLASH_COLLISION,
     SFX_ATTACK_BEAM,
     SFX_JUMP,
     SFX_LAND,

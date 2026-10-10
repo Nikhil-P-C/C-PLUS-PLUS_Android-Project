@@ -6,6 +6,7 @@
 #include "States/HUDOverlayState/HUDOverlayState.h"
 #include "utils/utils.h"
 #include <cmath>
+#include <algorithm>
 
 
 //
@@ -30,6 +31,7 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);
     Camera::getInstance().setSize((float)m_windowW,(float)m_windowH);
+    Camera::getInstance().resetShake();      // Camera is a singleton - don't carry shake into a new level
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
@@ -321,6 +323,8 @@ void GameState::render(SDL_Renderer* renderer)  {
     }
 
 
+    m_fxParticles.render(m_renderer);   // hit sparks / flashes (additive, glow via this bloom group)
+
     m_foregroundBuilder.render(m_renderer);
     m_ambientParticles.renderFront(m_renderer);
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
@@ -352,6 +356,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                                                           100.0f, 250.0f, 0.20f);
     }
 
+    renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
 }
 
 void GameState::update(float dt){
@@ -363,6 +368,21 @@ void GameState::update(float dt){
         updateDeath(dt);
         return;     // no input, collisions, hits or camera follow while the death animation plays
     }
+    // hit-stop: freeze the simulation for a few ms on impact. Shake + sparks keep running on real dt,
+    // and the wall-clock (SDL_GetTicks) timers are pushed forward so the freeze doesn't eat them.
+    if(m_hitStop > 0.0f){
+        m_hitStop -= dt;
+        const unsigned int frozenMs = (unsigned int)(dt * 1000.0f + 0.5f);
+        m_aniLastTime = SDL_GetTicks();                 // pauses the player/slash frame animation
+        m_enemyBuilder.shiftTimers(frozenMs);
+        if(m_hurtAnimEndTime)  m_hurtAnimEndTime  += frozenMs;
+        if(m_knockbackEndTime) m_knockbackEndTime += frozenMs;
+        Camera::getInstance().updateShake(dt);
+        m_fxParticles.update(dt);
+        m_comboPop = std::max(0.0f, m_comboPop - dt * 6.0f);
+        return;
+    }
+
     if(!m_isBeaming){
         PlayerDetail::getInstance().addMagic(MAGIC_REGEN_PER_SEC * dt);   // no regen while channeling the beam
     }
@@ -385,7 +405,24 @@ void GameState::update(float dt){
 
     m_isGrounded=false;
 
+    const float xBeforeCollision = m_player.x;
+    const float speedBeforeCollision = std::fabs(m_velocityX);
     handleCollision();
+    {
+        // slammed into a wall/block at speed: dust puff + small shake, once per impact
+        const float push = xBeforeCollision - m_player.x;      // >0 = shoved left (wall on the right)
+        if(std::fabs(push) > 1.0f){
+            if(!m_wallBump && speedBeforeCollision >= 350.0f){
+                m_wallBump = true;
+                const float contactX = push > 0.0f ? m_player.x + m_player.w : m_player.x;
+                m_particleSystem.emitBurst(contactX, m_player.y + m_player.h * 0.7f, 5, 80.0f, 220.0f,
+                                           0.25f, 0.40f, 40.0f, 220, 220, 220);
+                Camera::getInstance().addTrauma(0.08f);
+            }
+        } else {
+            m_wallBump = false;
+        }
+    }
 
     for(int i =0;i<m_traps.size();i++)
     {
@@ -440,10 +477,51 @@ void GameState::update(float dt){
 
     // player's weapons vs enemies: m_playerHitBox (melee) was just computed above,
     // m_beamHitBox (beam) was computed earlier this frame inside handlePhysicAndInput->tryBeam
+    // the hit that would land now is combo hit #n; every COMBO_FINISHER_EVERY-th one shoves harder
+    const uint32_t comboNow = SDL_GetTicks();
+    const int comboIfHit = (comboNow - m_lastComboHit > COMBO_WINDOW_MS) ? 1 : m_combo + 1;
+    const float knockMul = (comboIfHit % COMBO_FINISHER_EVERY == 0) ? 2.0f : 1.0f;
+
     int enemiesKilled = m_enemyBuilder.applyPlayerDamage(m_playerHitBox, m_isAttacking,
-                                                         m_beamHitBox, m_isBeaming, dt, m_attackId);
+                                                         m_beamHitBox, m_isBeaming, dt, m_attackId, knockMul);
     if(enemiesKilled > 0){
         PlayerDetail::getInstance().addScore(enemiesKilled * ENEMY_KILL_SCORE);
+    }
+    flushEnemyHitEffects();
+
+    // Sword hits something solid (not an enemy): a hit spark whose look depends on WHAT it hit -
+    // wall/ground/platform = warm sparks flung back, object (block/trap) = cold metallic sparks.
+    // Once per swing, skipped if the swing already hit an enemy.
+    if(m_isAttacking && m_tempInc >= 2 && m_wallHitId != m_attackId && m_enemyHitId != m_attackId){
+        const float originX = m_isPlayerfacingRight ? (m_player.x + m_player.w) : m_player.x;
+        int kind = 0;
+        const float dist = probeSolidAhead(originX, m_playerHitBox.y, m_playerHitBox.h, m_isPlayerfacingRight, kind);
+        if(dist <= m_playerHitBox.w){
+            m_wallHitId = m_attackId;
+            const float contactX = m_isPlayerfacingRight ? originX + dist : originX - dist;
+            const float contactY = m_playerHitBox.y + m_playerHitBox.h * 0.5f;
+            const float backDir = m_isPlayerfacingRight ? -1.0f : 1.0f;     // sparks bounce back at the player
+            if(kind == 1) m_fxParticles.emitObjectSpark(contactX, contactY, backDir);
+            else          m_fxParticles.emitWallSpark(contactX, contactY, backDir);
+            Camera::getInstance().addTrauma(0.08f);
+            requestHitStop(0.03f);
+            applyRecoil(backDir, 300.0f);
+        }
+    }
+
+    // beam: constant light rumble + sparks where it ends against a solid
+    if(m_isBeaming && m_beamHitBox.w > 0.0f){
+        Camera::getInstance().rumble(0.08f);
+        m_beamFxTimer -= dt;
+        if(m_beamFxTimer <= 0.0f){
+            m_beamFxTimer = 0.06f;
+            const float endX = m_isPlayerfacingRight ? (m_beamHitBox.x + m_beamHitBox.w) : m_beamHitBox.x;
+            m_fxParticles.emitSparkBurst(endX, m_beamHitBox.y + m_beamHitBox.h * 0.5f,
+                                         m_isPlayerfacingRight ? -1.0f : 1.0f, 4, 0.9f,
+                                         250.0f, 650.0f, 40.0f, 80.0f, 140, 220, 255, 70.0f);
+        }
+    } else {
+        m_beamFxTimer = 0.0f;
     }
 
     TrapType type;
@@ -487,6 +565,10 @@ void GameState::update(float dt){
 
     SDL_FRect cameraBounds{m_wallCollisionRect.x,m_wallCollisionRect.y,m_wallCollisionRect.w,m_wallCollisionRect.h+TILE_SIZE*SCALE};
     Camera::getInstance().cameraClamp(cameraBounds);
+    Camera::getInstance().updateShake(dt);
+    m_fxParticles.update(dt);
+    m_comboPop = std::max(0.0f, m_comboPop - dt * 6.0f);
+    if(m_combo > 0 && SDL_GetTicks() - m_lastComboHit > COMBO_WINDOW_MS) m_combo = 0;
 
     float Force = m_trapBuilder.checkFanForce(m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
     if(Force <0)
@@ -667,7 +749,98 @@ void GameState::flushEnemyDeathEffects() {
     }
 }
 
+void GameState::applyRecoil(float dirX, float speed) {
+    const uint32_t now = SDL_GetTicks();
+    if(now < m_knockbackEndTime && now >= m_recoilEndTime) return;   // real hurt-knockback in progress: don't override
+    m_velocityX = dirX * speed;
+    m_recoilEndTime = now + 120;
+    m_knockbackEndTime = now + 120;      // also stops the "no input -> velocityX = 0" idle reset
+}
+
+void GameState::requestHitStop(float seconds) {
+    if(seconds > m_hitStop) m_hitStop = seconds;
+}
+
+void GameState::flushEnemyHitEffects() {
+    for(const EnemyHitEvent& e : m_enemyBuilder.consumeHitEvents()){
+        onEnemyHit(e);
+    }
+}
+
+// One landed player hit. Melee hits build the combo and escalate sparks / shake / hit-stop with it;
+// beam ticks only spark + rumble (they fire ~11x/s and must not count as combo hits).
+void GameState::onEnemyHit(const EnemyHitEvent& e) {
+    Camera& cam = Camera::getInstance();
+
+    if(e.isBeam){
+        m_fxParticles.emitSparkBurst(e.x, e.y, e.dirX, 5, 0.9f, 300.0f, 800.0f, 50.0f, 90.0f,
+                                     120, 230, 255, 90.0f);
+        cam.rumble(0.10f);
+        return;
+    }
+
+    const uint32_t now = SDL_GetTicks();
+    if(now - m_lastComboHit > COMBO_WINDOW_MS) m_combo = 0;
+    applyRecoil(m_isPlayerfacingRight ? -1.0f : 1.0f, (m_combo + 1) % COMBO_FINISHER_EVERY == 0 ? 450.0f : 300.0f);
+    m_combo++;
+    m_lastComboHit = now;
+    m_comboPop = 1.0f;
+    m_enemyHitId = m_attackId;
+
+    const float k = std::min(m_combo, 10) / 10.0f;          // 0.1 .. 1.0
+
+    m_fxParticles.emitHitSpark(e.x, e.y, e.dirX, m_combo);
+    cam.kick(e.dirX * (6.0f + 8.0f * k));                   // view lurches the way the enemy is shoved
+    cam.addTrauma(0.15f + 0.25f * k);
+    float stop = e.killed ? 0.10f : 0.045f + 0.02f * k;
+
+    if(m_combo % COMBO_FINISHER_EVERY == 0){                // finisher beat
+        cam.addTrauma(0.35f);
+        stop = std::max(stop, 0.09f);
+        // (the finisher ring burst art is played from ParticleSystem::emitHitSpark on every 5th hit)
+    }
+    requestHitStop(stop);
+}
+
+// "x7" counter, top-right, pops on every hit and fades out when the combo window is about to close
+void GameState::renderComboCounter(SDL_Renderer* renderer) {
+    if(m_combo < 2 || m_isDead || !m_font) return;
+    const uint32_t age = SDL_GetTicks() - m_lastComboHit;
+    if(age > COMBO_WINDOW_MS) return;
+
+    if(!m_comboTexture || m_comboTexValue != m_combo){
+        if(m_comboTexture){ SDL_DestroyTexture(m_comboTexture); m_comboTexture = nullptr; }
+        char buf[16];
+        SDL_snprintf(buf, sizeof(buf), "x%d", m_combo);
+        SDL_Surface* s = TTF_RenderText_Solid(m_font, buf, SDL_strlen(buf), {255,255,255,255});
+        if(!s) return;
+        m_comboTexture = SDL_CreateTextureFromSurface(renderer, s);
+        m_comboTexW = (float)s->w;
+        m_comboTexH = (float)s->h;
+        SDL_DestroySurface(s);
+        m_comboTexValue = m_combo;
+        if(m_comboTexture) SDL_SetTextureScaleMode(m_comboTexture, SDL_SCALEMODE_NEAREST);
+    }
+    if(!m_comboTexture) return;
+
+    const int c = std::min(m_combo, 10);
+    SDL_SetTextureColorMod(m_comboTexture, 255, (Uint8)std::max(120, 255 - c * 14), (Uint8)std::max(40, 220 - c * 18));
+    const unsigned int fadeMs = 300;
+    float alpha = 1.0f;
+    if(age > COMBO_WINDOW_MS - fadeMs) alpha = (float)(COMBO_WINDOW_MS - age) / (float)fadeMs;
+    SDL_SetTextureAlphaMod(m_comboTexture, (Uint8)(alpha * 255.0f));
+
+    const float scale = 1.8f + 0.7f * m_comboPop;
+    const float w = m_comboTexW * scale, h = m_comboTexH * scale;
+    const float screenW = Camera::getInstance().getCamera().w;
+    SDL_FRect dst{screenW - 60.0f - w, 100.0f, w, h};
+    SDL_RenderTexture(renderer, m_comboTexture, nullptr, &dst);
+}
+
 void GameState::startPlayerDeath() {
+    Camera::getInstance().addTrauma(0.7f);
+    m_hitStop = 0.0f;
+    m_combo = 0;
     m_isDead = true;
     m_deathPopped = false;
     m_deathTimer = 0.0f;
@@ -688,6 +861,8 @@ void GameState::startPlayerDeath() {
 
 void GameState::updateDeath(float dt) {
     m_deathTimer += dt;
+    Camera::getInstance().updateShake(dt);
+    m_fxParticles.update(dt);
 
     // swallow buffered presses so they don't fire the instant the player respawns
     InputDispatcher::getInstance().consumeJumpPressed();
@@ -729,6 +904,7 @@ void GameState::updateDeath(float dt) {
 }
 
 void GameState::respawnPlayer() {
+    m_combo = 0;
     m_isDead = false;
     m_deathTimer = 0.0f;
     m_deathPopped = false;
@@ -765,7 +941,12 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
     }
     m_isGrounded = false;
 
-
+    // feedback: shake (+ a kick the way the player is shoved), brief freeze, combo is broken
+    Camera::getInstance().addTrauma(0.5f);
+    Camera::getInstance().kick(side == gameMath::collisionSide::LEFT ? -12.0f :
+                               side == gameMath::collisionSide::RIGHT ? 12.0f : 0.0f);
+    requestHitStop(0.07f);
+    m_combo = 0;
 }
 
 void GameState::triggerCheckpoint(){
@@ -826,6 +1007,41 @@ float GameState::computeBeamLength(float originX, float beamY, float beamH, bool
     }
 
     return maxLength;
+}
+
+float GameState::probeSolidAhead(float originX, float y, float h, bool facingRight, int& kind) {
+    const float leftWall  = m_wallCollisionRect.x + TILE_SIZE * SCALE;
+    const float rightWall = m_wallCollisionRect.x + m_wallCollisionRect.w - TILE_SIZE * SCALE;
+    float best = facingRight ? (rightWall - originX) : (originX - leftWall);
+    if(best < 0.0f) best = 0.0f;
+    kind = 0;
+
+    auto clip = [&](float sx, float sw, float sy, float sh, int k){
+        if(!verticalOverlap(y, h, sy, sh)) return;
+        float dist;
+        if(facingRight){ if(sx < originX) return; dist = sx - originX; }
+        else { const float sr = sx + sw; if(sr > originX) return; dist = originX - sr; }
+        if(dist < best){ best = dist; kind = k; }
+    };
+    for(const auto& ground : m_grounds)  clip(ground.x, ground.w * SCALE, ground.y, ground.h * SCALE, 0);
+    for(const auto& platform : m_platforms){
+        // solid AND one-way platforms: the sword hits them either way (one-way is only passable for the player)
+        if(platform.colliderType != ColliderType::SOLID && platform.colliderType != ColliderType::ONE_WAY) continue;
+        clip(platform.x, platform.w * SCALE, platform.y, platform.h * SCALE, 0);
+    }
+    for(const auto& block : m_blocks)    clip(block.rect.x, block.rect.w, block.rect.y, block.rect.h, 1);
+    // use the TrapBuilder's own traps: they hold the live (moving) positions, GameState::m_traps is a stale copy
+    const std::vector<Trap>& liveTraps = m_trapBuilder.getTraps();
+    for(int i = 0; i < (int)liveTraps.size(); i++){
+        // any trap that is solid by type (moving/falling platform, rock head, fire) OR set to a SOLID / ONE_WAY collider
+        const Trap& t = liveTraps[i];
+        const bool hittable = m_trapBuilder.isSolid(i) || t.colliderType == ColliderType::SOLID ||
+                              t.colliderType == ColliderType::ONE_WAY;
+        if(!hittable) continue;
+        SDL_FRect box = m_trapBuilder.getTrapCollisionBox(t);
+        clip(box.x, box.w, box.y, box.h, 1);
+    }
+    return best;
 }
 
 void GameState::tryBeam(float dt) {
@@ -957,6 +1173,8 @@ void GameState::handlePhysicAndInput(float dt) {
         m_wasGrounded =false;
     }
     bool inKnockback = SDL_GetTicks() < m_knockbackEndTime;
+    const bool inRecoil = SDL_GetTicks() < m_recoilEndTime;
+    if(inRecoil) m_velocityX *= std::exp(-8.0f * dt);   // push-back eases out
 
     if(!inKnockback)
     {
@@ -967,7 +1185,7 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
-    if(InputDispatcher::getInstance().movingLeft){
+    if(InputDispatcher::getInstance().movingLeft && !inRecoil){
         m_isPlayerfacingRight =false;
         m_playerAction=PlayerAction::MOVINGLEFT;
         m_velocityX = -400.00f;
@@ -985,7 +1203,7 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
-    if(InputDispatcher::getInstance().movingRight){
+    if(InputDispatcher::getInstance().movingRight && !inRecoil){
         m_isPlayerfacingRight =true;
         m_playerAction=PlayerAction::MOVINGRIGHT;
         m_velocityX=400.00f;
@@ -1013,6 +1231,11 @@ void GameState::handlePhysicAndInput(float dt) {
     }
 
     bool jumpPressed = InputDispatcher::getInstance().consumeJumpPressed();
+
+    if(jumpPressed && m_jumpsUsed<m_maxJumps){
+        Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
+    }
+
     if(jumpPressed && m_isGrounded){
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;

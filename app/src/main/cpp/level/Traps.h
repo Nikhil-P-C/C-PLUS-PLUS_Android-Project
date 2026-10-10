@@ -119,6 +119,9 @@ public:
 
     bool isSolid(int trapIndex);
 
+    // the LIVE traps (positions updated by update()/updatePath()) - GameState::m_traps is only the load-time copy
+    const std::vector<Trap>& getTraps() const { return m_traps; }
+
     bool checkFireCollision(int trapIndex, float playerX, float playerY, float playerW, float playerH);
 
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,

@@ -15,6 +15,7 @@ const int   ENEMY_MELEE_DAMAGE          = 25;     // dealt once per player slash
 const float ENEMY_BEAM_DAMAGE_PER_SEC   = 40.0f;  // dealt continuously while standing in the beam
 const unsigned int ENEMY_HIT_IFRAME_MS  = 1000;    // enemy can't be hit again this soon after being hit
 const unsigned int ENEMY_HURT_FLASH_MS  = 150;     // visual flash duration on hit
+const unsigned int ENEMY_WHITE_FLASH_MS  = 90;     // additive white flash at the very start of a melee hit
 
 // stuck / return-to-post tuning
 const float ENEMY_STUCK_MOVE_EPS        = 6.0f;    // must move at least this far to not be considered "stuck"
@@ -126,6 +127,15 @@ struct EnemyAIConfig {
 const EnemyAIConfig* getEnemyAIConfig(EnemyType type);
 const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type,EnemyAction Action,AttackType attackType);
 
+// One landed player hit (melee swing, or a rate-limited tick of the beam). World space.
+// GameState turns these into sparks / shake / hit-stop / combo (see GameState::onEnemyHit).
+struct EnemyHitEvent{
+    float x, y;       // centre of the weapon/enemy overlap
+    float dirX;       // +1 / -1: direction the hit pushes the enemy (sparks fly this way)
+    bool  killed;     // this hit took the enemy to 0 hp
+    bool  isBeam;     // beam tick - sparks/rumble only, no combo or hit-stop
+};
+
 struct Enemy{
     Enemy(float x,float y,EnemyType type,EnemyAction action,AttackType attackType,
           float startPath,float endPath,float speed,PathAxis axis,PathShape shape,float radius =0,
@@ -180,6 +190,8 @@ struct Enemy{
     bool isDead =false;
     bool isHurt =false;
     unsigned int hurtFlashEndTime =0;
+    unsigned int whiteFlashEndTime =0;   // short additive white flash on a melee hit (hurtFlash stays the red tint)
+    unsigned int nextBeamFxTime =0;      // rate limit for beam spark events
     int lastMeleeAttackId =-1;           // id of the last player swing that damaged this enemy (one hit per swing)
     float beamDamageAccum =0.0f;         // fractional beam damage carried between frames (hp is an int)
 
@@ -214,8 +226,22 @@ public:
     // Returns how many enemies died this call (e.g. to award score).
     // attackId must change once per player swing (see GameState::m_attackId) - that is
     // what limits a swing to a single hit per enemy.
+    // knockbackMul scales the melee knockback speed (combo finisher = harder shove).
     int applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActive,
-                          const SDL_FRect& beamHitBox, bool beamActive, float dt, int attackId);
+                          const SDL_FRect& beamHitBox, bool beamActive, float dt, int attackId,
+                          float knockbackMul = 1.0f);
+
+    // Hits that landed since the last call (cleared on read) - drives the hit VFX.
+    std::vector<EnemyHitEvent> consumeHitEvents(){
+        std::vector<EnemyHitEvent> out;
+        out.swap(m_hitEvents);
+        return out;
+    }
+
+    // The game freezes for a few ms on impact (hit-stop) but these deadlines are wall-clock
+    // (SDL_GetTicks): push them forward by the frozen time so flashes/knockback/cooldowns
+    // don't get eaten by the freeze.
+    void shiftTimers(unsigned int ms);
 
     // Call once per frame (while the player isn't already invincible) to see if
     // an attacking enemy's hitbox is touching the player. Returns true and fills
@@ -290,5 +316,6 @@ private:
 private:
     std::vector<Enemy> m_enemies;
     std::vector<SDL_FPoint> m_deathEvents;
+    std::vector<EnemyHitEvent> m_hitEvents;
 
 };
