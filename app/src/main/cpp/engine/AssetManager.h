@@ -209,6 +209,13 @@ enum class SoundType{
     SFX_ATTACK_BEAM,
     SFX_JUMP,
     SFX_LAND,
+    SFX_UI_MOVE,      // menu selection moved
+    SFX_UI_CONFIRM,   // generic confirm (spare)
+    SFX_UI_ENTER,     // title screen -> menu
+    SFX_UI_PLAY,      // Play pressed
+    SFX_UI_OPEN,      // Options / Edit opened
+    SFX_UI_QUIT,      // Quit pressed
+    SFX_UI_INTRO,     // menu appears
     MUSIC_BACKGROUND,
     COUNT
 };

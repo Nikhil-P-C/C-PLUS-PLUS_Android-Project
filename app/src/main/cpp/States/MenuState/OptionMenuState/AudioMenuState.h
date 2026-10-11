@@ -1,53 +1,45 @@
 //
 // Created by LENOVO on 04-07-2026.
 //
+// Audio page of the option screen: MASTER / MUSIC / SFX sliders.
+//   keyboard / gamepad: up-down = pick a slider, left-right = change it
+//   mouse / touch:      press and drag on a slider
+//
 #pragma once
 #include "State/State.h"
 #include "SDL3/SDL.h"
 #include "utils/utils.h"
-#include "SDL3_ttf/SDL_ttf.h"
-enum ScaleType{
-    MASTER =0,
-    MUSIC =1,
-    SFX =2,
-};
+#include "States/MenuState/MenuKit.h"
+
 class AudioMenuState:public State{
 public:
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
     bool handleEvents(SDL_Event& event)override;
-    AudioMenuState(SDL_Renderer* renderer);
+    explicit AudioMenuState(SDL_Renderer* renderer);
     ~AudioMenuState()override;
 private:
-    ScaleType m_scaleType =MASTER;
-    float m_minimumSliderX =930.00f,m_maximumSliderX =1357.50f;
-    Button m_masterSlider{m_minimumSliderX + GameData::getInstance().getAudioScale() *(m_maximumSliderX-m_minimumSliderX),
-                    175.00f,25.00f,40.00f};
-    Button m_masterSlidebar{930.00f,182.50f,450.00f,25.00f};
+    enum Slider { MASTER_ROW = 0, MUSIC_ROW = 1, SFX_ROW = 2, ROW_COUNT = 3 };
 
-    Button m_musicSlider{m_minimumSliderX + GameData::getInstance().getMusicAudioScale() *(m_maximumSliderX-m_minimumSliderX),
-                        175.00f+150.00f+20.00f,25.00f,40.00f};
-    Button m_musicSlidebar{930.00f, m_masterSlidebar.y+150.00f+20.00f, 450.00f, 25.00f};
-
-    Button m_sfxSlider{m_minimumSliderX + GameData::getInstance().getSFXAudioScale() *(m_maximumSliderX-m_minimumSliderX),
-                       175.00f+(150.00f+20.00f)*2,25.00f,40.00f};
-    Button m_sfxSlidebar{930.00f, m_masterSlidebar.y+(150.00f+20.00f)*2, 450.00f, 25.00f};
-
-    SDL_FingerID m_sliderFingerID =0;
-    bool m_isMouseDrag =false;
-    bool m_dragActive =false;
-
-    SDL_IOStream* m_fontfile       = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
-
-    TTF_Font* m_font               = nullptr;
-
-    SDL_Texture* m_masterFontTexture  = nullptr;
-    SDL_Texture* m_musicFontTexture   = nullptr;
-    SDL_Texture* m_sfxFontTexture     = nullptr;
-    SDL_Texture* m_menuTexture        = nullptr;
-    SDL_Texture* m_optionBlockTexture = nullptr;
-    SDL_Texture* m_slidebarTexture    = nullptr;
-    SDL_Texture* m_sliderTexture      = nullptr;
+    float value(int row) const;
+    void  setValue(int row,float v);
+    void  refreshValueLabel(int row);
+    void  dragTo(float pointerX);
+    void  step(int row,float delta);
+    void  perform(InputUtils::MenuAction action);
 
     SDL_Renderer* m_renderer = nullptr;
+    MenuPainter   m_painter;
+    MenuFont      m_font;
+    MenuLabel     m_names[ROW_COUNT];
+    MenuLabel     m_values[ROW_COUNT];
+    int           m_shownPercent[ROW_COUNT] = {-1,-1,-1};
+    MenuRows      m_rows;
+    InputUtils::MenuNavRepeater m_nav;
+
+    // pointer drag
+    bool        m_dragging = false;
+    int         m_dragRow  = -1;
+    bool        m_dragIsTouch = false;
+    SDL_FingerID m_dragFinger = 0;
 };

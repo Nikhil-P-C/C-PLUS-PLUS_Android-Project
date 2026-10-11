@@ -93,4 +93,143 @@ namespace InputUtils {
             outY = winY;
         }
     }
+
+    /*
+        Point-in-rect for the pointer helpers above (x/y from GetPointerPosition).
+    */
+    inline bool PointInRect(float px, float py, float x, float y, float w, float h) {
+        return px >= x && px <= x + w && py >= y && py <= y + h;
+    }
+
+    /*
+        "Press any key / tap / gamepad button" (title screen style).
+    */
+    inline bool IsAnyPress(const SDL_Event &event) {
+        if (IsPointerDown(event)) return true;
+        if (event.type == SDL_EVENT_KEY_DOWN) return !event.key.repeat;
+        return event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+    }
+
+    inline bool IsGamepadStart(const SDL_Event &event) {
+        return event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN && event.gbutton.button == SDL_GAMEPAD_BUTTON_START;
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Menu navigation: one keyboard / gamepad mapping shared by every menu screen.
+    //
+    //   UP/DOWN/LEFT/RIGHT  arrows (W A S D too)           - keyboard auto-repeat gives hold-to-scroll
+    //   CONFIRM             Enter / Space / Z / pad A (south)
+    //   BACK                Esc / Android back / pad B (east) / pad Start
+    //   TAB_PREV/TAB_NEXT   Q E / PageUp PageDown / pad shoulder buttons
+    //
+    // Gamepad dpad + left stick are NOT returned here: they go through MenuNavRepeater so a
+    // held direction repeats at the same rate as a held key.
+    // ------------------------------------------------------------------------------------
+    enum class MenuAction { NONE, UP, DOWN, LEFT, RIGHT, CONFIRM, BACK, TAB_PREV, TAB_NEXT };
+
+    // allowLetterKeys=false keeps only arrows / Enter / Esc so a text field can use the other keys for typing.
+    inline MenuAction GetMenuAction(const SDL_Event &event, bool allowLetterKeys = true) {
+        if (event.type == SDL_EVENT_KEY_DOWN) {
+            const bool repeat = event.key.repeat;
+            switch (event.key.key) {
+                case SDLK_UP:     return MenuAction::UP;
+                case SDLK_DOWN:   return MenuAction::DOWN;
+                case SDLK_LEFT:   return MenuAction::LEFT;
+                case SDLK_RIGHT:  return MenuAction::RIGHT;
+                case SDLK_RETURN:
+                case SDLK_RETURN2:
+                case SDLK_KP_ENTER:  return repeat ? MenuAction::NONE : MenuAction::CONFIRM;
+                case SDLK_ESCAPE:
+                case SDLK_AC_BACK:   return repeat ? MenuAction::NONE : MenuAction::BACK;
+                default: break;
+            }
+            if (!allowLetterKeys) return MenuAction::NONE;
+            switch (event.key.key) {
+                case SDLK_W:      return MenuAction::UP;
+                case SDLK_S:      return MenuAction::DOWN;
+                case SDLK_A:      return MenuAction::LEFT;
+                case SDLK_D:      return MenuAction::RIGHT;
+                case SDLK_SPACE:
+                case SDLK_Z:      return repeat ? MenuAction::NONE : MenuAction::CONFIRM;
+                case SDLK_Q:
+                case SDLK_PAGEUP:   return repeat ? MenuAction::NONE : MenuAction::TAB_PREV;
+                case SDLK_E:
+                case SDLK_PAGEDOWN: return repeat ? MenuAction::NONE : MenuAction::TAB_NEXT;
+                default: return MenuAction::NONE;
+            }
+        }
+        if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN) {
+            switch (event.gbutton.button) {
+                case SDL_GAMEPAD_BUTTON_SOUTH:          return MenuAction::CONFIRM;
+                case SDL_GAMEPAD_BUTTON_EAST:
+                case SDL_GAMEPAD_BUTTON_START:          return MenuAction::BACK;
+                case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:  return MenuAction::TAB_PREV;
+                case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: return MenuAction::TAB_NEXT;
+                default: return MenuAction::NONE;
+            }
+        }
+        return MenuAction::NONE;
+    }
+
+    /*
+        Held gamepad direction (dpad or left stick) -> repeated UP/DOWN/LEFT/RIGHT.
+        Usage: call handleEvent() for every event (returns true if it was a dpad/stick event),
+        and update(dt) once per frame; update() returns the action to perform this frame
+        (fires immediately on press, then after firstDelay, then every repeatDelay).
+    */
+    class MenuNavRepeater {
+    public:
+        bool handleEvent(const SDL_Event &event) {
+            if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN || event.type == SDL_EVENT_GAMEPAD_BUTTON_UP) {
+                const bool down = event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+                switch (event.gbutton.button) {
+                    case SDL_GAMEPAD_BUTTON_DPAD_UP:    m_up = down;    return true;
+                    case SDL_GAMEPAD_BUTTON_DPAD_DOWN:  m_down = down;  return true;
+                    case SDL_GAMEPAD_BUTTON_DPAD_LEFT:  m_left = down;  return true;
+                    case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: m_right = down; return true;
+                    default: return false;
+                }
+            }
+            if (event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION) {
+                if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) { m_stickY = (float) event.gaxis.value / 32767.0f; return true; }
+                if (event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) { m_stickX = (float) event.gaxis.value / 32767.0f; return true; }
+            }
+            return false;
+        }
+
+        MenuAction update(float dt) {
+            const MenuAction dir = heldDirection();
+            if (dir != m_held) {
+                m_held = dir;
+                m_timer = m_firstDelay;
+                return dir;                       // NONE when released
+            }
+            if (dir == MenuAction::NONE) return MenuAction::NONE;
+            m_timer -= dt;
+            if (m_timer > 0.0f) return MenuAction::NONE;
+            m_timer = m_repeatDelay;
+            return dir;
+        }
+
+        void reset() { m_up = m_down = m_left = m_right = false; m_stickX = m_stickY = 0.0f; m_held = MenuAction::NONE; m_timer = 0.0f; }
+
+    private:
+        MenuAction heldDirection() const {
+            if (m_up && !m_down) return MenuAction::UP;
+            if (m_down && !m_up) return MenuAction::DOWN;
+            if (m_stickY < -kStick) return MenuAction::UP;
+            if (m_stickY >  kStick) return MenuAction::DOWN;
+            if (m_left && !m_right) return MenuAction::LEFT;
+            if (m_right && !m_left) return MenuAction::RIGHT;
+            if (m_stickX < -kStick) return MenuAction::LEFT;
+            if (m_stickX >  kStick) return MenuAction::RIGHT;
+            return MenuAction::NONE;
+        }
+        static constexpr float kStick = 0.55f;
+        float m_firstDelay = 0.38f, m_repeatDelay = 0.14f;
+        bool m_up = false, m_down = false, m_left = false, m_right = false;
+        float m_stickX = 0.0f, m_stickY = 0.0f;
+        MenuAction m_held = MenuAction::NONE;
+        float m_timer = 0.0f;
+    };
 }

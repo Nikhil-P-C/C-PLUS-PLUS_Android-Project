@@ -1,40 +1,42 @@
 //
 // Created by LENOVO on 17-04-2026.
 //
-
+// Pause screen in the menu look (MenuKit): the game stays visible underneath, dimmed, with the
+// breathing light, motes, a PAUSED title and RESUME / EXIT entries.
+//   keyboard / gamepad: up-down + confirm, back = resume      mouse / touch: tap EXIT, tap anywhere else to resume
+//
 #pragma once
 #include "utils/utils.h"
 #include "SDL3/SDL.h"
 #include "State/State.h"
 #include "States/GameState/GameState.h"
+#include "States/MenuState/MenuKit.h"
 
 #define LOG_TAG "PauseState"
 
 class PauseState : public State{
 public:
     PauseState(SDL_Renderer* renderer, GameState* gameState);
-    void init(SDL_Renderer* renderer);
-    bool shouldClose(float x ,float y) const;
     void render(SDL_Renderer* renderer)override;
     void update(float dt)override;
     bool handleEvents(SDL_Event& event)override;
     ~PauseState() override;
 private:
-    SDL_FRect m_exit = {800-100, 600 - 50, 200, 100};
-    SDL_IOStream* m_fontfile       = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
-    SDL_IOStream* m_fontShadowfile = SDL_IOFromFile("Fonts/Pixel Game Extrude.otf","rb");
+    enum Entry { ENTRY_RESUME = 0, ENTRY_EXIT = 1, ENTRY_COUNT = 2 };
 
-    TTF_Font* m_font       = nullptr;
-    TTF_Font* m_fontShadow = nullptr;
-
-    SDL_Texture* m_pauseTexture       = nullptr;
-    SDL_Texture* m_pauseShadowTexture = nullptr;
-    SDL_Texture* m_exitTexture       = nullptr;
-    SDL_Texture* m_exitShadowTexture = nullptr;
-
+    void resume();
+    void exitToMenu();
+    void activate(int entry);
 
     SDL_Renderer* m_renderer = nullptr;
+    GameState* m_gameState = nullptr;
 
-    bool m_transitioning =false;
-    GameState* m_gameState;
+    MenuBackdrop m_backdrop;
+    MenuFont     m_font;
+    MenuLabel    m_title;
+    MenuLabel    m_entry[ENTRY_COUNT];
+    MenuRows     m_rows;
+    InputUtils::MenuNavRepeater m_nav;
+
+    bool m_transitioning = false;
 };

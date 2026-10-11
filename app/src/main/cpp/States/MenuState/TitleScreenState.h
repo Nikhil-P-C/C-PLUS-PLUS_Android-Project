@@ -1,20 +1,23 @@
 //
 // Created by LENOVO on 17-04-2026.
 //
-
+// Title screen in the menu look (MenuKit): black screen, breathing light, floating motes, the game name
+// and a pulsing prompt that matches the device:
+//   gamepad connected -> PRESS ANY BUTTON,  Android / iOS -> TOUCH ANYWHERE,  otherwise -> PRESS ANY KEY
+//
 #pragma once
 #include "utils/utils.h"
 #include <SDL3/SDL.h>
-#include <SDL3_image/SDL_image.h>
 #include "State/State.h"
 #include "engine/Engine.h"
+#include "States/MenuState/MenuKit.h"
 
 #define LOG_TAG "TitleScreenState"
 
 class TitleScreenState : public State{
 public:
 
-    TitleScreenState(SDL_Renderer* renderer);
+    explicit TitleScreenState(SDL_Renderer* renderer);
     ~TitleScreenState() override;
 
     void render(SDL_Renderer* renderer)override;
@@ -22,13 +25,19 @@ public:
     bool handleEvents(SDL_Event& event)override;
 
 private:
+    enum class PromptKind { KEY, BUTTON, TOUCH };
 
-    SDL_Texture* m_background = nullptr;
+    PromptKind detectPrompt() const;
+    void setPrompt(PromptKind kind);
 
-    int m_currentFrame =0;
-    unsigned int m_last=SDL_GetTicks();
-    unsigned int m_now = 0;
-    int m_aniDelay=50;//50ms
     SDL_Renderer* m_renderer = nullptr;
-};
+    MenuBackdrop  m_backdrop;
+    MenuFont      m_font;
+    MenuLabel     m_title;
+    MenuLabel     m_prompt;
+    PromptKind    m_kind = PromptKind::KEY;
 
+    float m_recheckTimer = 0.0f;   // the prompt follows a gamepad being plugged in / removed
+    bool  m_leaving = false;
+    float m_leaveTimer = 0.0f;
+};

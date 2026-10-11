@@ -80,12 +80,15 @@ set(MYAPP_SOURCES
         States/GameState/AmbientParticles.cpp
         States/MenuState/TitleScreenState.cpp
         States/MenuState/MenuState.cpp
+        States/MenuState/MenuState.cpp
         States/MenuState/OptionMenuState/OptionMenuState.cpp
         States/MenuState/OptionMenuState/ControlMenuState.cpp
         States/MenuState/OptionMenuState/AudioMenuState.cpp
         States/MenuState/OptionMenuState/AdvanceMenuState.cpp
         States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
+
+        States/MenuState/MenuKit.cpp
 
         engine/Engine.cpp
         engine/AssetManager.cpp

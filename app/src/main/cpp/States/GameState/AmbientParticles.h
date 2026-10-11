@@ -14,6 +14,7 @@ enum class AmbientTheme {
     STONE_CAVE,   // dull grey dust
     BRIGHT_CAVE,  // blue glow motes
     NONE,
+    MENU,         // menu screens: screen space (ignores the game camera), additive, recoloured with setTint()
 };
 
 class AmbientParticles {
@@ -30,6 +31,12 @@ public:
     // Call inside the bloom groups (see GameState::render).
     void renderBack(SDL_Renderer* renderer);
     void renderFront(SDL_Renderer* renderer);
+
+    // Menu helpers (work for any theme, the menus use AmbientTheme::MENU):
+    //  setTint:       blend every mote's own colour towards (r,g,b); amount 0 = own palette, 1 = fully tinted
+    //  setAlphaScale: global opacity multiplier (heartbeat pulse, fades)
+    void setTint(uint8_t r, uint8_t g, uint8_t b, float amount = 1.0f) { m_tintR = r; m_tintG = g; m_tintB = b; m_tintAmount = amount; }
+    void setAlphaScale(float scale) { m_alphaScale = scale; }
 
     // Derives the theme from the level's background layers:
     //   any CAVE_FAR_LIGHT*  -> BRIGHT_CAVE
@@ -52,6 +59,8 @@ private:
         uint8_t r = 255, g = 255, b = 255;
     };
 
+    // View size + camera offset the motes live in: the game camera, or a fixed 1600x720 screen for MENU.
+    void getView(float& viewW, float& viewH, float& camX, float& camY) const;
     void buildLayer(std::vector<Mote>& layer, int count, bool front);
     void renderLayer(SDL_Renderer* renderer, const std::vector<Mote>& layer, SDL_Texture* sprite, float margin);
     SDL_Texture* makeGlowSprite(SDL_Renderer* renderer, int size, float falloff, float core);
@@ -62,4 +71,7 @@ private:
     SDL_Texture* m_sharpSprite = nullptr; // small bright core, used by the back layer
     SDL_Texture* m_softSprite  = nullptr; // big soft bokeh, used by the front layer
     float m_time = 0.0f;
+    uint8_t m_tintR = 255, m_tintG = 255, m_tintB = 255;
+    float m_tintAmount = 0.0f;
+    float m_alphaScale = 1.0f;
 };

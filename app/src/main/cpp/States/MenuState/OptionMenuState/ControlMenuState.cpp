@@ -3,193 +3,136 @@
 //
 #include "ControlMenuState.h"
 #include "SDL3/SDL.h"
-#include "SDL3_image/SDL_image.h"
 #include "engine/Engine.h"
 
-void ControlMenuState::render(SDL_Renderer *renderer) {
+using namespace MenuKit;
 
-    SDL_FRect menuDst ={100.00f,25.00f,1400.00f,670.00f};
-    SDL_FRect menuSrc ={402.00f,0.00f,402.00f,198.00f};
-    SDL_RenderTexture(renderer,m_menuTexture,&menuSrc,&menuDst);
-    //these three block draws three different part of block to avoid texture being stretched
-    {
-        SDL_FRect optionBlockDst = {330.f, 50.00f, 1100.00f, 75.00f};
-        SDL_FRect optionBlockSrc = {0.00f, 0.00f, 185.00f, 11.00f};
-        SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
-    }
-    {
-        SDL_FRect optionBlockDst = {330.f, 125.00f, 1100.00f, 450.00f};
-        SDL_FRect optionBlockSrc = {0.00f, 11.00f, 185.00f, 11.00f};
-        SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
-    }
-    {
-        SDL_FRect optionBlockDst = {330.f, 575.00f, 1100.00f, 75.00f};
-        SDL_FRect optionBlockSrc = {0.00f, 22.00f, 185.00f, 11.00f};
-        SDL_RenderTexture(renderer, m_optionBlockTexture, &optionBlockSrc, &optionBlockDst);
-    }
+namespace {
+    constexpr float ROW_TOP = 230.0f, ROW_STEP = 85.0f;
+    constexpr int   LABEL_FONT = 36;
 
-    //text rendering
-    //joystick text
-
-    SDL_FRect joystickFontDst = {400.00f, m_joystickButton.y+(50.00f-15.00f), 160.00f, 30.00f};
-    SDL_RenderTexture(renderer, m_joystickFontTexture, nullptr, &joystickFontDst);
-
-    //button text
-
-
-    SDL_FRect buttonsFontDst = {400.00f, m_buttonButton.y+(50.00f-15.00f), 140.00f, 30.00f};
-    SDL_RenderTexture(renderer, m_buttonsFontTexture, nullptr, &buttonsFontDst);
-
-
-
-    SDL_FRect joystickWButtonsFontDst = {400.00f, m_joystickWButtons.y+(50.00f-15.00f), 340.00f,30.00f};
-    SDL_RenderTexture(renderer, m_joystickWButtonsFontTexture, nullptr, &joystickWButtonsFontDst);
-
-
-
-    SDL_FRect keyboardFontDst = {400.00f, m_keyboardButton.y+(50.00f-15.00f), 160.00f,30.00f};
-    SDL_RenderTexture(renderer, m_keyboardFontTexture, nullptr, &keyboardFontDst);
-
-
-
-    SDL_FRect gamepadFontDst = {400.00f, m_gamepadButton.y+(50.00f-15.00f), 140.00f,30.00f};
-    SDL_RenderTexture(renderer, m_gamepadFontTexture, nullptr, &gamepadFontDst);
-
-
-
-
-
-    //radio button rendering
-    //joystick radio button
-    {
-        SDL_FRect radioButtonDst = {m_joystickButton.x + 912.50f, m_joystickButton.y + 50.00f-(45.00f/2.00f),
-                                    9.00f * 5.00f, 9.00f * 5.00f};
-        SDL_FRect radioButtonSrc = {0.00f, 0.00f, 9.00f, 9.00f};
-        radioButtonSrc.x = m_controlType == ControlType::JOYSTICK ? 0.00f : 10.00f;
-        SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
-    }
-    //button radio button
-    {
-        SDL_FRect radioButtonDst = {m_buttonButton.x + 912.50f, m_buttonButton.y + 50.00f-(45.00f/2.00f),
-                                    9.00f * 5.00f, 9.00f * 5.00f};
-        SDL_FRect radioButtonSrc = {10.00f, 0.00f, 9.00f, 9.00f};
-        radioButtonSrc.x = m_controlType == ControlType::BUTTONS ? 0.00f : 10.00f;
-        SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
-    }
-    //joystick w button radio button
-    {
-        SDL_FRect radioButtonDst = {m_joystickWButtons.x + 912.50f, m_joystickWButtons.y + 50.00f-(45.00f/2.00f),
-                                    9.00f * 5.00f, 9.00f * 5.00f};
-        SDL_FRect radioButtonSrc = {10.00f, 0.00f, 9.00f, 9.00f};
-        radioButtonSrc.x = m_controlType == ControlType::SEP_JUMP_W_JOYSTICK ? 0.00f : 10.00f;
-        SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
-    }
-    //Keyboard radio button
-    {
-        SDL_FRect radioButtonDst = {m_keyboardButton.x + 912.50f, m_keyboardButton.y + 50.00f-(45.00f/2.00f),
-                                    9.00f * 5.00f, 9.00f * 5.00f};
-        SDL_FRect radioButtonSrc = {10.00f, 0.00f, 9.00f, 9.00f};
-        radioButtonSrc.x = m_controlType == ControlType::KEYBOARD ? 0.00f : 10.00f;
-        SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
-    }
-    //Gamepad radio button
-    {
-        SDL_FRect radioButtonDst = {m_gamepadButton.x + 912.50f,m_gamepadButton.y + 50.00f-(45.00f/2.00f),
-                                    9.00f * 5.00f, 9.00f * 5.00f};
-        SDL_FRect radioButtonSrc = {10.00f, 0.00f, 9.00f, 9.00f};
-        radioButtonSrc.x = m_controlType == ControlType::GAMEPAD ? 0.00f : 10.00f;
-        SDL_RenderTexture(renderer, m_radioButtonTexture, &radioButtonSrc, &radioButtonDst);
-    }
+    struct Option { const char* name; ControlType type; };
+    // same order as the old screen
+    const Option OPTIONS[5] = {
+            {"JOYSTICK",          ControlType::JOYSTICK},
+            {"BUTTONS",           ControlType::BUTTONS},
+            {"JOYSTICK + BUTTON", ControlType::SEP_JUMP_W_JOYSTICK},
+            {"KEYBOARD",          ControlType::KEYBOARD},
+            {"GAMEPAD",           ControlType::GAMEPAD},
+    };
 }
 
-void ControlMenuState::update(float dt) {
-    GameData::getInstance().setControlType(m_controlType);
-}
-
-bool ControlMenuState::handleEvents(SDL_Event &event) {
-    if(InputUtils::IsPointerDown(event)){
-        float touchX, touchY;
-        InputUtils::GetPointerPosition(event, m_renderer, touchX, touchY);
-        if(touchX >= m_joystickButton.x && touchX <= m_joystickButton.x + m_joystickButton.w &&
-           touchY >= m_joystickButton.y && touchY <= m_joystickButton.y + m_joystickButton.h){
-            m_controlType = ControlType::JOYSTICK;
-            return true;
-        }
-        if(touchX >= m_buttonButton.x && touchX <= m_buttonButton.x + m_buttonButton.w &&
-           touchY >= m_buttonButton.y && touchY <= m_buttonButton.y + m_buttonButton.h){
-            m_controlType = ControlType::BUTTONS;
-            return true;
-        }
-        if(touchX >= m_joystickWButtons.x && touchX <= m_joystickWButtons.x + m_joystickWButtons.w &&
-           touchY >= m_joystickWButtons.y && touchY <= m_joystickWButtons.y + m_joystickWButtons.h){
-            m_controlType = ControlType::SEP_JUMP_W_JOYSTICK;
-            return true;
-        }
-        if(touchX >= m_keyboardButton.x && touchX <= m_keyboardButton.x + m_keyboardButton.w &&
-           touchY >= m_keyboardButton.y && touchY <= m_keyboardButton.y + m_keyboardButton.h){
-            m_controlType = ControlType::KEYBOARD;
-            return true;
-        }
-        if(touchX >= m_gamepadButton.x && touchX <= m_gamepadButton.x + m_gamepadButton.w &&
-           touchY >= m_gamepadButton.y && touchY <= m_gamepadButton.y + m_gamepadButton.h){
-            m_controlType = ControlType::GAMEPAD;
-            return true;
-        }
-    }
-    return false;
-}
-
-ControlMenuState::ControlMenuState(SDL_Renderer *renderer) {
+ControlMenuState::ControlMenuState(SDL_Renderer *renderer)
+        : m_renderer(renderer), m_painter(renderer), m_font(LABEL_FONT) {
     this->Name = "ControlMenu";
 
-    m_renderer =renderer;
+    for(int i=0;i<OPTION_COUNT;i++)
+        m_labels[i].set(renderer,m_font,OPTIONS[i].name,LABEL_FONT);
 
-    m_menuTexture =Engine::Get().getAssetManager().getTexture(TextureType::OPTION_MENU_TILE);
-    m_optionBlockTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_OPTION_BLOCK_TILE);
-    m_radioButtonTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_RADIO_BUTTON);
-    m_font = TTF_OpenFontIO(m_fontfile,false,26);
-    LOGI("Loaded font %p", m_font);
-    if (!m_font)
-        LOGI("%s", SDL_GetError());
-    //text texture
-    SDL_Surface* jotstickFontSurface = TTF_RenderText_Solid(m_font, "Joystick",8,
-                                                    SDL_Color{0, 0, 0, 255});
-    m_joystickFontTexture = SDL_CreateTextureFromSurface(renderer, jotstickFontSurface);
-    SDL_DestroySurface(jotstickFontSurface);
-
-
-    SDL_Surface *buttonsFontSurface = TTF_RenderText_Solid(m_font, "Buttons",7,
-                                                    SDL_Color{0, 0, 0, 255});
-    m_buttonsFontTexture = SDL_CreateTextureFromSurface(renderer, buttonsFontSurface);
-    SDL_DestroySurface(buttonsFontSurface);
-
-
-    SDL_Surface* joystickWButtonsFontSurface = TTF_RenderText_Solid(m_font, "Joystick + Button",17,
-                                                    SDL_Color{0, 0, 0, 255});
-    m_joystickWButtonsFontTexture = SDL_CreateTextureFromSurface(renderer, joystickWButtonsFontSurface);
-    SDL_DestroySurface(joystickWButtonsFontSurface);
-
-
-    SDL_Surface* keyboardFontSurface = TTF_RenderText_Solid(m_font, "Keyboard",8,
-                                                                    SDL_Color{0, 0, 0, 255});
-    m_keyboardFontTexture = SDL_CreateTextureFromSurface(renderer, keyboardFontSurface);
-    SDL_DestroySurface(keyboardFontSurface);
-
-
-    SDL_Surface* gamepadFontSurface = TTF_RenderText_Solid(m_font, "Gamepad",7,
-                                                            SDL_Color{0, 0, 0, 255});
-    m_gamepadFontTexture = SDL_CreateTextureFromSurface(renderer, gamepadFontSurface);
-    SDL_DestroySurface(gamepadFontSurface);
+    const int current = currentIndex();
+    m_rows.setup(OPTION_COUNT,ROW_TOP,ROW_STEP,current);   // start on the active scheme
+    for(int i=0;i<OPTION_COUNT;i++) m_pick[i] = (i == current) ? 1.0f : 0.0f;
 }
 
 ControlMenuState::~ControlMenuState() {
-    SDL_DestroyTexture(m_joystickFontTexture);
-    SDL_DestroyTexture(m_buttonsFontTexture);
-    SDL_DestroyTexture(m_joystickWButtonsFontTexture);
-    SDL_DestroyTexture(m_keyboardFontTexture);
-    SDL_DestroyTexture(m_gamepadFontTexture);
-    TTF_CloseFont(m_font);
-    SDL_CloseIO(m_fontfile);
+    LOGI("Control menu state destructor:%p",this);
 }
 
+int ControlMenuState::currentIndex() const {
+    const ControlType type = GameData::getInstance().getControlType();
+    for(int i=0;i<OPTION_COUNT;i++)
+        if(OPTIONS[i].type == type) return i;
+    return 0;
+}
 
+void ControlMenuState::choose(int index) {
+    if(index < 0 || index >= OPTION_COUNT) return;
+    m_rows.setFocus(index);
+    if(OPTIONS[index].type == GameData::getInstance().getControlType()) return;
+    GameData::getInstance().setControlType(OPTIONS[index].type);
+    m_pop[index] = 1.0f;
+    Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_CONFIRM);
+}
+
+void ControlMenuState::update(float dt) {
+    m_rows.update(dt);
+    const int current = currentIndex();
+    for(int i=0;i<OPTION_COUNT;i++){
+        m_pick[i] = approach(m_pick[i],(i == current) ? 1.0f : 0.0f,14.0f,dt);
+        m_pop[i]  = approach(m_pop[i],0.0f,5.0f,dt);
+    }
+    perform(m_nav.update(dt));                               // held dpad / stick
+}
+
+void ControlMenuState::perform(InputUtils::MenuAction action) {
+    switch(action){
+        case InputUtils::MenuAction::UP:
+            if(m_rows.move(-1)) Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_MOVE);
+            break;
+        case InputUtils::MenuAction::DOWN:
+            if(m_rows.move(1))  Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_MOVE);
+            break;
+        case InputUtils::MenuAction::CONFIRM:
+            choose(m_rows.focus());
+            break;
+        default: break;
+    }
+}
+
+void ControlMenuState::render(SDL_Renderer *renderer) {
+    const MenuTheme& theme = MenuTheme::get();
+    const MenuPainter& p = m_painter;
+
+    for(int i=0;i<OPTION_COUNT;i++){
+        const float y  = m_rows.rowY(i);
+        const float f  = m_rows.focusAnim(i);
+        const float rv = m_rows.reveal(i);
+        const float a  = lerp(0.70f,1.0f,f) * rv;
+        const Rgb col  = mix(theme.dim(),theme.accent(),f);
+
+        p.rowFrame(Layout::ROW_LEFT,Layout::ROW_RIGHT,y,f,rv);
+        p.label(m_labels[i],Layout::LABEL_X,y,1.0f + 0.06f * f,col,a,Align::LEFT);
+
+        // radio: hollow diamond = off, lit solid diamond = the active scheme
+        const float rx = Layout::CONTROL_RIGHT - 14.0f;
+        const float on = m_pick[i];
+        p.diamondOutline(rx,y,11.0f,2.0f,mix(theme.dim(),theme.accent(),f),(0.85f * (1.0f - on) + 0.35f * on) * rv);
+        if(on > 0.02f){
+            const float pop = m_pop[i];
+            p.glow(rx,y,70.0f + 90.0f * pop,70.0f + 90.0f * pop,theme.core(),(0.45f + 0.4f * pop) * on * rv);
+            p.diamond(rx,y,(7.5f + 3.0f * pop) * on,theme.accent(),on * rv);
+        }
+    }
+}
+
+bool ControlMenuState::handleEvents(SDL_Event &event) {
+    if(m_nav.handleEvent(event)) return true;
+
+    if(InputUtils::IsPointerDown(event)){
+        float x,y;
+        InputUtils::GetPointerPosition(event,m_renderer,x,y);
+        const int row = m_rows.hit(x,y,Layout::ROW_LEFT - 40.0f,Layout::ROW_RIGHT + 40.0f,Layout::ROW_HALF_H);
+        if(row < 0) return false;                         // tabs / back belong to OptionMenuState
+        choose(row);
+        return true;
+    }
+
+    if(InputUtils::IsPointerMotion(event)){
+        float x,y;
+        InputUtils::GetPointerPosition(event,m_renderer,x,y);
+        const int row = m_rows.hit(x,y,Layout::ROW_LEFT - 40.0f,Layout::ROW_RIGHT + 40.0f,Layout::ROW_HALF_H);
+        if(row >= 0 && m_rows.setFocus(row)) Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_MOVE);
+        return false;
+    }
+
+    const InputUtils::MenuAction action = InputUtils::GetMenuAction(event);
+    switch(action){
+        case InputUtils::MenuAction::UP:
+        case InputUtils::MenuAction::DOWN:
+        case InputUtils::MenuAction::CONFIRM:
+            perform(action);
+            return true;
+        default:
+            return false;
+    }
+}

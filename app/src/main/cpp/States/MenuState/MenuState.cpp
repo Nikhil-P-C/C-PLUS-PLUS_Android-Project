@@ -1,237 +1,229 @@
 //
-// Created by LENOVO on 04-05-2026.
+// Created by LENOVO on 11-10-2026.
 //
 
-#include <SDL3_image/SDL_image.h>
 #include <SDL3/SDL.h>
+#include <cmath>
+#include <algorithm>
 #include "MenuState.h"
-#include "Engine/engine.h"
-#include "States/GameState/GameState.h"
-#include "States/DebugState/DebugState.h"
-#include "States/InputOverlayState/JoystickOverlay.h"
-#include "States/InputOverlayState/ButtonOverlay.h"
-#include "States/InputOverlayState/SepJoysticknButton.h"
-#include "States/InputOverlayState/KeyboardOverlay.h"
-#include "States/InputOverlayState/GamepadOverlay.h"
+#include "engine/Engine.h"
 #include "States/MenuState/OptionMenuState/OptionMenuState.h"
 #include "States/MenuState/EditMenuState/EditMenuState.h"
-#include "States/HUDOverlayState/HUDOverlayState.h"
 #include "States/TransitionState/TransitionState.h"
 
+using namespace MenuKit;
 
-void MenuState::render(SDL_Renderer* renderer) {
-    SDL_FRect backgroundDst{0, 0, 1600, 720};
-    SDL_RenderTexture(renderer, m_background, nullptr, &backgroundDst);
-    //button pixels 594 x 282
-    SDL_FRect playButtonSrc{0+(1*594),0,594,282};
-    SDL_FRect playButtonDst{m_playButton.x,m_playButton.y,m_playButton.w,m_playButton.h};
-    SDL_RenderTexture(renderer, m_playButtonTexture, &playButtonSrc, &playButtonDst);
+// ---------------------------------------------------------------------------------------------
+// Tunables
+// ---------------------------------------------------------------------------------------------
+namespace {
+    // Swap for a serif / caps display face (Cinzel, Trajan-like) to get closer to Silksong.
+    constexpr const char* TITLE_TEXT = "";           // "" = no title, only the divider ornament
+    constexpr int   ITEM_FONT_SIZE  = 38;
+    constexpr int   TITLE_FONT_SIZE = 78;
 
-    SDL_FRect settingButtonSrc{0+(2*594),0,594,282};
-    SDL_FRect settingButtonDst{m_optionButton.x,m_optionButton.y,m_optionButton.w,m_optionButton.h};
-    SDL_RenderTexture(renderer, m_playButtonTexture, &settingButtonSrc, &settingButtonDst);
+    constexpr float CORE_X = 800.0f, CORE_Y = 290.0f; // where the light sits
+    constexpr float LIST_TOP = 360.0f, LIST_STEP = 68.0f;
+    constexpr float ITEM_HIT_W = 460.0f, ITEM_HIT_H = 64.0f;
+}
 
-    SDL_FRect quitButtonSrc{0+(3*594),0,594,282};
-    SDL_FRect quitButtonDst{m_quitButton.x,m_quitButton.y,m_quitButton.w,m_quitButton.h};
-    SDL_RenderTexture(renderer, m_playButtonTexture, &quitButtonSrc, &quitButtonDst);
+// ---------------------------------------------------------------------------------------------
+// Construction / destruction
+// ---------------------------------------------------------------------------------------------
+MenuState::MenuState(SDL_Renderer *renderer, bool intro)
+        : m_renderer(renderer),
+          m_backdrop(renderer, CORE_X, CORE_Y, intro ? 1.2f : 0.4f),
+          m_font(ITEM_FONT_SIZE),
+          m_intro(intro) {
+    this->Name = "NewMenuState";
+    LOGI("menu construct:%p",this);
 
-    SDL_FRect editButtonSrc{0+(0*594),0,594,282};
-    SDL_FRect editButtonDst{m_editButton.x,m_editButton.y,m_editButton.w,m_editButton.h};
-    SDL_RenderTexture(renderer, m_playButtonTexture, &editButtonSrc, &editButtonDst);
+    static const char* labels[4] = {"PLAY","OPTIONS","EDIT","QUIT"};
+    for(int i=0;i<4;i++){
+        m_items[i].cx = SCREEN_W * 0.5f;
+        m_items[i].cy = LIST_TOP + LIST_STEP * (float)i;
+        m_items[i].label.set(renderer,m_font,labels[i],ITEM_FONT_SIZE);
+    }
+    m_items[0].anim = 1.0f;
 
+    if(TITLE_TEXT[0]) m_title.set(renderer,m_font,TITLE_TEXT,TITLE_FONT_SIZE);
 
-    SDL_FRect playTextDst = {220.00f,130.00f,207.00f,110.00f};
-    SDL_RenderTexture(renderer, m_playTextShadow, nullptr, &playTextDst);
-    SDL_RenderTexture(renderer, m_playText, nullptr, &playTextDst);
+    if(m_intro) Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_INTRO);
+}
 
+MenuState::~MenuState() {
+    LOGI("menu destructor:%p",this);
+}
 
-    SDL_FRect optionTextDst = {175.00f,300.00f,291.00f,110.00f};
-    SDL_RenderTexture(renderer, m_optionTextShadow, nullptr, &optionTextDst);
-    SDL_RenderTexture(renderer, m_optionText, nullptr, &optionTextDst);
-
-
-    SDL_FRect quitTextDst = {220.00f,470.00f,207.00f,110.00f};
-    SDL_RenderTexture(renderer, m_quitTextShadow, nullptr, &quitTextDst);
-    SDL_RenderTexture(renderer, m_quitText, nullptr, &quitTextDst);
-
-
-
-    SDL_FRect editTextDst = {1170.00f,380.00f,207.00f,110.00f};
-    SDL_RenderTexture(renderer, m_editTextShadow, nullptr, &editTextDst);
-    SDL_RenderTexture(renderer, m_editText, nullptr, &editTextDst);
-
-
+// ---------------------------------------------------------------------------------------------
+// Update
+// ---------------------------------------------------------------------------------------------
+float MenuState::revealOf(int index) const {
+    // intro: entries fade in one after another; coming back from a sub menu: nearly instant
+    const float delay = m_intro ? 0.45f : 0.05f;
+    const float step  = m_intro ? 0.12f : 0.05f;
+    const float span  = m_intro ? 0.55f : 0.30f;
+    return smooth((m_backdrop.time() - delay - step * (float)index) / span);
 }
 
 void MenuState::update(float dt) {
+    m_backdrop.update(dt);
 
+    for(int i=0;i<4;i++)
+        m_items[i].anim = approach(m_items[i].anim,(i == m_selected) ? 1.0f : 0.0f,12.0f,dt);
+
+    // held dpad / left stick with auto-repeat
+    const InputUtils::MenuAction held = m_nav.update(dt);
+    if(!m_transitioning){
+        if(held == InputUtils::MenuAction::UP)   moveSelection(-1);
+        if(held == InputUtils::MenuAction::DOWN) moveSelection(1);
+    }
+
+    // quit: let the sound + fade play, then close
+    if(m_quitting){
+        m_quitTimer += dt;
+        if(m_quitTimer >= 1.2f){
+            m_quitting = false;
+            Engine::Get().exitEngine();
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------------------------
+void MenuState::render(SDL_Renderer* renderer) {
+    const MenuTheme& theme = MenuTheme::get();
+    const MenuPainter& p = m_backdrop.painter();
+
+    // 1) black base + core + motes + sparks
+    m_backdrop.render(renderer);
+
+    // 2) calm the area behind the list so text stays readable over the light
+    p.shade(CORE_X,LIST_TOP + LIST_STEP * 1.5f,1040.0f,520.0f,150.0f / 255.0f);
+
+    // 3) title + divider ornament
+    const float intro = m_intro ? smooth(m_backdrop.time() / 1.0f) : 1.0f;
+    if(m_title.tex) p.label(m_title,CORE_X,175.0f,1.0f,theme.accent(),intro);
+    {
+        const float y = 262.0f;
+        const float a = 0.8f * intro;
+        p.fadeLine(CORE_X - 260.0f,CORE_X - 18.0f,y,theme.accent(),0.0f,a);
+        p.fadeLine(CORE_X + 18.0f,CORE_X + 260.0f,y,theme.accent(),a,0.0f);
+        p.diamond(CORE_X,y,7.0f + 2.0f * theme.pulse(),theme.accent(),a);
+        p.diamond(CORE_X - 30.0f,y,2.5f,theme.accent(),a * 0.8f);
+        p.diamond(CORE_X + 30.0f,y,2.5f,theme.accent(),a * 0.8f);
+    }
+
+    // 4) entries: plain text, selected one grows, brightens and gets a diamond + line ornament
+    for(int i=0;i<4;i++){
+        const MenuItem& it = m_items[i];
+        const float s  = it.anim;
+        const float rv = revealOf(i);
+        const float y  = it.cy + (1.0f - rv) * 14.0f;
+        const Rgb col  = mix(theme.dim(),theme.accent(),s);
+        const float alpha = lerp(0.70f,1.0f,s) * rv;
+        const float scale = 1.0f + 0.10f * s + 0.02f * s * theme.pulse();
+
+        p.flank(it.label,it.cx,y,scale,s,rv);
+        p.label(it.label,it.cx,y,scale,col,alpha);
+    }
+
+    // 5) soft foreground motes, then the fades (intro from black, outro on quit)
+    m_backdrop.renderFront(renderer);
+    m_backdrop.renderFade(renderer);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Input
+// ---------------------------------------------------------------------------------------------
+int MenuState::hitTest(float x, float y) const {
+    for(int i=0;i<4;i++){
+        const MenuItem& it = m_items[i];
+        if(InputUtils::PointInRect(x,y,it.cx - ITEM_HIT_W*0.5f,it.cy - ITEM_HIT_H*0.5f,ITEM_HIT_W,ITEM_HIT_H)) return i;
+    }
+    return -1;
+}
+
+void MenuState::setSelected(int index, bool playSound) {
+    if(index < 0 || index > 3 || index == m_selected) return;
+    m_selected = index;
+    m_backdrop.spark(m_items[index].cx,m_items[index].cy,10);
+    if(playSound) Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_MOVE);
+}
+
+void MenuState::moveSelection(int dir) {
+    setSelected((m_selected + dir + 4) % 4,true);
 }
 
 bool MenuState::handleEvents(SDL_Event &event) {
-    if(m_transitioning)return true;
+    if(m_transitioning) return true;
 
+    // dpad / left stick: stored by the repeater, acted on in update()
+    if(m_nav.handleEvent(event)) return true;
+
+    // ---- mouse hover / touch drag ----
+    if(InputUtils::IsPointerMotion(event)){
+        float x,y;
+        InputUtils::GetPointerPosition(event,m_renderer,x,y);
+        const int idx = hitTest(x,y);
+        if(idx >= 0) setSelected(idx,true);
+        return true;
+    }
+
+    // ---- mouse click / touch ----
     if(InputUtils::IsPointerDown(event)){
-        float touchX, touchY;
-        InputUtils::GetPointerPosition(event, m_renderer, touchX, touchY);
-
-        if(touchX > m_playButton.x && touchX < m_playButton.x + m_playButton.w &&
-           touchY > m_playButton.y && touchY < m_playButton.y + m_playButton.h){
-            m_selectedButton = MenuButton::PLAY;
+        float x,y;
+        InputUtils::GetPointerPosition(event,m_renderer,x,y);
+        const int idx = hitTest(x,y);
+        if(idx >= 0){
+            setSelected(idx,false);
             activateSelection();
-            return true;
-        }
-        if(touchX > m_optionButton.x && touchX < m_optionButton.x + m_optionButton.w &&
-           touchY > m_optionButton.y && touchY < m_optionButton.y + m_optionButton.h){
-            m_selectedButton = MenuButton::OPTION;
-            activateSelection();
-            return true;
-        }
-        if(touchX >m_editButton.x && touchX < m_editButton.x+m_editButton.w &&
-           touchY>m_editButton.y&& touchY<m_editButton.y + m_editButton.h){
-            m_selectedButton = MenuButton::EDIT;
-            activateSelection();
-            return true;
-        }
-        if(touchX > m_quitButton.x && touchX < m_quitButton.x + m_quitButton.w &&
-           touchY > m_quitButton.y && touchY < m_quitButton.y + m_quitButton.h){
-            m_selectedButton = MenuButton::QUIT;
-            activateSelection();
-            return true;
         }
         return true;
     }
 
-    if(event.type == SDL_EVENT_KEY_DOWN){
-        switch(event.key.key){
-            case SDLK_UP:
-            case SDLK_LEFT:
-                m_selectedButton = static_cast<MenuButton>((static_cast<int>(m_selectedButton) + 3) % 4);
-                return true;
-            case SDLK_DOWN:
-            case SDLK_RIGHT:
-                m_selectedButton = static_cast<MenuButton>((static_cast<int>(m_selectedButton) + 1) % 4);
-                return true;
-            case SDLK_RETURN:
-            case SDLK_RETURN2:
-            case SDLK_KP_ENTER:
-                activateSelection();
-                return true;
-            default:
-                return false;
-        }
+    // ---- keyboard / gamepad buttons ----
+    if(InputUtils::IsGamepadStart(event)){      // Start = go, here (it is "back" in the sub menus)
+        activateSelection();
+        return true;
     }
-    return false;
+    switch(InputUtils::GetMenuAction(event)){
+        case InputUtils::MenuAction::UP:      moveSelection(-1);   return true;   // key repeat = hold to scroll
+        case InputUtils::MenuAction::DOWN:    moveSelection(1);    return true;
+        case InputUtils::MenuAction::CONFIRM: activateSelection(); return true;
+        default:                              return false;
+    }
 }
 
 void MenuState::activateSelection() {
-    switch (m_selectedButton) {
-        case MenuButton::PLAY: {
+    if(m_transitioning) return;
+    AssetManager& audio = Engine::Get().getAssetManager();
+    m_backdrop.burst(m_items[m_selected].cx,m_items[m_selected].cy);
+
+    switch (static_cast<NewMenuButton>(m_selected)) {
+        case NewMenuButton::PLAY: {
+            audio.playSound(SoundType::SFX_UI_PLAY);
             m_transitioning = true;
             Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer,0));
             break;
         }
-        case MenuButton::OPTION:
+        case NewMenuButton::OPTION:
+            audio.playSound(SoundType::SFX_UI_OPEN);
             m_transitioning = true;
             Engine::Get().changeState(std::make_unique<OptionMenuState>(m_renderer));
             break;
-        case MenuButton::EDIT:
+        case NewMenuButton::EDIT:
+            audio.playSound(SoundType::SFX_UI_OPEN);
             m_transitioning = true;
             Engine::Get().changeState(std::make_unique<EditMenuState>(m_renderer));
             break;
-        case MenuButton::QUIT:
-            Engine::Get().exitEngine();
+        case NewMenuButton::QUIT:
+            audio.playSound(SoundType::SFX_UI_QUIT);
+            m_transitioning = true;
+            m_quitting = true;       // update() calls exitEngine() after the fade
+            m_quitTimer = 0.0f;
+            m_backdrop.beginFadeOut(1.1f);
             break;
     }
-}
-
-MenuState::MenuState(SDL_Renderer *renderer) {
-    this->Name = "MenuState";
-
-    LOGI("menu construct:%p",this);
-    if(!m_fontfile)return;
-    if(!m_fontShadowfile)return;
-
-
-
-    m_font =TTF_OpenFontIO(m_fontfile,false,32);
-    m_fontShadow =TTF_OpenFontIO(m_fontShadowfile,false,32);
-
-    if(!m_font)return;
-    if(!m_fontShadow)return;
-
-
-    m_renderer = renderer;
-    m_background = Engine::Get().getAssetManager().getTexture(TextureType::BG_CONFETTI);
-    m_playButtonTexture = Engine::Get().getAssetManager().getTexture(TextureType::MENU_BUTTONS);
-
-    //text texture
-    //play text
-    SDL_Surface *playFontSurface = TTF_RenderText_Solid(m_font, " Play",
-                                                        5, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *playFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Play",
-                                                              5, SDL_Color{0, 0, 0, 255});
-    m_playText = SDL_CreateTextureFromSurface(renderer, playFontSurface);
-    m_playTextShadow = SDL_CreateTextureFromSurface(renderer, playFontShadowSurface);
-    SDL_DestroySurface(playFontSurface);
-    SDL_DestroySurface(playFontShadowSurface);
-
-    //option text
-    SDL_Surface *optionFontSurface = TTF_RenderText_Solid(m_font, " option",
-                                                          7, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *optionFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " option",
-                                                                7, SDL_Color{0, 0, 0, 255});
-    m_optionText = SDL_CreateTextureFromSurface(renderer, optionFontSurface);
-    m_optionTextShadow = SDL_CreateTextureFromSurface(renderer, optionFontShadowSurface);
-    SDL_DestroySurface(optionFontSurface);
-    SDL_DestroySurface(optionFontShadowSurface);
-
-    //quit text
-    SDL_Surface *quitFontSurface = TTF_RenderText_Solid(m_font, " Quit",
-                                                        5, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *quitFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Quit",
-                                                              5, SDL_Color{0, 0, 0, 255});
-    m_quitText = SDL_CreateTextureFromSurface(renderer, quitFontSurface);
-    m_quitTextShadow = SDL_CreateTextureFromSurface(renderer, quitFontShadowSurface);
-    SDL_DestroySurface(quitFontSurface);
-    SDL_DestroySurface(quitFontShadowSurface);
-
-    //edit text
-    SDL_Surface *editFontSurface = TTF_RenderText_Solid(m_font, " Edit",
-                                                        5, SDL_Color{255, 255, 255, 255});
-    SDL_Surface *editFontShadowSurface = TTF_RenderText_Solid(m_fontShadow, " Edit",
-                                                              5, SDL_Color{0, 0, 0, 255});
-    m_editText = SDL_CreateTextureFromSurface(renderer, editFontSurface);
-    m_editTextShadow = SDL_CreateTextureFromSurface(renderer, editFontShadowSurface);
-    SDL_DestroySurface(editFontSurface);
-    SDL_DestroySurface(editFontShadowSurface);
-
-    SDL_SetTextureScaleMode(m_playText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_playTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_optionTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_quitText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_quitTextShadow,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_editText,SDL_SCALEMODE_NEAREST);
-    SDL_SetTextureScaleMode(m_editTextShadow,SDL_SCALEMODE_NEAREST);
-
-}
-
-MenuState::~MenuState() {
-
-    LOGI("menu destructor:%p",this);
-
-    SDL_DestroyTexture(m_playText);
-    SDL_DestroyTexture(m_playTextShadow);
-    SDL_DestroyTexture(m_optionText);
-    SDL_DestroyTexture(m_optionTextShadow);
-    SDL_DestroyTexture(m_quitText);
-    SDL_DestroyTexture(m_quitTextShadow);
-    SDL_DestroyTexture(m_editText);
-    SDL_DestroyTexture(m_editTextShadow);
-
-    TTF_CloseFont(m_font);
-    TTF_CloseFont(m_fontShadow);
-
-    SDL_CloseIO(m_fontfile);
-    SDL_CloseIO(m_fontShadowfile);
 }

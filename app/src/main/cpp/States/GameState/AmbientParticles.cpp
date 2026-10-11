@@ -38,6 +38,11 @@ namespace {
             case AmbientTheme::BRIGHT_CAVE:
                 return {{{90, 170, 255}, {120, 210, 255}, {170, 230, 255}, {70, 140, 255}}, 4,
                         0.9f, 1.0f, 0.7f, 1.0f, 0.8f, 1.0f};
+            case AmbientTheme::MENU:
+                // white: the menu recolours the motes every frame with setTint(); smaller than in-game,
+                // and ~2.5x the back-layer count because the screen is otherwise just black
+                return {{{255, 255, 255}, {235, 245, 255}, {255, 250, 235}, {255, 255, 255}}, 4,
+                        1.0f, 0.5f, 1.2f, 0.9f, 1.0f, 2.5f};
             default:
                 return {{{255, 255, 255}}, 1, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
         }
@@ -93,18 +98,34 @@ void AmbientParticles::init(SDL_Renderer* renderer, AmbientTheme theme) {
     if (!m_sharpSprite) m_sharpSprite = makeGlowSprite(renderer, 32, 2.0f, 0.75f);
     if (!m_softSprite)  m_softSprite  = makeGlowSprite(renderer, 64, 1.4f, 0.75f);
 
+    // In-game the motes are drawn into the (transparent) bloom target, so they must be plain alpha
+    // blended. The menus draw straight onto the black screen, where additive gives the glowing look.
+    const SDL_BlendMode mode = (theme == AmbientTheme::MENU) ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND;
+    if (m_sharpSprite) SDL_SetTextureBlendMode(m_sharpSprite, mode);
+    if (m_softSprite)  SDL_SetTextureBlendMode(m_softSprite, mode);
+
     ThemeStyle s = styleFor(theme);
     buildLayer(m_back,  static_cast<int>(BACK_COUNT * s.backCount), false);
     buildLayer(m_front, FRONT_COUNT, true);
+}
+
+void AmbientParticles::getView(float& viewW, float& viewH, float& camX, float& camY) const {
+    if (m_theme == AmbientTheme::MENU) {          // menus have no scrolling camera (and the game camera may be stale)
+        viewW = 1600.0f; viewH = 720.0f; camX = 0.0f; camY = 0.0f;
+        return;
+    }
+    const SDL_FRect cam = Camera::getInstance().getCamera();
+    viewW = cam.w > 0 ? cam.w : 1600.0f;
+    viewH = cam.h > 0 ? cam.h : 720.0f;
+    camX = cam.x; camY = cam.y;
 }
 
 // Depth drives everything: a mote that is "further" (small parallax) is small,
 // slow and dim; a "nearer" one (big parallax, front layer) is large, fast and soft
 void AmbientParticles::buildLayer(std::vector<Mote>& layer, int count, bool front) {
     ThemeStyle s = styleFor(m_theme);
-    const SDL_FRect cam = Camera::getInstance().getCamera();
-    const float viewW = cam.w > 0 ? cam.w : 1600.0f;
-    const float viewH = cam.h > 0 ? cam.h : 720.0f;
+    float viewW, viewH, camX, camY;
+    getView(viewW, viewH, camX, camY);
     const float margin = front ? FRONT_MARGIN : BACK_MARGIN;
     const float domW = viewW + margin * 2, domH = viewH + margin * 2;
 
@@ -137,9 +158,8 @@ void AmbientParticles::buildLayer(std::vector<Mote>& layer, int count, bool fron
 void AmbientParticles::update(float dt) {
     if (m_theme == AmbientTheme::NONE) return;
     m_time += dt;
-    const SDL_FRect cam = Camera::getInstance().getCamera();
-    const float viewW = cam.w > 0 ? cam.w : 1600.0f;
-    const float viewH = cam.h > 0 ? cam.h : 720.0f;
+    float viewW, viewH, camX, camY;
+    getView(viewW, viewH, camX, camY);
 
     auto step = [&](std::vector<Mote>& layer, float margin) {
         const float domW = viewW + margin * 2, domH = viewH + margin * 2;
@@ -156,53 +176,43 @@ void AmbientParticles::update(float dt) {
 
 void AmbientParticles::renderLayer(SDL_Renderer* renderer, const std::vector<Mote>& layer,
                                    SDL_Texture* sprite, float margin) {
-    if (!sprite) {
-        LOGI("returning");
-        return;
-    }
-    const SDL_FRect cam = Camera::getInstance().getCamera();
-    const float viewW = cam.w > 0 ? cam.w : 1600.0f;
-    const float viewH = cam.h > 0 ? cam.h : 720.0f;
+    if (!sprite) return;
+    float viewW, viewH, camX, camY;
+    getView(viewW, viewH, camX, camY);
     const float domW = viewW + margin * 2, domH = viewH + margin * 2;
-    LOGI("we are rendering");
     for (const auto& m : layer) {
         // Wrap the parallax-shifted position into the on-screen domain: particles
         // leaving one edge re-enter the opposite one, so coverage is always uniform
         // while the camera scrolls, with no spawn logic.
         float sway = std::sin(m_time * m.swayFreq + m.phase) * m.swayAmp;
-        float sx = wrap(m.x + sway - cam.x * m.parallax, domW) - margin;
-        float sy = wrap(m.y - cam.y * m.parallax, domH) - margin;
+        float sx = wrap(m.x + sway - camX * m.parallax, domW) - margin;
+        float sy = wrap(m.y - camY * m.parallax, domH) - margin;
 
         if (sx < -m.size || sx > viewW + m.size || sy < -m.size || sy > viewH + m.size) continue;
 
         float twinkle = 0.65f + 0.35f * std::sin(m_time * m.twinkleFreq + m.phase * 1.7f);
-        float a = std::clamp(m.alpha * twinkle, 0.0f, 1.0f);
+        float a = std::clamp(m.alpha * twinkle * m_alphaScale, 0.0f, 1.0f);
 
-        SDL_SetTextureColorMod(sprite, m.r, m.g, m.b);
+        uint8_t cr = m.r, cg = m.g, cb = m.b;
+        if (m_tintAmount > 0.0f) {
+            cr = static_cast<uint8_t>(lerp(m.r, m_tintR, m_tintAmount));
+            cg = static_cast<uint8_t>(lerp(m.g, m_tintG, m_tintAmount));
+            cb = static_cast<uint8_t>(lerp(m.b, m_tintB, m_tintAmount));
+        }
+        SDL_SetTextureColorMod(sprite, cr, cg, cb);
         SDL_SetTextureAlphaMod(sprite, static_cast<Uint8>(a * 255.0f));
         SDL_FRect dst{sx - m.size * 0.5f, sy - m.size * 0.5f, m.size, m.size};
         SDL_RenderTexture(renderer, sprite, nullptr, &dst);
-        LOGI("particle x:%f ,y:%f ,w:%f ,h:%f",dst.x,dst.y,dst.w,dst.h);
     }
 }
 
 void AmbientParticles::renderBack(SDL_Renderer* renderer) {
-    LOGI("right after call");
-
-    if (m_theme == AmbientTheme::NONE) {
-        LOGI("returning form renderback");
-        return;
-    }
+    if (m_theme == AmbientTheme::NONE) return;
     renderLayer(renderer, m_back, m_sharpSprite, BACK_MARGIN);
 }
 
 void AmbientParticles::renderFront(SDL_Renderer* renderer) {
-    LOGI("right after call");
-
-    if (m_theme == AmbientTheme::NONE) {
-        LOGI("returning form renderFront");
-        return;
-    }
+    if (m_theme == AmbientTheme::NONE) return;
     renderLayer(renderer, m_front, m_softSprite, FRONT_MARGIN);
 }
 

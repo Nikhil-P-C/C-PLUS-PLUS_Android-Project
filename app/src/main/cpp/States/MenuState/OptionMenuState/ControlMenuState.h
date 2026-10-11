@@ -1,11 +1,13 @@
 //
 // Created by LENOVO on 01-07-2026.
 //
+// Control page of the option screen: pick the on-screen / physical control scheme (radio list).
+//
 #pragma once
 
 #include "State/State.h"
 #include "utils/utils.h"
-#include "SDL3_ttf/SDL_ttf.h"
+#include "States/MenuState/MenuKit.h"
 
 class ControlMenuState :public State{
 public:
@@ -13,31 +15,21 @@ public:
     void update(float dt)override;
     bool handleEvents(SDL_Event& event)override;
 
-    ControlMenuState(SDL_Renderer* renderer);
+    explicit ControlMenuState(SDL_Renderer* renderer);
     ~ControlMenuState()override;
 private:
+    static constexpr int OPTION_COUNT = 5;
 
-    SDL_IOStream* m_fontfile = SDL_IOFromFile("Fonts/Pixel Game.otf","rb");
-
-    TTF_Font* m_font = nullptr;
-
-    SDL_Texture* m_optionBlockTexture = nullptr;
-    SDL_Texture* m_radioButtonTexture = nullptr;
-    SDL_Texture* m_menuTexture = nullptr;
-    SDL_Texture* m_joystickFontTexture = nullptr;
-    SDL_Texture* m_buttonsFontTexture = nullptr;
-    SDL_Texture* m_joystickWButtonsFontTexture = nullptr;
-    SDL_Texture* m_keyboardFontTexture =nullptr;
-    SDL_Texture* m_gamepadFontTexture =nullptr;
-
+    void choose(int index);
+    void perform(InputUtils::MenuAction action);
+    int  currentIndex() const;
 
     SDL_Renderer* m_renderer = nullptr;
-
-    ControlType m_controlType =GameData::getInstance().getControlType();
-
-    Button m_joystickButton{400.00f,100.00f,1000.00f,100.00f};
-    Button m_buttonButton{400.00f,200.00f,1000.00f,100.00f};
-    Button m_joystickWButtons{400.00f,300.00f,1000.00f,100.00f};
-    Button m_keyboardButton{400.00f,400.00f,1000.00f,100.00f};
-    Button m_gamepadButton{400.00f,500.00f,1000.00f,100.00f};
+    MenuPainter   m_painter;
+    MenuFont      m_font;
+    MenuLabel     m_labels[OPTION_COUNT];
+    MenuRows      m_rows;
+    float         m_pick[OPTION_COUNT] = {};   // 0..1 eased "this one is the active scheme"
+    float         m_pop[OPTION_COUNT]  = {};   // 1 -> 0 flash right after choosing
+    InputUtils::MenuNavRepeater m_nav;
 };

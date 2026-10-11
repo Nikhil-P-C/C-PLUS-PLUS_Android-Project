@@ -324,6 +324,13 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadSound(SoundType::SFX_JUMP, "Sound/Jump/Jump.wav");
     loadSound(SoundType::SFX_ATTACK_SLASH_HIT, "Sound/Slash/Hit/Hit.wav");
     loadSound(SoundType::SFX_ATTACK_SLASH_COLLISION,"Sound/Slash/Collision/Slash_Collision.wav");
+    loadSound(SoundType::SFX_UI_MOVE,   "Sound/UI/ui_move.wav");
+    loadSound(SoundType::SFX_UI_CONFIRM,"Sound/UI/ui_confirm.wav");
+    loadSound(SoundType::SFX_UI_ENTER,  "Sound/UI/ui_enter.wav");
+    loadSound(SoundType::SFX_UI_PLAY,   "Sound/UI/ui_play.wav");
+    loadSound(SoundType::SFX_UI_OPEN,   "Sound/UI/ui_open.wav");
+    loadSound(SoundType::SFX_UI_QUIT,   "Sound/UI/ui_quit.wav");
+    loadSound(SoundType::SFX_UI_INTRO,  "Sound/UI/ui_intro.wav");
 
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);

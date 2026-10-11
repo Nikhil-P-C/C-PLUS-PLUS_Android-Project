@@ -13,8 +13,8 @@ static std::mt19937 rng(std::random_device{}());
 void ParticleSystem::render(SDL_Renderer* renderer)
 {
 
-    int camX = (int)std::round(Camera::getInstance().getCamera().x);
-    int camY = (int)std::round(Camera::getInstance().getCamera().y);
+    int camX = m_screenSpace ? 0 : (int)std::round(Camera::getInstance().getCamera().x);
+    int camY = m_screenSpace ? 0 : (int)std::round(Camera::getInstance().getCamera().y);
     for(const auto& fx : m_spriteFx){
         if(!fx.alive) continue;
         const int frame = std::min(fx.frames - 1, (int)(fx.age / fx.frameDur));

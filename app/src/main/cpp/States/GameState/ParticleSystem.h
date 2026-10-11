@@ -47,6 +47,8 @@ public:
     bool emitSpriteFx(TextureType type, float x, float y, float dirX, float angleDeg, float frameDur, float scale = 5.0f);
     void render(SDL_Renderer* renderer);
     void update(float dt);
+    // true = x/y are screen coordinates and the game camera is ignored (menus). Default false (world space).
+    void setScreenSpace(bool screenSpace) { m_screenSpace = screenSpace; }
 
     void emitJumpDust(float feetX,float feetY);
     void emitLeftDust(float feetX,float feetY);
@@ -90,6 +92,7 @@ private:
     SDL_Texture* m_particleTexture=nullptr;
     std::array<Particle,256> m_particles;
     std::array<SpriteFx,32> m_spriteFx;
+    bool m_screenSpace = false;
 
 
 };
