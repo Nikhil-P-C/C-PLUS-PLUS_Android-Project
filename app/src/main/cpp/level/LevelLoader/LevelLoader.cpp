@@ -1,6 +1,7 @@
 //
 // Created by LENOVO on 06-08-2026.
 //
+#include <algorithm>
 #include "LevelLoader.h"
 #include "LevelTypeConverter.h"
 
@@ -56,6 +57,12 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'Y':
             parseForeGround(stream);
             break;
+        case 'D':
+            parseAmbient(stream);
+            break;
+        case 'L':
+            parseLight(stream);
+            break;
         default:
             LOGI("Failed to decode:%c",recordType);
     }
@@ -75,6 +82,7 @@ void LevelLoader::parseSpawn(std::istringstream& ss) {
 
     m_player.x=spawnX;
     m_player.y=spawnY;
+    m_hasSpawn = true;
 
 }
 
@@ -336,7 +344,45 @@ void LevelLoader::parseWallCollisionRect(std::istringstream& ss){
     }
     m_wallCollisionRect = {x,y,w,h};
 }
+void LevelLoader::parseAmbient(std::istringstream& ss) {
+    float darkness = 0.0f;
+    ss>>darkness;
+    if(ss.fail()){
+        LOGE("Malformed ambient (D) line");
+        return;
+    }
+    m_ambient.darkness = darkness;
+    float radius = 0.0f, softness = 0.0f;
+    if(ss>>radius>>softness){            // optional player light size
+        m_ambient.playerRadius = radius;
+        m_ambient.playerSoftness = softness;
+    }
+}
+
+void LevelLoader::parseLight(std::istringstream& ss) {
+    LightSource l;
+    int r=255,g=200,b=120;
+    ss>>l.x>>l.y>>l.radius>>r>>g>>b>>l.intensity;
+    if(ss.fail()){
+        LOGE("Malformed light (L) line: failed parsing fixed fields");
+        return;
+    }
+    l.r = (uint8_t)std::clamp(r,0,255);
+    l.g = (uint8_t)std::clamp(g,0,255);
+    l.b = (uint8_t)std::clamp(b,0,255);
+    float flicker = 0.0f;
+    int visible = 1;
+    if(ss>>flicker){
+        l.flicker = flicker;
+        if(ss>>visible) l.visible = visible != 0;
+    }
+    m_lights.push_back(l);
+}
+
 void LevelLoader::loadLevel(int level) {
+    m_lights.clear();
+    m_ambient = LevelAmbient{};
+    m_hasSpawn = false;
     std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");
 
     std::istringstream stream(content);

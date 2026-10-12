@@ -14,6 +14,7 @@
 #include "level/GroundShapeBuilder.h"
 #include "ParticleSystem.h"
 #include "AmbientParticles.h"
+#include "engine/Lighting.h"
 
 #include "level/Fruits.h"
 #include "level/Traps.h"
@@ -54,7 +55,11 @@ const float PLAYER_DEATH_WHITE_S    = 0.12f;    // white silhouette frame (sheet
 const float PLAYER_DEATH_FREEZE_S   = 0.40f;    // total hold before the pop
 const float PLAYER_DEATH_POP_SPEED  = 900.0f;   // px/s upward
 const float PLAYER_DEATH_SPIN_DEG_S = 420.0f;
-const float PLAYER_DEATH_TOTAL_S    = 2.00f;    // time from the fatal hit until the respawn
+const float PLAYER_DEATH_TOTAL_S    = 2.00f;    // time from the fatal hit until the respawn screen opens
+
+// jump forgiveness (seconds)
+const float COYOTE_TIME_S           = 0.10f;    // can still make the first (full) jump this long after walking off a ledge
+const float JUMP_BUFFER_S           = 0.12f;    // a jump pressed this long before landing fires on touchdown
 const int   PLAYER_DEATH_FRAME_WHITE = 15;      // hurt row is 14-16, 15 is the all-white flash frame
 const int   PLAYER_DEATH_FRAME_POSE  = 14;
 
@@ -100,6 +105,12 @@ public:
     void startPlayerDeath();
     void updateDeath(float dt);
     void respawnPlayer();
+    // death animation finished -> show the respawn screen (RespawnState). RESPAWN there calls completeRespawn().
+    void openRespawnScreen();
+    void completeRespawn();
+    bool hasReachedCheckpoint() const {
+        return m_checkPoint.aniType == CheckPointAni::FLAG_OUT || m_checkPoint.aniType == CheckPointAni::FLAG_IDLE;
+    }
     void flushEnemyDeathEffects();
     // hit VFX: sparks, screen shake, hit-stop, combo (fed by EnemiesBuilder::consumeHitEvents)
     void flushEnemyHitEffects();
@@ -232,6 +243,7 @@ private:
     ParticleSystem m_particleSystem;
     ParticleSystem m_fxParticles;          // hit sparks/flashes: drawn AFTER enemies + player so they sit on top
     AmbientParticles m_ambientParticles;
+    Lighting m_lighting;                   // ambient darkness + player light + level light objects
     float m_walkTimer=0.0f;
 
     Player   m_player;
@@ -294,6 +306,10 @@ private:
     //double jump
     int m_jumpsUsed =0;
     int m_maxJumps =2;
+    float m_coyoteTimer =0.0f;       // >0 while the first jump is still allowed after leaving the ground
+    float m_jumpBufferTimer =0.0f;   // >0 while a recent jump press is waiting for the ground
+    bool  m_respawnScreenOpen =false;
+    float m_respawnX =109.0f, m_respawnY =0.0f;   // level start (from the 'S' line when the level has one)
     bool m_isDoubleJumping =false;
     int m_doubleJumpFrame =0;
 

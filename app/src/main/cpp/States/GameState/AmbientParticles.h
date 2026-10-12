@@ -1,5 +1,5 @@
 //
-// Ambient (Hollow Knight style) floating motes: a dim, slow BACK layer drawn
+// floating motes: a dim, slow BACK layer drawn
 // behind the terrain and a larger, faster, softer FRONT layer drawn over
 // everything. Both are drawn inside the existing bloom groups, so the glow
 // comes from PostProcessor's bright-pass, no extra shader or blend mode.
@@ -64,6 +64,9 @@ private:
     void buildLayer(std::vector<Mote>& layer, int count, bool front);
     void renderLayer(SDL_Renderer* renderer, const std::vector<Mote>& layer, SDL_Texture* sprite, float margin);
     SDL_Texture* makeGlowSprite(SDL_Renderer* renderer, int size, float falloff, float core);
+    // In-game sprite: tiny hot core + smooth gaussian halo (reads as a glowing point, not a flat disc)
+    SDL_Texture* makeHaloSprite(SDL_Renderer* renderer, int size, float coreSigma, float haloGain, float haloFalloff);
+    void destroySprites();
 
     AmbientTheme m_theme = AmbientTheme::NONE;
     std::vector<Mote> m_back;
@@ -74,4 +77,6 @@ private:
     uint8_t m_tintR = 255, m_tintG = 255, m_tintB = 255;
     float m_tintAmount = 0.0f;
     float m_alphaScale = 1.0f;
+    bool  m_spritesForMenu = false;   // which sprite set is currently built
+    float m_wind = 0.0f;              // shared slow gust (px/s), in-game only
 };

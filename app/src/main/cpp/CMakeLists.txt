@@ -87,12 +87,13 @@ set(MYAPP_SOURCES
         States/MenuState/OptionMenuState/AdvanceMenuState.cpp
         States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
-
+        States/RespawnState/RespawnState.cpp
         States/MenuState/MenuKit.cpp
 
         engine/Engine.cpp
         engine/AssetManager.cpp
         engine/PostProcessor.cpp
+        engine/Lighting.cpp
 
         utils/Camera.cpp
         utils/gameMath.cpp

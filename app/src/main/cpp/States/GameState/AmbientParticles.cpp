@@ -31,13 +31,13 @@ namespace {
         switch (t) {
             case AmbientTheme::GREENERY:
                 return {{{150, 255, 90}, {225, 255, 110}, {255, 235, 110}, {120, 230, 100}}, 4,
-                        1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+                        1.0f, 0.6f, 1.2f, 1.0f, 1.1f, 1.0f};
             case AmbientTheme::STONE_CAVE:
                 return {{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}}, 4,
-                        0.9f, 1.0f, 0.7f, 1.0f, 0.8f, 1.0f};
+                        0.9f, 0.6f, 0.7f, 1.0f, 0.8f, 1.0f};
             case AmbientTheme::BRIGHT_CAVE:
                 return {{{90, 170, 255}, {120, 210, 255}, {170, 230, 255}, {70, 140, 255}}, 4,
-                        0.9f, 1.0f, 0.7f, 1.0f, 0.8f, 1.0f};
+                        0.9f, 0.6f, 0.8f, 1.0f, 0.9f, 1.0f};
             case AmbientTheme::MENU:
                 // white: the menu recolours the motes every frame with setTint(); smaller than in-game,
                 // and ~2.5x the back-layer count because the screen is otherwise just black
@@ -49,15 +49,52 @@ namespace {
     }
 
     // Base counts, kept low on purpose (the C30s is the validation device).
-    constexpr int BACK_COUNT  = 36;
+    constexpr int BACK_COUNT  = 36;   // MENU base (x2.5 via backCount)
     constexpr int FRONT_COUNT = 12;
+    // In-game: many small motes instead of a few big blobs (menu look). Still cheap: one draw each.
+    constexpr int GAME_BACK_COUNT  = 70;
+    constexpr int GAME_FRONT_COUNT = 14;
+    // The halo sprite is drawn this many times larger than mote.size (size = visible core).
+    constexpr float GAME_HALO_SCALE = 2.2f;
     constexpr float BACK_MARGIN  = 40.0f;
     constexpr float FRONT_MARGIN = 80.0f;
 }
 
+void AmbientParticles::destroySprites() {
+    if (m_sharpSprite) { SDL_DestroyTexture(m_sharpSprite); m_sharpSprite = nullptr; }
+    if (m_softSprite)  { SDL_DestroyTexture(m_softSprite);  m_softSprite  = nullptr; }
+}
+
 AmbientParticles::~AmbientParticles() {
-    if (m_sharpSprite) SDL_DestroyTexture(m_sharpSprite);
-    if (m_softSprite)  SDL_DestroyTexture(m_softSprite);
+    destroySprites();
+}
+
+// Gaussian hot core + wide soft halo. White RGB, per-mote colour via ColorMod (same as makeGlowSprite).
+SDL_Texture* AmbientParticles::makeHaloSprite(SDL_Renderer* renderer, int size, float coreSigma,
+                                              float haloGain, float haloFalloff) {
+    SDL_Surface* surf = SDL_CreateSurface(size, size, SDL_PIXELFORMAT_RGBA32);
+    if (!surf) return nullptr;
+    auto* px = static_cast<Uint8*>(surf->pixels);
+    const float c = (size - 1) * 0.5f;
+    for (int y = 0; y < size; ++y) {
+        for (int x = 0; x < size; ++x) {
+            float dx = (x - c) / c, dy = (y - c) / c;
+            float d = std::sqrt(dx * dx + dy * dy);
+            float core = std::exp(-(d * d) / (2.0f * coreSigma * coreSigma));
+            float halo = d >= 1.0f ? 0.0f : haloGain * std::pow(1.0f - d, haloFalloff);
+            float a = std::clamp(core + halo, 0.0f, 1.0f);
+            Uint8* p = px + y * surf->pitch + x * 4;
+            p[0] = p[1] = p[2] = 255;
+            p[3] = static_cast<Uint8>(a * 255.0f);
+        }
+    }
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surf);
+    SDL_DestroySurface(surf);
+    if (tex) {
+        SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_LINEAR);
+    }
+    return tex;
 }
 
 // Procedural radial glow: white RGB, alpha falls off from the centre. The
@@ -95,8 +132,17 @@ void AmbientParticles::init(SDL_Renderer* renderer, AmbientTheme theme) {
     m_time = 0.0f;
     if (theme == AmbientTheme::NONE) return;
 
-    if (!m_sharpSprite) m_sharpSprite = makeGlowSprite(renderer, 32, 2.0f, 0.75f);
-    if (!m_softSprite)  m_softSprite  = makeGlowSprite(renderer, 64, 1.4f, 0.75f);
+    const bool menu = (theme == AmbientTheme::MENU);
+    if ((m_sharpSprite || m_softSprite) && m_spritesForMenu != menu) destroySprites();
+    m_spritesForMenu = menu;
+    if (menu) {   // unchanged: the menu look the game is being matched to
+        if (!m_sharpSprite) m_sharpSprite = makeGlowSprite(renderer, 32, 2.0f, 0.75f);
+        if (!m_softSprite)  m_softSprite  = makeGlowSprite(renderer, 64, 1.4f, 0.75f);
+    } else {
+        // back: tight bright core + faint halo. front: big dim bokeh, almost no core
+        if (!m_sharpSprite) m_sharpSprite = makeHaloSprite(renderer, 48, 0.16f, 0.30f, 2.6f);
+        if (!m_softSprite)  m_softSprite  = makeHaloSprite(renderer, 64, 0.30f, 0.22f, 1.8f);
+    }
 
     // In-game the motes are drawn into the (transparent) bloom target, so they must be plain alpha
     // blended. The menus draw straight onto the black screen, where additive gives the glowing look.
@@ -105,8 +151,13 @@ void AmbientParticles::init(SDL_Renderer* renderer, AmbientTheme theme) {
     if (m_softSprite)  SDL_SetTextureBlendMode(m_softSprite, mode);
 
     ThemeStyle s = styleFor(theme);
-    buildLayer(m_back,  static_cast<int>(BACK_COUNT * s.backCount), false);
-    buildLayer(m_front, FRONT_COUNT, true);
+    if (menu) {
+        buildLayer(m_back,  static_cast<int>(BACK_COUNT * s.backCount), false);
+        buildLayer(m_front, FRONT_COUNT, true);
+    } else {
+        buildLayer(m_back,  static_cast<int>(GAME_BACK_COUNT * s.backCount), false);
+        buildLayer(m_front, GAME_FRONT_COUNT, true);
+    }
 }
 
 void AmbientParticles::getView(float& viewW, float& viewH, float& camX, float& camY) const {
@@ -128,6 +179,7 @@ void AmbientParticles::buildLayer(std::vector<Mote>& layer, int count, bool fron
     getView(viewW, viewH, camX, camY);
     const float margin = front ? FRONT_MARGIN : BACK_MARGIN;
     const float domW = viewW + margin * 2, domH = viewH + margin * 2;
+    const bool game = (m_theme != AmbientTheme::MENU);
 
     layer.resize(count);
     for (auto& m : layer) {
@@ -136,12 +188,12 @@ void AmbientParticles::buildLayer(std::vector<Mote>& layer, int count, bool fron
             m.parallax = lerp(0.35f, 0.85f, t);
             m.size     = lerp(16.0f, 36.0f, t) * s.sizeMul;
             m.speedY   = lerp(8.0f, 22.0f, t) * s.speedMul;
-            m.alpha    = lerp(0.30f, 1.0f, t) * s.alphaMul;
+            m.alpha    = lerp(game ? 0.50f : 0.30f, 1.0f, t) * s.alphaMul;   // game: floor high enough to still bloom
         } else {
             m.parallax = lerp(1.15f, 1.70f, t);
             m.size     = lerp(20.0f, 40.0f, t) * s.sizeMul;
             m.speedY   = lerp(35.0f, 90.0f, t) * s.speedMul;
-            m.alpha    = lerp(0.18f, 1.0f, t) * s.alphaMul;
+            m.alpha    = (game ? lerp(0.20f, 0.55f, t) : lerp(0.18f, 1.0f, t)) * s.alphaMul;   // game: foreground bokeh stays subtle
         }
         m.x = rnd(0.0f, domW);
         m.y = rnd(0.0f, domH);
@@ -161,11 +213,15 @@ void AmbientParticles::update(float dt) {
     float viewW, viewH, camX, camY;
     getView(viewW, viewH, camX, camY);
 
+    // Slow shared gust so the whole field leans one way, then the other (nearer motes lean more).
+    m_wind = (m_theme == AmbientTheme::MENU) ? 0.0f
+           : std::sin(m_time * 0.23f) * 14.0f + std::sin(m_time * 0.61f + 1.3f) * 6.0f;
+
     auto step = [&](std::vector<Mote>& layer, float margin) {
         const float domW = viewW + margin * 2, domH = viewH + margin * 2;
         for (auto& m : layer) {
             m.y -= m.speedY * dt;       // always rises
-            m.x += m.driftX * dt;
+            m.x += (m.driftX + m_wind * m.parallax) * dt;
             m.x = wrap(m.x, domW);      // keeps floats small, wrap again at render time
             m.y = wrap(m.y, domH);
         }
@@ -180,6 +236,7 @@ void AmbientParticles::renderLayer(SDL_Renderer* renderer, const std::vector<Mot
     float viewW, viewH, camX, camY;
     getView(viewW, viewH, camX, camY);
     const float domW = viewW + margin * 2, domH = viewH + margin * 2;
+    const float haloScale = (m_theme == AmbientTheme::MENU) ? 1.0f : GAME_HALO_SCALE;
     for (const auto& m : layer) {
         // Wrap the parallax-shifted position into the on-screen domain: particles
         // leaving one edge re-enter the opposite one, so coverage is always uniform
@@ -188,7 +245,8 @@ void AmbientParticles::renderLayer(SDL_Renderer* renderer, const std::vector<Mot
         float sx = wrap(m.x + sway - camX * m.parallax, domW) - margin;
         float sy = wrap(m.y - camY * m.parallax, domH) - margin;
 
-        if (sx < -m.size || sx > viewW + m.size || sy < -m.size || sy > viewH + m.size) continue;
+        const float drawSize = m.size * haloScale;
+        if (sx < -drawSize || sx > viewW + drawSize || sy < -drawSize || sy > viewH + drawSize) continue;
 
         float twinkle = 0.65f + 0.35f * std::sin(m_time * m.twinkleFreq + m.phase * 1.7f);
         float a = std::clamp(m.alpha * twinkle * m_alphaScale, 0.0f, 1.0f);
@@ -201,7 +259,7 @@ void AmbientParticles::renderLayer(SDL_Renderer* renderer, const std::vector<Mot
         }
         SDL_SetTextureColorMod(sprite, cr, cg, cb);
         SDL_SetTextureAlphaMod(sprite, static_cast<Uint8>(a * 255.0f));
-        SDL_FRect dst{sx - m.size * 0.5f, sy - m.size * 0.5f, m.size, m.size};
+        SDL_FRect dst{sx - drawSize * 0.5f, sy - drawSize * 0.5f, drawSize, drawSize};
         SDL_RenderTexture(renderer, sprite, nullptr, &dst);
     }
 }

@@ -10,6 +10,7 @@
 #include "utils/utils.h"
 #include "level/BackGroundBuilder.h"
 #include "level/ForeGroundBuilder.h"
+#include "level/Lights.h"
 #include <sstream>
 #include <filesystem>
 
@@ -56,7 +57,19 @@ public:
     SDL_FRect getWallCollisionRect(){
         return m_wallCollisionRect;
     }
+    const std::vector<LightSource>& getLights(){
+        return m_lights;
+    }
+    const LevelAmbient& getAmbient(){
+        return m_ambient;
+    }
+    // true if the level file has an 'S' line (otherwise getPlayer() is just 0,0)
+    bool hasSpawn() const { return m_hasSpawn; }
 private:
+    void parseAmbient(std::istringstream& ss);
+
+    void parseLight(std::istringstream& ss);
+
     void parseLine(const std::string& line);
 
     void parseSpawn(std::istringstream& ss);
@@ -101,5 +114,8 @@ private:
     std::vector<ForeGroundElement> m_foreGroundElements;
     CheckPoint m_checkPoint;
     SDL_FRect m_wallCollisionRect;
+    std::vector<LightSource> m_lights;
+    LevelAmbient m_ambient;
+    bool m_hasSpawn = false;
 
 };

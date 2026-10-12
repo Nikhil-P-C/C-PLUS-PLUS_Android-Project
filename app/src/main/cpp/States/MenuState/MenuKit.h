@@ -48,9 +48,7 @@ namespace MenuKit {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
 // Colour cycle + heartbeat. Advanced by whichever MenuBackdrop is alive (one at a time).
-// ---------------------------------------------------------------------------------------------
 class MenuTheme {
 public:
     static MenuTheme& get();
@@ -71,9 +69,7 @@ private:
     MenuKit::Rgb m_core{0.22f, 0.52f, 1.0f}, m_accent{1, 1, 1}, m_dim{0.5f, 0.5f, 0.5f}, m_mote{1, 1, 1};
 };
 
-// ---------------------------------------------------------------------------------------------
 // Procedural textures shared by all menu states (created once, freed when the last menu state dies)
-// ---------------------------------------------------------------------------------------------
 struct MenuAssets {
     ~MenuAssets();
     static std::shared_ptr<MenuAssets> acquire(SDL_Renderer* renderer);
@@ -81,9 +77,7 @@ struct MenuAssets {
     SDL_Texture* shade = nullptr;   // same shape, alpha blended (drawn black to calm the area behind text)
 };
 
-// ---------------------------------------------------------------------------------------------
 // Text
-// ---------------------------------------------------------------------------------------------
 class MenuFont {
 public:
     explicit MenuFont(int defaultSize = 38);
@@ -110,9 +104,7 @@ struct MenuLabel {
     float w = 0.0f, h = 0.0f;
 };
 
-// ---------------------------------------------------------------------------------------------
 // Drawing helpers. Cheap to construct, one per state.
-// ---------------------------------------------------------------------------------------------
 class MenuPainter {
 public:
     explicit MenuPainter(SDL_Renderer* renderer);
@@ -134,9 +126,7 @@ private:
     std::shared_ptr<MenuAssets> m_assets;
 };
 
-// ---------------------------------------------------------------------------------------------
 // Vertical list of rows: eased focus (0..1 per row), staggered reveal, hit testing
-// ---------------------------------------------------------------------------------------------
 class MenuRows {
 public:
     static constexpr int MAX_ROWS = 8;
@@ -161,9 +151,7 @@ private:
     float m_anim[MAX_ROWS] = {};
 };
 
-// ---------------------------------------------------------------------------------------------
 // The whole animated background
-// ---------------------------------------------------------------------------------------------
 class MenuBackdrop {
 public:
     // introTime: seconds to fade in from black. coreX/coreY: where the light sits.

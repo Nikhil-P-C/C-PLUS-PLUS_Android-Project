@@ -96,13 +96,19 @@ MIX_Track* AssetManager::acquireSfxTrack() {
     return nullptr;   // all voices busy - drop this sound
 }
 
+// Every one-shot SFX (player, enemies, UI, beam...) goes through here so the SFX slider applies to all of them.
+// Master volume is applied separately on the mixer; music has its own slider.
+static inline float sfxGain(float gain) {
+    return gain * GameData::getInstance().getSFXAudioScale();
+}
+
 void AssetManager::playSound(SoundType type) {
     if(type >=SoundType::COUNT || !m_soundTable[(unsigned int)type]) return;
     MIX_Track* track = acquireSfxTrack();
     if(!track) return;
     MIX_SetTrackAudio(track, m_soundTable[(unsigned int)type]);
     MIX_SetTrack3DPosition(track,nullptr);   // pooled track may still be positional from last use
-    MIX_SetTrackGain(track,1.0f);
+    MIX_SetTrackGain(track,sfxGain(1.0f));
     MIX_PlayTrack(track,0);                  // options is an SDL_PropertiesID: 0 = none (was `true` = bogus ID 1)
 }
 
@@ -112,7 +118,7 @@ void AssetManager::playSoundAt(float listenerX, float listenerY, float srcX, flo
     if(!track) return;
     MIX_SetTrackAudio(track, m_soundTable[(unsigned int)type]);
     setTrackWorldPosition(track,listenerX,listenerY,srcX,srcY);
-    MIX_SetTrackGain(track,gain);
+    MIX_SetTrackGain(track,sfxGain(gain));
     MIX_PlayTrack(track,0);
 }
 
@@ -144,7 +150,7 @@ bool AssetManager::playSoundIfIdle(SoundType type,float gain) {
 
     MIX_SetTrackAudio(track,audio);
     MIX_SetTrack3DPosition(track,nullptr);
-    MIX_SetTrackGain(track,gain);
+    MIX_SetTrackGain(track,sfxGain(gain));
     return MIX_PlayTrack(track,0);
 }
 

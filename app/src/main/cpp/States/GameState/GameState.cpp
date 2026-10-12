@@ -2,6 +2,7 @@
 #include "States/MenuState/TitleScreenState.h"
 #include "States/TransitionState/TransitionState.h"
 #include "States/PauseState/PauseState.h"
+#include "States/RespawnState/RespawnState.h"
 #include "States/DebugState/DebugState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
 #include "utils/utils.h"
@@ -338,32 +339,10 @@ void GameState::render(SDL_Renderer* renderer)  {
     m_ambientParticles.renderFront(m_renderer);
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
 
-    //TODO: remove this temporary test,and load light data from level file
-    if(m_level == 1)
-    {
-        float playerLightX =
-                m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX;
-        float playerLightY =
-                m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
-        Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
-                                                          100.0f,250.0f,0.50f);
-    }
-    else if(m_level ==2 || m_level == 3){
-        float playerLightX =
-                m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX;
-        float playerLightY =
-                m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
-        Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
-                                                          100.0f, 250.0f,0.10f);
-    }
-    else{
-        float playerLightX =
-                m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX;
-        float playerLightY =
-                m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY;
-        Engine::Get().getPostProcessor().applyPlayerLight(m_renderer, playerLightX, playerLightY,
-                                                          100.0f, 250.0f, 0.20f);
-    }
+    // ambient darkness + player light + light objects, all described by the level file (D / L lines)
+    m_lighting.render(m_renderer, (float)camX, (float)camY,
+                      m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX,
+                      m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY);
 
     renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
 
@@ -455,7 +434,6 @@ void GameState::update(float dt){
 
     m_previousY =m_player.y;
 
-    bool groundedAtFrameStart = m_isGrounded;
     handlePhysicAndInput(dt);
 
     if(m_isAttacking){
@@ -647,8 +625,8 @@ void GameState::update(float dt){
     if(m_isGrounded){
         m_jumpsUsed = 0;
     }
-    else if(groundedAtFrameStart && m_jumpsUsed ==0){
-        m_jumpsUsed = 1;
+    else if(m_jumpsUsed == 0 && m_coyoteTimer <= 0.0f){
+        m_jumpsUsed = 1;   // coyote window over: the first jump is gone, only the air jump is left
     }
 
     if(gameMath::checkcollision(m_player.x,m_player.y,m_checkPoint.x,m_checkPoint.y,
@@ -1038,7 +1016,26 @@ void GameState::updateDeath(float dt) {
     m_fruitBuilder.update(dt);
     m_trapBuilder.update(dt);
 
-    if(m_deathTimer >= PLAYER_DEATH_TOTAL_S) respawnPlayer();
+    if(m_deathTimer >= PLAYER_DEATH_TOTAL_S) openRespawnScreen();
+}
+
+void GameState::openRespawnScreen() {
+    if(m_respawnScreenOpen) return;
+    m_respawnScreenOpen = true;
+    // same hand-over as the pause menu: release input, drop the gameplay overlays, put a menu state on top
+    InputDispatcher::getInstance().setInputReleased(true);
+    InputDispatcher::getInstance().inputLogClear();
+    GameData::getInstance().setPaused(true);
+    Engine::Get().popOverlayState();//controls
+    Engine::Get().popOverlayState();//HUD
+    if (GameData::getInstance().isDebugEnabled())
+        Engine::Get().popOverlayState();
+    Engine::Get().pushState(std::make_unique<RespawnState>(m_renderer, this, hasReachedCheckpoint()));
+}
+
+void GameState::completeRespawn() {
+    m_respawnScreenOpen = false;
+    respawnPlayer();
 }
 
 void GameState::respawnPlayer() {
@@ -1049,7 +1046,15 @@ void GameState::respawnPlayer() {
     m_deathPopped = false;
 
     PlayerDetail::getInstance().setPlayerHP(5);
-    m_player.setPosition(109.00f,0.00f,P_scale);   // same spawn point as before the death animation existed
+    if(hasReachedCheckpoint()){
+        // stand on the checkpoint that was reached
+        m_player.setPosition(m_checkPoint.x + m_checkPoint.w * 0.5f - m_player.w * 0.5f,
+                             m_checkPoint.y + m_checkPoint.h - m_player.h - 6.0f, P_scale);
+    }else{
+        m_player.setPosition(m_respawnX, m_respawnY, P_scale);
+    }
+    m_coyoteTimer = 0.0f;
+    m_jumpBufferTimer = 0.0f;
 
     m_velocityX = 0.0f;
     m_velocityY = 0.0f;
@@ -1372,25 +1377,38 @@ void GameState::handlePhysicAndInput(float dt) {
         Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_FOOTSTEPS);
     }
 
-    bool jumpPressed = InputDispatcher::getInstance().consumeJumpPressed();
+    const bool jumpPressed = InputDispatcher::getInstance().consumeJumpPressed();
 
-    if(jumpPressed && m_jumpsUsed<m_maxJumps){
+    // Coyote time: for COYOTE_TIME_S after walking off a ledge the first (full) jump still works.
+    // Jump buffer: a press made up to JUMP_BUFFER_S before landing fires the moment the player touches down.
+    if(m_isGrounded)               m_coyoteTimer = COYOTE_TIME_S;
+    else if(m_coyoteTimer > 0.0f)  m_coyoteTimer = std::max(0.0f, m_coyoteTimer - dt);
+    if(jumpPressed)                      m_jumpBufferTimer = JUMP_BUFFER_S;
+    else if(m_jumpBufferTimer > 0.0f)    m_jumpBufferTimer = std::max(0.0f, m_jumpBufferTimer - dt);
+
+    // m_jumpsUsed == 0 while airborne only happens in the coyote window (it is set to 1 once it ends,
+    // and by every real jump / trampoline), so this can't be used to jump twice off one ledge.
+    const bool canGroundJump = m_isGrounded || (m_coyoteTimer > 0.0f && m_jumpsUsed == 0);
+
+    if(m_jumpBufferTimer > 0.0f && canGroundJump){
         Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
-    }
-
-    if(jumpPressed && m_isGrounded){
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
         m_wasGrounded =true;
         m_jumpsUsed =1;
+        m_jumpBufferTimer = 0.0f;
+        m_coyoteTimer = 0.0f;
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
     }
-    else if(jumpPressed && !m_isGrounded && m_jumpsUsed < m_maxJumps){
+    else if(jumpPressed && m_jumpsUsed < m_maxJumps){
         // Air jump - body keeps whatever pose it was already in (same idea as
         // attack not touching the base animation); the double-jump sheet is
         // drawn as its own overlay pass in render().
+        // (If no air jump is left the press just stays in the buffer for a moment, see above.)
+        Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
         m_velocityY = -m_jumpVelocity * 0.85f;
         m_jumpsUsed++;
+        m_jumpBufferTimer = 0.0f;
         m_isDoubleJumping = true;
         m_doubleJumpFrame = 0;
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
@@ -1461,6 +1479,12 @@ void GameState::setLevel(int level) {
     m_backgroundBuilder.init(m_backgroundElements);
     m_foregroundBuilder.init(m_foregroundElements);
     m_ambientParticles.init(m_renderer, AmbientParticles::themeFromBackground(m_backgroundElements));
+    m_lighting.init(m_renderer);
+    m_lighting.setLevel(m_levelLoader.getAmbient(), m_levelLoader.getLights());
+    if(m_levelLoader.hasSpawn()){
+        m_respawnX = m_levelLoader.getPlayer().x;
+        m_respawnY = m_levelLoader.getPlayer().y;
+    }
 
     buildWallTiles();
 
