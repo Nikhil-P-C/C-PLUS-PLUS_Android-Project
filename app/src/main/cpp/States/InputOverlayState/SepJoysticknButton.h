@@ -28,6 +28,7 @@ private:
     float m_touchX =m_joystick.x + m_joystick.w/2,m_touchY =m_joystick.y + m_joystick.h/2;
 
     bool m_joystickFingerActive =false;
+    bool m_upLatched =false;             // joystick pushed up = one interact per push
     bool m_jumpFingerActive = false;
     bool m_attackFingerActive =false;
     bool m_magicFingerActive = false;

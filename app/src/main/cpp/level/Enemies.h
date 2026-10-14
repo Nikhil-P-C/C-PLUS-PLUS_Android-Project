@@ -40,8 +40,36 @@ const float ENEMY_FACE_DEADZONE         = 6.0f;    // ignore tiny left/right off
 const float ENEMY_ATTACK_ACTIVE_START   = 0.34f;
 const float ENEMY_ATTACK_ACTIVE_END     = 0.75f;
 
-// melee lunge: DASH attacks (the tackle) carry the enemy forward during the active window
-const float ENEMY_DASH_SPEED            = 520.0f;  // px/s while the dash is live
+// DASH: the enemy itself lunges toward the player during the active window. It covers its attack range
+// (plus a little) inside that window, so the speed is derived from the range; this is only the minimum.
+const float ENEMY_DASH_SPEED            = 520.0f;  // px/s minimum while the dash is live
+const float ENEMY_DASH_OVERSHOOT        = 30.0f;   // px travelled past the attack range if nothing stops it
+
+// Hitbox sizes. The player's hitbox is 40x85; enemies are sized relative to it:
+//   small animals (rat, bugs, bats): half the player's height, same width
+//   cats: half the player's height, twice the width
+const float ENEMY_BASE_W = 40.0f;
+const float ENEMY_BASE_H = 85.0f;
+
+// aerial DASH = a diagonal swoop. The flier holds altitude, then dives at least this steep (down per across)...
+const float ENEMY_DIVE_MIN_SLOPE = 0.6f;
+// ...from anywhere up to this far above the player
+const float ENEMY_DIVE_MAX_DROP  = 420.0f;
+
+// POUNCE: ballistic leap (uses ENEMY_GRAVITY). Flight time scales with distance, then the launch is solved to land on the player.
+const float ENEMY_POUNCE_SPEED      = 700.0f;  // horizontal px/s used to pick the flight time
+const float ENEMY_POUNCE_MIN_FLIGHT = 0.35f;   // s
+const float ENEMY_POUNCE_MAX_FLIGHT = 0.80f;   // s
+const float ENEMY_POUNCE_MAX_AIR    = 1.5f;    // s safety: the leap ends even if it never lands
+
+// PROJECTILE: a thrown object that follows a ballistic arc (gravity pulls it down) aimed at where the
+// player is standing when it leaves the enemy's hand.
+const float ENEMY_PROJECTILE_SPEED      = 600.0f;  // horizontal px/s used to pick the flight time
+const float ENEMY_PROJECTILE_GRAVITY    = 1400.0f; // px/s^2 (the arc's curvature)
+const float ENEMY_PROJECTILE_MIN_FLIGHT = 0.45f;   // s - close throws still arc visibly
+const float ENEMY_PROJECTILE_MAX_FLIGHT = 1.30f;   // s
+const float ENEMY_PROJECTILE_MAX_LIFE   = 4.0f;    // s before it vanishes if it hits nothing
+const float ENEMY_PROJECTILE_SIZE       = 22.0f;   // placeholder rect (px)
 const float ENEMY_CHASE_STOP_FRACTION   = 0.8f;    // chase stops once the gap to the player is <= this * attack range
 
 enum class EnemyType{
@@ -102,17 +130,19 @@ enum class AttackType{
     BEAM,
     PROJECTILE,
     SHOOT,
+    POUNCE,   // a cat's leap: crouch, then jump along an arc onto the player (ranks with DASH)
     NONE,
 };
 
 // Reach ordering that holds for EVERY enemy (each enemy only picks its own pixel values):
-//   bite < slash < dash < shoot < beam < projectile
+//   bite < slash < dash (or pounce) < shoot < beam < projectile
 // The enum order above is used as a table key, so the ordering lives here instead.
 inline int attackRank(AttackType t){
     switch(t){
         case AttackType::BITE:       return 0;
         case AttackType::SLASH:      return 1;
         case AttackType::DASH:       return 2;
+        case AttackType::POUNCE:     return 2;   // same tier as dash; no enemy owns both
         case AttackType::SHOOT:      return 3;
         case AttackType::BEAM:       return 4;
         case AttackType::PROJECTILE: return 5;
@@ -126,6 +156,15 @@ struct EnemyFrameInfo{
     int frameDelay;
     bool loop;
     int footPad = 0;   // transparent source pixels under the feet in this sheet, so the feet land on the hitbox bottom
+};
+
+// a thrown object in flight (PROJECTILE attacks). Hurts the player on contact, vanishes on terrain.
+struct EnemyProjectile{
+    float x =0.0f, y =0.0f;
+    float w =ENEMY_PROJECTILE_SIZE, h =ENEMY_PROJECTILE_SIZE;
+    float vx =0.0f, vy =0.0f;
+    float age =0.0f;
+    EnemyType owner =EnemyType::NONE;
 };
 
 struct EnemyAIConfig {
@@ -203,6 +242,12 @@ struct Enemy{
     unsigned int lastAttackHitTime =0;
     bool attackHasHit =false;          // this attack swing has already connected (or whiffed on an invincible player) - one hit per swing
     unsigned int nextAttackTime =0;    // earliest tick a new attack may start (cooldown lives here, not on the damage)
+    // DASH: direction is locked when the active window opens; travelled counts px so it stops at its reach
+    bool  dashStarted =false;
+    float dashDirX =0.0f, dashDirY =0.0f;   // POUNCE reuses dashDirX as the horizontal launch speed (px/s)
+    float dashTravelled =0.0f;         // DASH: px covered. POUNCE: seconds in the air
+    bool  dashDone =false;             // POUNCE: has landed, the leap is over
+    bool  projectileFired =false;      // PROJECTILE: the object has left the hand (one per attack)
 
     // --- damaged-by-player state ---
     bool isDead =false;
@@ -270,6 +315,7 @@ public:
                              unsigned int now, bool canDamage, gameMath::collisionSide& outSide);
 
     const std::vector<Enemy>& getEnemies() const { return m_enemies; }
+    const std::vector<EnemyProjectile>& getProjectiles() const { return m_projectiles; }
 
     // Centres (world space) of enemies that were killed since the last call -
     // GameState turns these into a puff of particles. Clears the list.
@@ -292,6 +338,14 @@ public:
     SDL_FRect getSpriteRect(const Enemy& e) const;
 
 private:
+    // PROJECTILE attack: throws an object from the enemy's hand, arced so it reaches the player's current position
+    void spawnProjectile(const Enemy& e, const SDL_FRect& player);
+    void updateProjectiles(float dt, const SDL_FRect& wallCollisionRect,
+                           const std::vector<LevelGround>& grounds,
+                           const std::vector<Platform>& platforms,
+                           const std::vector<Block>& blocks);
+    std::vector<EnemyProjectile> m_projectiles;
+
     void renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& e, int camX, int camY) const;
 
     // placeholder rects for every attack type (wind-up outline, then filled while the hitbox is live)

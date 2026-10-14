@@ -19,6 +19,7 @@
 #include "level/Fruits.h"
 #include "level/Traps.h"
 #include "level/Enemies.h"
+#include "level/Interactables.h"
 #include "level/BlockShapeBuilder.h"
 #include "level/CheckPoint.h"
 #include "level/BackGroundBuilder.h"
@@ -236,6 +237,7 @@ private:
     FruitBuilder m_fruitBuilder;
     TrapBuilder m_trapBuilder;
     EnemiesBuilder m_enemyBuilder;
+    InteractableBuilder m_interactableBuilder;
     GroundShape m_wallShape;
     BlockBuilder m_blockBuilder;
     BackGroundBuilder m_backgroundBuilder;

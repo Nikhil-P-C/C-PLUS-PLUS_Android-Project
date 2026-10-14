@@ -21,6 +21,7 @@ private:
 
     float m_leftStickX =0.0f;
     float m_leftStickY =0.0f;
+    bool  m_stickUpLatched =false;   // stick pushed up = one interact per push, re-arms when it comes back
 
     uint32_t m_magicPressStartTime = 0;
     bool m_magicBeamStarted = false;

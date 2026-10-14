@@ -48,6 +48,9 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'E':
             parseEnemy(stream);
             break;
+        case 'I':
+            parseInteractable(stream);
+            break;
         case '#':
             break;   // comment line
         case 'C':
@@ -293,6 +296,36 @@ void LevelLoader::parseTraps(std::istringstream& ss) {
     m_traps.push_back(trap);
 }
 
+// I x y w h SPEAKER line one|line two|line three
+//   trigger area in world px; SPEAKER is one word (underscores -> spaces); each '|' piece is one dialog page
+void LevelLoader::parseInteractable(std::istringstream& ss) {
+    float x = 0.f, y = 0.f, w = 0.f, h = 0.f;
+    std::string speaker;
+    ss >> x >> y >> w >> h >> speaker;
+    if(ss.fail()){
+        LOGE("Malformed interactable (I) line: failed parsing fixed fields");
+        return;
+    }
+    std::string rest;
+    std::getline(ss, rest);
+    std::vector<std::string> lines;
+    size_t start = 0;
+    while(start <= rest.size()){
+        size_t bar = rest.find('|', start);
+        std::string piece = rest.substr(start, bar == std::string::npos ? std::string::npos : bar - start);
+        const size_t a = piece.find_first_not_of(" \t\r");
+        const size_t b = piece.find_last_not_of(" \t\r");
+        if(a != std::string::npos) lines.push_back(piece.substr(a, b - a + 1));
+        if(bar == std::string::npos) break;
+        start = bar + 1;
+    }
+    if(lines.empty()){
+        LOGE("Interactable has no dialog text, skipped");
+        return;
+    }
+    m_interactables.emplace_back(x, y, w, h, speaker, lines);
+}
+
 // E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]
 //   x y            spawn position (world px). Ground enemies fall onto the floor, aerial ones hover at y
 //   pathStartX/End the horizontal patrol line (px); x should lie between them
@@ -414,6 +447,7 @@ void LevelLoader::parseLight(std::istringstream& ss) {
 void LevelLoader::loadLevel(int level) {
     m_lights.clear();
     m_enemies.clear();
+    m_interactables.clear();
     m_ambient = LevelAmbient{};
     m_hasSpawn = false;
     std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");

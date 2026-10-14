@@ -26,6 +26,8 @@ E 1950.00 600.00 ANKYLOSAURUS_CHILD 1800.00 2100.00 130.00
 E 2350.00 600.00 HUNTER_RAPTOR 2200.00 2500.00 130.00
 E 2700.00 470.00 HUNTER_EAGLE 2550.00 2800.00 110.00 AERIAL
 
+I 300.00 560.00 64.00 208.00 GUIDE Welcome to the Plains test level. Press E (or tap the bubble) to talk.|Enemies here, shortest attack first: ANKYLOSAURUS_CHILD bite/slash, HUNTER_RAPTOR bite/slash, HUNTER_EAGLE slash/dash.|Stand at different distances and watch which attack rect each one picks.
+
 C 2900.00 520.00 256.00 256.00 NO_FLAG
 
 X 0.00 -40.00 1600 720 0.00 0.00 false MEADOWS_SKY

@@ -29,6 +29,7 @@ namespace {
 // Enemies come from the level file now ('E' lines, see LevelLoader::parseEnemy) - they used to be hardcoded here.
 void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
     m_enemies = enemies;
+    m_projectiles.clear();
     m_hitEvents.clear();
     m_deathEvents.clear();
 }
@@ -44,7 +45,13 @@ void EnemiesBuilder::setAction(Enemy& e, EnemyAction next) {
     e.aniDone = false;
     e.lastTime = SDL_GetTicks();
     e.isAttackBoxActive = false;
-    if(next == EnemyAction::ATTACK) e.attackHasHit = false;   // fresh swing, fresh hit
+    if(next == EnemyAction::ATTACK){
+        e.attackHasHit = false;   // fresh swing, fresh hit
+        e.dashStarted = false;
+        e.dashTravelled = 0.0f;
+        e.dashDone = false;
+        e.projectileFired = false;
+    }
 }
 
 void EnemiesBuilder::faceToward(Enemy& e, float targetCenterX) {
@@ -170,7 +177,7 @@ void EnemiesBuilder::renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& 
 // One placeholder rect per attack, drawn from the real hitbox (what you see is what hurts):
 //   wind-up (animation playing, hitbox not live yet) = outline only
 //   live window                                       = filled + solid outline
-// colour = attack type: BITE red, SLASH orange, DASH yellow, SHOOT green, BEAM cyan, PROJECTILE purple
+// colour = attack type: BITE red, SLASH orange, DASH yellow, POUNCE pink, SHOOT green, BEAM cyan, PROJECTILE purple
 void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, int camY) const {
     SDL_BlendMode prevBlend = SDL_BLENDMODE_NONE;
     SDL_GetRenderDrawBlendMode(renderer, &prevBlend);
@@ -184,6 +191,7 @@ void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, 
             case AttackType::BITE:       r = 255; g =  60; b =  60; break;
             case AttackType::SLASH:      r = 255; g = 160; b =  40; break;
             case AttackType::DASH:       r = 255; g = 230; b =  60; break;
+            case AttackType::POUNCE:     r = 255; g = 100; b = 180; break;
             case AttackType::SHOOT:      r =  80; g = 220; b = 120; break;
             case AttackType::BEAM:       r =  60; g = 200; b = 255; break;
             case AttackType::PROJECTILE: r = 190; g = 100; b = 255; break;
@@ -198,6 +206,14 @@ void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, 
             SDL_SetRenderDrawColor(renderer, r, g, b, 120);
         }
         SDL_RenderRect(renderer, &box);
+    }
+    // thrown objects in flight (PROJECTILE attacks): purple placeholder rect that follows its arc
+    for(const auto& p : m_projectiles){
+        SDL_FRect pr{p.x - camX, p.y - camY, p.w, p.h};
+        SDL_SetRenderDrawColor(renderer, 190, 100, 255, 220);
+        SDL_RenderFillRect(renderer, &pr);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderRect(renderer, &pr);
     }
     SDL_SetRenderDrawBlendMode(renderer, prevBlend);
 }
@@ -276,6 +292,7 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
             }
         }
     }
+    updateProjectiles(dt,wallCollisionRect,grounds,platforms,blocks);
     separateEnemies();
 }
 
@@ -425,7 +442,92 @@ bool EnemiesBuilder::checkAttackOnPlayer(float playerX, float playerY, float pla
             return true;
         }
     }
+    // thrown objects: contact spends the projectile (even on an invincible player, like a swing)
+    for(size_t i = 0; i < m_projectiles.size(); ++i){
+        const EnemyProjectile& p = m_projectiles[i];
+        if(p.x < playerX + playerW && p.x + p.w > playerX && p.y < playerY + playerH && p.y + p.h > playerY){
+            const bool movingRight = p.vx > 0.0f;
+            m_projectiles.erase(m_projectiles.begin() + (long)i);
+            if(!canDamage) return false;
+            outSide = movingRight ? gameMath::collisionSide::RIGHT : gameMath::collisionSide::LEFT;
+            return true;
+        }
+    }
     return false;
+}
+
+// PROJECTILE attack: the object leaves the enemy's hand and flies on a ballistic arc (gravity bends it) that is
+// solved so it reaches the player's centre as they stand right now. Flight time scales with distance (clamped),
+// then the launch velocity is solved from it - the same trick the POUNCE leap uses.
+void EnemiesBuilder::spawnProjectile(const Enemy& e, const SDL_FRect& player) {
+    EnemyProjectile pr;
+    pr.owner = e.type;
+    pr.w = ENEMY_PROJECTILE_SIZE;
+    pr.h = ENEMY_PROJECTILE_SIZE;
+    // leaves from the front of the body, around chest height
+    pr.x = e.isFacingRight ? (e.x + e.w) : (e.x - pr.w);
+    pr.y = e.y + e.h * 0.3f - pr.h * 0.5f;
+
+    const float dx = (player.x + player.w * 0.5f) - (pr.x + pr.w * 0.5f);
+    const float dy = (player.y + player.h * 0.5f) - (pr.y + pr.h * 0.5f);
+    const float T = std::clamp(std::fabs(dx) / ENEMY_PROJECTILE_SPEED,
+                               ENEMY_PROJECTILE_MIN_FLIGHT, ENEMY_PROJECTILE_MAX_FLIGHT);
+    pr.vx = dx / T;
+    pr.vy = (dy - 0.5f * ENEMY_PROJECTILE_GRAVITY * T * T) / T;   // up = negative
+    pr.age = 0.0f;
+    m_projectiles.push_back(pr);
+}
+
+// moves every thrown object along its arc and removes the ones that hit terrain or outlive their time limit.
+// (Contact with the player is handled in checkAttackOnPlayer.)
+void EnemiesBuilder::updateProjectiles(float dt, const SDL_FRect& wallCollisionRect,
+                                       const std::vector<LevelGround>& grounds,
+                                       const std::vector<Platform>& platforms,
+                                       const std::vector<Block>& blocks) {
+    if(m_projectiles.empty()) return;
+
+    auto overlaps = [](const EnemyProjectile& p, float rx, float ry, float rw, float rh){
+        return p.x < rx + rw && p.x + p.w > rx && p.y < ry + rh && p.y + p.h > ry;
+    };
+    const float wallT = TILE_SIZE * SCALE;
+    const float renderedHeight = (std::ceil(wallCollisionRect.h / (SCALE * TILE_SIZE)) * (SCALE * TILE_SIZE));
+
+    for(size_t i = 0; i < m_projectiles.size(); ){
+        EnemyProjectile& p = m_projectiles[i];
+        p.age += dt;
+        p.vy  += ENEMY_PROJECTILE_GRAVITY * dt;
+        p.x   += p.vx * dt;
+        p.y   += p.vy * dt;
+
+        bool dead = p.age >= ENEMY_PROJECTILE_MAX_LIFE;
+
+        // level boundary walls (left / right / top / bottom tile borders)
+        if(!dead){
+            dead = p.x < wallCollisionRect.x + wallT
+                   || p.x + p.w > wallCollisionRect.x + wallCollisionRect.w - wallT
+                   || p.y < wallCollisionRect.y + wallT
+                   || p.y + p.h > wallCollisionRect.y + renderedHeight - wallT;
+        }
+        if(!dead){
+            for(const auto& g : grounds){
+                if(overlaps(p, g.x, g.y, g.w * SCALE, g.h * SCALE)){ dead = true; break; }
+            }
+        }
+        if(!dead){
+            for(const auto& pl : platforms){
+                if(pl.colliderType != ColliderType::SOLID) continue;       // one-way platforms let it through
+                if(overlaps(p, pl.x, pl.y, pl.w * SCALE, pl.h * SCALE)){ dead = true; break; }
+            }
+        }
+        if(!dead){
+            for(const auto& b : blocks){
+                if(overlaps(p, b.rect.x, b.rect.y, b.rect.w, b.rect.h)){ dead = true; break; }
+            }
+        }
+
+        if(dead) m_projectiles.erase(m_projectiles.begin() + (long)i);
+        else     ++i;
+    }
 }
 
 void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
@@ -576,9 +678,19 @@ namespace {
     // Pick the attack for the current distance. cfg->attacks is sorted shortest-reach first, so the
     // first one that reaches the player is the shortest that works: close = bite/slash, far = the
     // long one. NONE = nothing reaches yet, keep closing in.
+    // can this attack be started from here? Almost everything is the box test; an aerial DASH is a diagonal
+    // swoop, so it only needs the player within `range` horizontally and below the flier (not too far down)
+    bool attackReaches(const Enemy& e, AttackType t, float range, const SDL_FRect& p){
+        if(t == AttackType::DASH && e.combat != combatType::GROUND){
+            const float gapX = e.isFacingRight ? p.x - (e.x + e.w) : e.x - (p.x + p.w);
+            const float drop = p.y - (e.y + e.h);
+            return gapX <= range && gapX > -(p.w + e.w) && (p.y + p.h) > e.y && drop <= ENEMY_DIVE_MAX_DROP;
+        }
+        return playerInReach(e, p, range);
+    }
     AttackType chooseAttack(const Enemy& e, const EnemyAIConfig* cfg, const SDL_FRect& p){
         for(int i = 0; i < 2; ++i)
-            if(cfg->attacks[i] != AttackType::NONE && playerInReach(e, p, cfg->attackRanges[i]))
+            if(cfg->attacks[i] != AttackType::NONE && attackReaches(e, cfg->attacks[i], cfg->attackRanges[i], p))
                 return cfg->attacks[i];
         return AttackType::NONE;
     }
@@ -655,7 +767,12 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                         enemy.x = nextX;
                 }
             } else if(!playerInReach(enemy, player, cfg->attackRanges[0])){
-                moveToward(enemy, player.x, player.y, enemy.movingSpeed, dt);
+                // a flier that owns a DASH holds its altitude while the attack is ready, so it can swoop down
+                // diagonally from above; on cooldown it drops to the player's height to use its short attacks
+                float targetY = player.y;
+                if(now >= enemy.nextAttackTime && (cfg->attacks[0] == AttackType::DASH || cfg->attacks[1] == AttackType::DASH))
+                    targetY = enemy.baseY;
+                moveToward(enemy, player.x, targetY, enemy.movingSpeed, dt);
             }
             break;
         }
@@ -668,25 +785,104 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
             int fc = ai ? ai->frameCount : 1;
             bool inWindow = enemy.aniStartFrame >= (int)(fc * ENEMY_ATTACK_ACTIVE_START) &&
                             enemy.aniStartFrame <= (int)(fc * ENEMY_ATTACK_ACTIVE_END);
-            enemy.isAttackBoxActive = inWindow && !enemy.attackHasHit;
+            const bool pastWindow = enemy.aniStartFrame > (int)(fc * ENEMY_ATTACK_ACTIVE_END);
+            const bool pounceAirborne = enemy.attackType == AttackType::POUNCE && enemy.dashStarted && !enemy.dashDone;
+            if(pastWindow && !pounceAirborne) enemy.attackHasHit = true;   // swing is over: nothing left to hurt, hide the rect
+            enemy.isAttackBoxActive = false;
 
-            // DASH = tackle: the enemy itself is the weapon, so it lunges forward while the hitbox
-            // is live. It stops flush against the player's edge (and at walls/blocks) so it never
-            // passes through them, and it stops once it has connected.
-            if(enemy.attackType == AttackType::DASH && inWindow && !enemy.attackHasHit &&
-               enemy.combat == combatType::GROUND){
-                float room = enemy.isFacingRight ? (player.x - (enemy.x + enemy.w))
-                                                 : (enemy.x - (player.x + player.w));
-                bool playerAhead = gapY <= 0.0f && room >= 0.0f;
-                float step = ENEMY_DASH_SPEED * dt;
-                if(playerAhead) step = std::min(step, room);
-                float nextX = enemy.x + (enemy.isFacingRight ? step : -step);
-                if(isHorizontalPathClear(enemy, nextX, wallCollisionRect, blocks))
-                    enemy.x = nextX;
-                enemy.attackHitBox = getAttackBox(enemy, atkRange);   // follow the body
+            switch(enemy.attackType){
+                case AttackType::DASH: {
+                    // DASH: the enemy itself flies/runs toward the player while the window is open, and its BODY
+                    // is the weapon. The lane in front of it (drawn during the wind-up) is where it will go.
+                    if(inWindow && !enemy.attackHasHit){
+                        if(!enemy.dashStarted){
+                            enemy.dashStarted = true;
+                            float dirX = enemy.isFacingRight ? 1.0f : -1.0f, dirY = 0.0f;
+                            if(enemy.combat != combatType::GROUND){      // fliers swoop in on a diagonal
+                                float dx = std::max(std::fabs((player.x + player.w * 0.5f) - (enemy.x + enemy.w * 0.5f)), 1.0f);
+                                float dy = std::max((player.y + player.h * 0.5f) - (enemy.y + enemy.h * 0.5f),
+                                                    dx * ENEMY_DIVE_MIN_SLOPE);   // never flatter than the minimum dive
+                                float len = std::sqrt(dx * dx + dy * dy);
+                                dirX = (enemy.isFacingRight ? 1.0f : -1.0f) * dx / len;
+                                dirY = dy / len;
+                            }
+                            enemy.dashDirX = dirX;
+                            enemy.dashDirY = dirY;
+                        }
+                        float budget = atkRange + ENEMY_DASH_OVERSHOOT;           // measured along the horizontal reach...
+                        if(enemy.combat != combatType::GROUND)                      // ...so a diagonal dive travels farther
+                            budget /= std::max(std::fabs(enemy.dashDirX), 0.3f);
+                        const float windowSec = ai ? (ENEMY_ATTACK_ACTIVE_END - ENEMY_ATTACK_ACTIVE_START) *
+                                                     (float)fc * (float)ai->frameDelay / 1000.0f : 0.3f;
+                        const float speed = std::max(ENEMY_DASH_SPEED, budget / std::max(windowSec, 0.05f));
+                        float step = std::min(speed * dt, budget - enemy.dashTravelled);
+                        if(step > 0.0f){
+                            float nextX = enemy.x + enemy.dashDirX * step;
+                            if(enemy.combat == combatType::GROUND){
+                                if(isHorizontalPathClear(enemy, nextX, wallCollisionRect, blocks)){
+                                    enemy.x = nextX;
+                                    enemy.dashTravelled += step;
+                                } else enemy.dashTravelled = budget;       // ran into a wall: lunge is over
+                            } else if(enemy.y + enemy.h >= player.y + player.h){
+                                enemy.dashTravelled = budget;               // reached the player's feet level: swoop is over
+                            } else {
+                                enemy.x = nextX;
+                                enemy.y += enemy.dashDirY * step;
+                                enemy.dashTravelled += step;
+                            }
+                        }
+                        enemy.attackHitBox = {enemy.x - 2.0f, enemy.y - 2.0f, enemy.w + 4.0f, enemy.h + 4.0f};
+                        enemy.isAttackBoxActive = true;
+                    }
+                    break;
+                }
+                case AttackType::POUNCE: {
+                    // POUNCE (fox on a chicken): the wind-up is the crouch. When the window opens the enemy leaps
+                    // along an arc solved to come down on the player; its body is the weapon until it lands.
+                    if(inWindow && !enemy.dashStarted){
+                        enemy.dashStarted = true;
+                        const float dx = (player.x + player.w * 0.5f) - (enemy.x + enemy.w * 0.5f);
+                        const float dy = (player.y + player.h * 0.5f) - (enemy.y + enemy.h * 0.5f);
+                        const float T = std::clamp(std::fabs(dx) / ENEMY_POUNCE_SPEED,
+                                                   ENEMY_POUNCE_MIN_FLIGHT, ENEMY_POUNCE_MAX_FLIGHT);
+                        enemy.dashDirX = dx / T;                                              // horizontal launch speed
+                        enemy.velocityY = (dy - 0.5f * ENEMY_GRAVITY * T * T) / T;            // vertical launch speed (up = negative)
+                        enemy.isGrounded = false;
+                        enemy.dashTravelled = 0.0f;
+                    }
+                    if(enemy.dashStarted && !enemy.dashDone){
+                        enemy.dashTravelled += dt;                                            // time in the air
+                        const float nextX = enemy.x + enemy.dashDirX * dt;
+                        if(isHorizontalPathClear(enemy, nextX, wallCollisionRect, blocks)) enemy.x = nextX;
+                        else enemy.dashDirX = 0.0f;                                           // bonked a wall: drop straight down
+                        enemy.attackHitBox = {enemy.x - 2.0f, enemy.y - 2.0f, enemy.w + 4.0f, enemy.h + 4.0f};
+                        enemy.isAttackBoxActive = !enemy.attackHasHit;
+                        const bool landed = enemy.dashTravelled > 0.1f && enemy.isGrounded && enemy.velocityY >= 0.0f;
+                        if(landed || enemy.dashTravelled > ENEMY_POUNCE_MAX_AIR){
+                            enemy.dashDone = true;
+                            enemy.isAttackBoxActive = false;
+                            enemy.attackHasHit = true;                                        // leap over, hide the rect
+                        }
+                    }
+                    break;
+                }
+                case AttackType::PROJECTILE: {
+                    // PROJECTILE: only the thrown object hurts (no hitbox on the enemy). It leaves at the start of
+                    // the window; attackHasHit then hides the wind-up rect.
+                    if(inWindow && !enemy.projectileFired){
+                        spawnProjectile(enemy, player);
+                        enemy.projectileFired = true;
+                        enemy.attackHasHit = true;
+                    }
+                    break;
+                }
+                default:
+                    enemy.isAttackBoxActive = inWindow && !enemy.attackHasHit;
+                    break;
             }
 
-            if(!ai || enemy.aniDone){                           // let the animation drive the timing
+            const bool leapInProgress = enemy.attackType == AttackType::POUNCE && enemy.dashStarted && !enemy.dashDone;
+            if((!ai || enemy.aniDone) && !leapInProgress){      // let the animation drive the timing (a leap holds it until it lands)
                 enemy.nextAttackTime = now + cfg->attackCooldownMs;
                 setAction(enemy, EnemyAction::SEEK);
             }
@@ -879,12 +1075,28 @@ void EnemiesBuilder::updatePath(Enemy& enemy,float dt)
 
 
 
+namespace {
+    // hitbox (w,h) per enemy type, relative to the player's 40x85
+    void enemySizeFor(EnemyType t, float& w, float& h){
+        w = ENEMY_BASE_W; h = ENEMY_BASE_H;
+        switch(t){
+            case EnemyType::SPIDER_CHILD: case EnemyType::MOSS_GLOW_WORM:    // bugs
+            case EnemyType::MOSS_BAT: case EnemyType::GIANT_BATS:            // bats
+            case EnemyType::CAVE_RAT:                                        // rat
+                h = ENEMY_BASE_H * 0.5f; break;
+            case EnemyType::PREDATOR_CAT: case EnemyType::MOUNTAIN_CAT:      // cats: low and long
+                h = ENEMY_BASE_H * 0.5f; w = ENEMY_BASE_W * 2.0f; break;
+            default: break;
+        }
+    }
+}
+
 Enemy::Enemy(float x, float y, EnemyType type, EnemyAction action, AttackType attackType,
              float startPath, float endPath, float speed, PathAxis axis, PathShape shape,
              float radius, combatType combat)
         :x(x),y(y),type(type),action(action),attackType(attackType),startPath(startPath),endPath(endPath),
          movingSpeed(speed),axis(axis),pathShape(shape),radius(radius),combat(combat),baseX(x),baseY(y),previousX(x),previousY(y){
-
+    enemySizeFor(type, w, h);
 }
 
 const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, AttackType attackType) {
@@ -935,7 +1147,7 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
                 {enemyAttackKey(EnemyType::PREDATOR_CAT,AttackType::SLASH), {TextureType::ENEMY_PREDATOR_CAT_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::PREDATOR_CAT,AttackType::BITE), {TextureType::ENEMY_PREDATOR_CAT_ATTACK2,64,64,6,80,false}},
 
-                {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::DASH), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK1,64,64,6,80,false}},
+                {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::POUNCE), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::BITE), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK2,64,64,6,80,false}},
 
                 {enemyAttackKey(EnemyType::CROCODYLOMORPH,AttackType::SLASH), {TextureType::ENEMY_CROCODYLOMORPH_ATTACK1,64,64,6,80,false}},
@@ -1085,11 +1297,11 @@ const EnemyAIConfig* getEnemyAIConfig(EnemyType type) {
                 {EnemyType::SHAFTS_WORKER,           {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::PROJECTILE},{75.f,400.f}}},
                 {EnemyType::ANKYLOSAURUS_CHILD,      {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,80.f}}},
                 {EnemyType::HUNTER_RAPTOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,90.f}}},
-                {EnemyType::HUNTER_EAGLE,            {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::DASH},{80.f,170.f}}},
+                {EnemyType::HUNTER_EAGLE,            {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::DASH},{80.f,260.f}}},
                 {EnemyType::PREDATOR_THEROPOD,       {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{55.f,95.f}}},
                 {EnemyType::THEROPOD_CHILD,          {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,80.f}}},
                 {EnemyType::PREDATOR_CAT,            {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,85.f}}},
-                {EnemyType::MOUNTAIN_CAT,            {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{45.f,160.f}}},
+                {EnemyType::MOUNTAIN_CAT,            {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::POUNCE},{45.f,220.f}}},
                 {EnemyType::CROCODYLOMORPH,          {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,100.f}}},
                 {EnemyType::TARBOSAURUS_CHILD,       {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{55.f,150.f}}},
                 {EnemyType::TYRANNOSAURUS_REX_CHILD, {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::BEAM},{60.f,360.f}}},

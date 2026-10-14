@@ -2,6 +2,7 @@
 // Created by LENOVO on 13-07-2026.
 //
 #include <math.h>
+#include <cmath>
 #include "SepJoysticknButton.h"
 #include "SDL3_image/SDL_image.h"
 #include "engine/Engine.h"
@@ -64,6 +65,17 @@ void SepJoysticknButton::update(float dt) {
             InputDispatcher::getInstance().setMovingRight(false);
         }
 
+        // pushed mostly upward = interact, once per push (re-arms when it comes back toward the centre)
+        if(dY < -deadZone * 1.5f && std::fabs(dY) > std::fabs(dX)){
+            if(!m_upLatched){
+                InputDispatcher::getInstance().triggerInteract();
+                m_upLatched = true;
+            }
+        }
+        else if(dY > -deadZone){
+            m_upLatched = false;
+        }
+
         if (dX > deadZone) {
             InputDispatcher::getInstance().setMovingRight(true);
             InputDispatcher::getInstance().setMovingLeft(false);
@@ -84,6 +96,7 @@ void SepJoysticknButton::update(float dt) {
     if(!m_joystickFingerActive){
         InputDispatcher::getInstance().setMovingLeft(false);
         InputDispatcher::getInstance().setMovingRight(false);
+        m_upLatched = false;
     }
     if(!m_jumpFingerActive){
         InputDispatcher::getInstance().setJump(false);

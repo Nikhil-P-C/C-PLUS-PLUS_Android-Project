@@ -3,6 +3,7 @@
 //
 #include "utils/utils.h"
 #include "GamepadOverlay.h"
+#include <cmath>
 void GamepadOverlay::render(SDL_Renderer *renderer) {
 
 }
@@ -17,6 +18,17 @@ void GamepadOverlay::update(float dt) {
         if (m_magicBeamStarted) {
             InputDispatcher::getInstance().setBeaming(true);
         }
+    }
+    // stick up (SDL: up is negative Y) = interact. Fires once per push; the stick has to return before it re-arms,
+    // so holding it up doesn't skip through every page of a dialog.
+    if(m_leftStickY < -0.6f && std::fabs(m_leftStickY) > std::fabs(m_leftStickX)){
+        if(!m_stickUpLatched){
+            InputDispatcher::getInstance().triggerInteract();
+            m_stickUpLatched = true;
+        }
+    }
+    else if(m_leftStickY > -0.3f){
+        m_stickUpLatched = false;
     }
     if(m_leftStickX>deadzone){
         InputDispatcher::getInstance().setMovingRight(true);
@@ -48,12 +60,12 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
     switch(event.type){
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX){
-                 float x  =event.gaxis.value / 32767;
-                 m_leftStickX =x;
+                float x  =event.gaxis.value / 32767;
+                m_leftStickX =x;
             }
             if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY){
 
-                float y  = event.gaxis.value / 32767;
+                float y  = event.gaxis.value / 32767.0f;   // float division: the old int division only ever gave -1/0/1
                 m_leftStickY =y;
             }
             break;
@@ -64,6 +76,9 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
             }
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_WEST){
                 InputDispatcher::getInstance().triggerAttack();
+            }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_NORTH){
+                InputDispatcher::getInstance().triggerInteract();
             }
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST){
                 m_magicButtonActive =true;

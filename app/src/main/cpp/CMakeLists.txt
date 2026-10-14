@@ -104,6 +104,7 @@ set(MYAPP_SOURCES
         level/Fruits.cpp
         level/Traps.cpp
         level/Enemies.cpp
+        level/Interactables.cpp
         level/BackGroundBuilder.cpp
         level/ForeGroundBuilder.cpp
 

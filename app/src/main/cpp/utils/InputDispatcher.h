@@ -13,6 +13,7 @@ public:
     bool attack =false;
     bool heal =false;
     bool beaming =false;
+    bool interact =false;   // talk to / read the interactable in range (also advances an open dialog)
 
 private:
     bool m_jumpPressed =false;
@@ -26,6 +27,7 @@ public:
         attack =false;
         heal =false;
         beaming =false;
+        interact =false;
         m_jumpPressed =false;
     }
     void setInputReleased(bool shouldRelease){
@@ -61,6 +63,14 @@ public:
         bool prevHeal =heal;
         heal = false;
         return prevHeal;
+    }
+    void triggerInteract(){
+        interact=true;
+    }
+    bool consumeInteract(){
+        bool prevInteract =interact;
+        interact = false;
+        return prevInteract;
     }
     void setBeaming(bool shouldBeam){
         beaming=shouldBeam;

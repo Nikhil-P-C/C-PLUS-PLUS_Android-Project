@@ -12,6 +12,7 @@
 #include "level/ForeGroundBuilder.h"
 #include "level/Lights.h"
 #include "level/Enemies.h"
+#include "level/Interactables.h"
 #include <sstream>
 #include <filesystem>
 
@@ -55,6 +56,9 @@ public:
     const std::vector<ForeGroundElement>& getForeGroundElements(){
         return m_foreGroundElements;
     }
+    const std::vector<Interactable>& getInteractables(){
+        return m_interactables;
+    }
     const std::vector<Enemy>& getEnemies(){
         return m_enemies;
     }
@@ -96,6 +100,7 @@ private:
     void parseForeGround(std::istringstream& ss);
 
     void parseEnemy(std::istringstream& ss);
+    void parseInteractable(std::istringstream& ss);
 
     void parseTraps(std::istringstream& ss);//some traps have additional param trailing at end
 
@@ -120,6 +125,7 @@ private:
     std::vector<Trap> m_traps;
     std::vector<Block> m_blocks;
     std::vector<Enemy> m_enemies;
+    std::vector<Interactable> m_interactables;
     std::vector<BackGroundElement> m_backGroundElements;
     std::vector<ForeGroundElement> m_foreGroundElements;
     CheckPoint m_checkPoint;

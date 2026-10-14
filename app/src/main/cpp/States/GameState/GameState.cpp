@@ -36,6 +36,7 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
 
     //font loading
     m_font = TTF_OpenFontIO(m_fontFile, false, 36);
+    m_interactableBuilder.setFont(m_font);
     //background sprite loading;
     m_backGround = Engine::Get().getAssetManager().getTexture(TextureType::BG_SKY);
     // m_tileset loading
@@ -217,6 +218,7 @@ void GameState::render(SDL_Renderer* renderer)  {
     }
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
     m_enemyBuilder.render(m_renderer);
+    m_interactableBuilder.renderWorld(m_renderer);
 
     SDL_FRect dst = {m_player.x+m_player.spriteOffsetX-(float)camX,
                      m_player.y+m_player.spriteOffsetY-(float)camY,
@@ -345,6 +347,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                       m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY);
 
     renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
+    m_interactableBuilder.renderDialog(renderer);   // screen-space dialog box, on top of the world
 
     updateHurtAudio();              // wall-clock based: the audio also recovers while the pause menu is up
     if(m_hurtVignette > 0.0f){
@@ -431,6 +434,11 @@ void GameState::update(float dt){
         PlayerDetail::getInstance().addMagic(MAGIC_REGEN_PER_SEC * dt);   // no regen while channeling the beam
     }
     m_fruitBuilder.update(dt);
+
+    // interactables: open/advance dialogs, and hold the player still while one is open
+    if(InputDispatcher::getInstance().consumeInteract()) m_interactableBuilder.interact();
+    m_interactableBuilder.update(dt, SDL_FRect{m_player.x, m_player.y, m_player.w, m_player.h});
+    if(m_interactableBuilder.isDialogOpen()) InputDispatcher::getInstance().inputLogClear();
 
     m_previousY =m_player.y;
 
@@ -661,6 +669,14 @@ void GameState::update(float dt){
 
 bool GameState::handleEvents(SDL_Event& event) {
 //    if (m_transitioning)return true;
+
+    if(InputUtils::IsPointerDown(event)){
+        float px = 0.f, py = 0.f;
+        InputUtils::GetPointerPosition(event, m_renderer, px, py);
+        const int camX = (int)std::round(Camera::getInstance().getCamera().x);
+        const int camY = (int)std::round(Camera::getInstance().getCamera().y);
+        if(m_interactableBuilder.onPointerDown(px, py, camX, camY)) return true;
+    }
 
     if(InputUtils::IsBackKey(event)) {
         InputDispatcher::getInstance().setInputReleased(true);
@@ -1476,6 +1492,7 @@ void GameState::setLevel(int level) {
     m_fruitBuilder.init(m_fruits);
     m_trapBuilder.init(m_traps);
     m_enemyBuilder.init(m_enemies);
+    m_interactableBuilder.init(m_levelLoader.getInteractables());
     GroundShapeBuilder builder;
     m_wallShape = builder.build(m_grounds,TILE_SIZE,(int)SCALE);
     m_backgroundBuilder.init(m_backgroundElements);

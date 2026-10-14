@@ -18,6 +18,9 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_jumpButtonTexture, nullptr, &jumpButtonDst);
     SDL_RenderTexture(renderer, m_leftButtonTexture, nullptr, &leftButtonDst);
     SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
+    // up = the left arrow rotated 90 degrees clockwise
+    SDL_FRect upButtonDst{m_UpButton.x, m_UpButton.y, m_UpButton.w, m_UpButton.h};
+    SDL_RenderTextureRotated(renderer, m_leftButtonTexture, nullptr, &upButtonDst, 90.0, nullptr, SDL_FLIP_NONE);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
     SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
 
@@ -36,6 +39,10 @@ void ButtonOverlay::update(float dt) {
     if(m_attackFingerActive){
         InputDispatcher::getInstance().triggerAttack();
         m_attackFingerActive =false;
+    }
+    if(m_upPressed){
+        InputDispatcher::getInstance().triggerInteract();   // talk to / read the interactable, advance a dialog
+        m_upPressed =false;
     }
 
     if(m_magicFingerActive){
@@ -107,6 +114,10 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
 
             m_jumpFingerID = event.tfinger.fingerID;
             m_jumpFingerActive=true;
+        }
+        if(touchX > m_UpButton.x && touchX < m_UpButton.x + m_UpButton.w &&
+           touchY > m_UpButton.y && touchY < m_UpButton.y + m_UpButton.h){
+            m_upPressed = true;
         }
         if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
             touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){

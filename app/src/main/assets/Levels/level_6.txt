@@ -27,6 +27,8 @@ E 1950.00 600.00 SHAFTS_RAPTOR 1800.00 2100.00 110.00
 E 2350.00 470.00 GIANT_BATS 2200.00 2500.00 90.00 AERIAL
 E 2700.00 600.00 SHAFTS_WORKER 2550.00 2800.00 110.00
 
+I 300.00 560.00 64.00 208.00 GUIDE Welcome to the Wooden shaft test level. Press E (or tap the bubble) to talk.|Enemies here, shortest attack first: SHAFTS_RAPTOR bite/slash, GIANT_BATS bite/slash, SHAFTS_WORKER slash/projectile.|Stand at different distances and watch which attack rect each one picks.
+
 C 2900.00 440.00 256.00 256.00 NO_FLAG
 
 X 0.00 0.00 1600.00 720.00 0.00 0.00 false CAVE_SKY

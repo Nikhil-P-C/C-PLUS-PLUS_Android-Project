@@ -22,6 +22,7 @@ private:
     Button m_JumpButton{1400,400,100,100};
     Button m_LeftButton{200 ,400,100,100};
     Button m_RightButton{300,400,100,100};
+    Button m_UpButton{250,290,100,100};      // above left/right; the left arrow texture rotated to point up
     Button m_CrouchButton{1400,600,100,100};
     Button m_AttackButton{1450,300,100,100};
     Button m_MagicButton{1300,300,100,100};
@@ -42,6 +43,7 @@ private:
     bool m_jumpFingerActive = false;
     bool m_dFingerActive = false;
     bool m_attackFingerActive = false;
+    bool m_upPressed = false;                // up button tapped: fires one interact on the next update
     bool m_magicFingerActive = false;
     bool m_magicBeamStarted = false;       // true once the hold has crossed the threshold
     uint32_t m_magicPressStartTime = 0;

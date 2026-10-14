@@ -32,6 +32,10 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             InputDispatcher::getInstance().setJump(true);
             return true;
         }
+        if(event.key.key == SDLK_E || event.key.key == SDLK_W){   // W = "up" = interact (E still works too)
+            if(!event.key.repeat) InputDispatcher::getInstance().triggerInteract();
+            return true;
+        }
         if(event.key.key == SDLK_K){
             InputDispatcher::getInstance().triggerAttack();
             return true;
