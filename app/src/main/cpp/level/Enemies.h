@@ -104,6 +104,21 @@ enum class AttackType{
     SHOOT,
     NONE,
 };
+
+// Reach ordering that holds for EVERY enemy (each enemy only picks its own pixel values):
+//   bite < slash < dash < shoot < beam < projectile
+// The enum order above is used as a table key, so the ordering lives here instead.
+inline int attackRank(AttackType t){
+    switch(t){
+        case AttackType::BITE:       return 0;
+        case AttackType::SLASH:      return 1;
+        case AttackType::DASH:       return 2;
+        case AttackType::SHOOT:      return 3;
+        case AttackType::BEAM:       return 4;
+        case AttackType::PROJECTILE: return 5;
+        default:                     return 99;
+    }
+}
 struct EnemyFrameInfo{
     TextureType texture;
     int frameW, frameH;
@@ -120,8 +135,11 @@ struct EnemyAIConfig {
     float attackRange;
     unsigned int attackCooldownMs;
 
+    // The two attacks this enemy owns and the pixel reach of each. getEnemyAIConfig() sorts them by
+    // attackRank() and forces attackRanges to be strictly increasing, so [0] is always the shorter-reach
+    // attack. updateAI picks the shortest attack that currently reaches the player.
     AttackType attacks[2];        // e.g. {BITE, DASH} for MOSS_BAT
-    float attackRanges[2];        // range each attack triggers at
+    float attackRanges[2];        // pixel reach of each attack (box length in front of the enemy)
 };
 
 const EnemyAIConfig* getEnemyAIConfig(EnemyType type);
@@ -147,7 +165,7 @@ struct Enemy{
 
     EnemyType type = EnemyType::NONE;
     EnemyAction action =EnemyAction::NONE;
-    AttackType attackType =AttackType::NONE;
+    AttackType attackType =AttackType::NONE;   // attack in use: chosen by updateAI each time an attack starts (ctor value is only the initial one)
     combatType combat =combatType::GROUND;
 
     int hp = 50;
@@ -274,6 +292,11 @@ public:
     SDL_FRect getSpriteRect(const Enemy& e) const;
 
 private:
+    void renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& e, int camX, int camY) const;
+
+    // placeholder rects for every attack type (wind-up outline, then filled while the hitbox is live)
+    void renderAttackPlaceholders(SDL_Renderer* renderer, int camX, int camY) const;
+
     // sprite rect in world space: bottom-centre of the frame is anchored to the bottom-centre
     // of the hitbox, so changing sheet/frame size or flipping never shifts the enemy.
     SDL_FRect getEnemyRenderedRect(const Enemy& enemy, const EnemyFrameInfo& info) const;

@@ -45,6 +45,11 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'T':
             parseTraps(stream);
             break;
+        case 'E':
+            parseEnemy(stream);
+            break;
+        case '#':
+            break;   // comment line
         case 'C':
             parseCheckPoint(stream);
             break;
@@ -288,6 +293,33 @@ void LevelLoader::parseTraps(std::istringstream& ss) {
     m_traps.push_back(trap);
 }
 
+// E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]
+//   x y            spawn position (world px). Ground enemies fall onto the floor, aerial ones hover at y
+//   pathStartX/End the horizontal patrol line (px); x should lie between them
+//   speed          patrol/chase speed in px/s
+//   AERIAL         optional: flies (no gravity) instead of walking
+// The enemy's starting attack is just its shortest-reach one; updateAI picks per attack from there.
+void LevelLoader::parseEnemy(std::istringstream& ss) {
+    float x = 0.f, y = 0.f, startPath = 0.f, endPath = 0.f, speed = 0.f;
+    std::string typeStr;
+    ss >> x >> y >> typeStr >> startPath >> endPath >> speed;
+    if(ss.fail()){
+        LOGE("Malformed enemy (E) line: failed parsing fixed fields");
+        return;
+    }
+    EnemyType type = toEnemyType(typeStr);
+    if(type == EnemyType::NONE) return;
+
+    combatType combat = combatType::GROUND;
+    std::string mode;
+    if(ss >> mode && mode == "AERIAL") combat = combatType::AERIAL;
+
+    const EnemyAIConfig* cfg = getEnemyAIConfig(type);
+    AttackType attack = cfg ? cfg->attacks[0] : AttackType::NONE;
+    m_enemies.emplace_back(x, y, type, EnemyAction::PATROL, attack, startPath, endPath, speed,
+                           PathAxis::HORIZONTAL, PathShape::LINE, 0.0f, combat);
+}
+
 void LevelLoader::parseSawTail(std::istringstream& ss,Trap& trap) {
     float radius;
     bool showChain;
@@ -381,6 +413,7 @@ void LevelLoader::parseLight(std::istringstream& ss) {
 
 void LevelLoader::loadLevel(int level) {
     m_lights.clear();
+    m_enemies.clear();
     m_ambient = LevelAmbient{};
     m_hasSpawn = false;
     std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");

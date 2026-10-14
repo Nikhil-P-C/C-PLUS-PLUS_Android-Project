@@ -128,7 +128,7 @@ TransitionState::TransitionState(SDL_Renderer *renderer, int level) {
     this->Name = "Transition";
     m_renderer = renderer;
     m_level = level;
-    if(level > 3)
+    if(level > LAST_LEVEL)
         m_level =0;
     m_lastTime = SDL_GetTicks();
 

@@ -143,6 +143,38 @@ namespace {
         return it->second;
     }
 
+    EnemyType toEnemyType(std::string_view stringEnemyType){
+        static const std::unordered_map<std::string_view ,EnemyType> map{
+                {"SPIDER_CHILD",EnemyType::SPIDER_CHILD},
+                {"MOSS_GLOW_WORM",EnemyType::MOSS_GLOW_WORM},
+                {"MOSS_BAT",EnemyType::MOSS_BAT},
+                {"SINNERS_CHILD",EnemyType::SINNERS_CHILD},
+                {"CAVE_PREDATOR",EnemyType::CAVE_PREDATOR},
+                {"CAVE_RAT",EnemyType::CAVE_RAT},
+                {"SHAFTS_RAPTOR",EnemyType::SHAFTS_RAPTOR},
+                {"GIANT_BATS",EnemyType::GIANT_BATS},
+                {"SHAFTS_WORKER",EnemyType::SHAFTS_WORKER},
+                {"ANKYLOSAURUS_CHILD",EnemyType::ANKYLOSAURUS_CHILD},
+                {"HUNTER_RAPTOR",EnemyType::HUNTER_RAPTOR},
+                {"HUNTER_EAGLE",EnemyType::HUNTER_EAGLE},
+                {"PREDATOR_THEROPOD",EnemyType::PREDATOR_THEROPOD},
+                {"THEROPOD_CHILD",EnemyType::THEROPOD_CHILD},
+                {"PREDATOR_CAT",EnemyType::PREDATOR_CAT},
+                {"MOUNTAIN_CAT",EnemyType::MOUNTAIN_CAT},
+                {"CROCODYLOMORPH",EnemyType::CROCODYLOMORPH},
+                {"TARBOSAURUS_CHILD",EnemyType::TARBOSAURUS_CHILD},
+                {"TYRANNOSAURUS_REX_CHILD",EnemyType::TYRANNOSAURUS_REX_CHILD},
+                {"ALBERTOSAURUS",EnemyType::ALBERTOSAURUS},
+                {"DASPELTOSAURUS",EnemyType::DASPELTOSAURUS}
+        };
+        const auto& it = map.find(stringEnemyType);
+        if(it == map.end()){
+            logUnknownToken("enemyType",stringEnemyType);
+            return EnemyType::NONE;
+        }
+        return it->second;
+    }
+
     TrapType toTrapType(std::string_view stringTrapType){
         static const std::unordered_map<std::string_view ,TrapType> map{
                 {"FALLING_PLATFORM",TrapType::FALLING_PLATFORM},

@@ -116,13 +116,13 @@ void DebugState::render(SDL_Renderer *renderer) {
 
         const EnemyAIConfig* cfg = getEnemyAIConfig(enemy.type);
         if(cfg){
-            float range = cfg->attackRange;
-            for(int i = 0; i < 2; ++i)
-                if(cfg->attacks[i] == enemy.attackType) range = cfg->attackRanges[i];
-            SDL_FRect reach = EnemiesBuilder::getAttackBox(enemy, range);
-            SDL_FRect reachBorder{reach.x-camX,reach.y-camY,reach.w,reach.h};
-            SDL_SetRenderDrawColor(renderer,255,140,0,255);
-            SDL_RenderRect(renderer,&reachBorder);
+            // reach of both of this enemy's attacks (shorter = inner box)
+            for(int i = 0; i < 2; ++i){
+                SDL_FRect reach = EnemiesBuilder::getAttackBox(enemy, cfg->attackRanges[i]);
+                SDL_FRect reachBorder{reach.x-camX,reach.y-camY,reach.w,reach.h};
+                SDL_SetRenderDrawColor(renderer,255,140,0,255);
+                SDL_RenderRect(renderer,&reachBorder);
+            }
         }
 
         if(enemy.isAttackBoxActive){

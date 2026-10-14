@@ -1454,6 +1454,7 @@ void GameState::setLevel(int level) {
     m_levelWalls.clear();
     m_traps.clear();
     m_fruits.clear();
+    m_enemies.clear();
     m_backgroundElements.clear();
     m_foregroundElements.clear();
 
@@ -1466,6 +1467,7 @@ void GameState::setLevel(int level) {
     m_grounds =m_levelLoader.getLevelGrounds();
     m_fruits =m_levelLoader.getFruits();
     m_traps =m_levelLoader.getTraps();
+    m_enemies =m_levelLoader.getEnemies();
     m_backgroundElements = m_levelLoader.getBackGroundElements();
     m_foregroundElements = m_levelLoader.getForeGroundElements();
     m_wallCollisionRect=m_levelLoader.getWallCollisionRect();

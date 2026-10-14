@@ -26,15 +26,11 @@ namespace {
     }
 }
 
+// Enemies come from the level file now ('E' lines, see LevelLoader::parseEnemy) - they used to be hardcoded here.
 void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
-    m_enemies.clear();   // init() used to append, so calling it twice duplicated every enemy
-    m_enemies.emplace_back(700.0f,600.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::SLASH,
-                           64.00f,600.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
-    m_enemies.emplace_back(1000.0f,600.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::SLASH,
-                           700.00f,1000.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
-    m_enemies.emplace_back(3000.0f,600.0f,EnemyType::SINNERS_CHILD,EnemyAction::PATROL,AttackType::SLASH,
-                           1300.00f,3000.00f,250.00f,PathAxis::HORIZONTAL,PathShape::LINE);
-
+    m_enemies = enemies;
+    m_hitEvents.clear();
+    m_deathEvents.clear();
 }
 
 // Every action change goes through here. Before, `enemy.action = X` left aniStartFrame / aniDone
@@ -88,7 +84,7 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
             placeholderCorpse = true;
         }
         if(info == nullptr) {
-            LOGI("enemy info null");
+            renderPlaceholderBody(renderer, enemy, camX, camY);   // no frame-table row at all
             continue;
         }
         if(!texture && enemy.action == EnemyAction::ATTACK){
@@ -101,7 +97,7 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
             }
         }
         if(!texture){
-            LOGI("null texture");
+            renderPlaceholderBody(renderer, enemy, camX, camY);   // art not loaded yet: draw the hitbox so the enemy is visible
             continue;
         }
 
@@ -130,6 +126,80 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
             SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
         }
     }
+    renderAttackPlaceholders(renderer, camX, camY);   // separate pass so enemies with missing art still show their attacks
+}
+
+// Stand-in body for enemies whose sprite sheet isn't loaded: a filled hitbox rect coloured by biome, with a
+// small nub on the front edge so you can see which way it faces.
+void EnemiesBuilder::renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& e, int camX, int camY) const {
+    Uint8 r = 200, g = 200, b = 200;
+    switch(e.type){
+        case EnemyType::SPIDER_CHILD: case EnemyType::MOSS_GLOW_WORM: case EnemyType::MOSS_BAT:
+            r = 70;  g = 190; b = 110; break;                       // moss cave
+        case EnemyType::SINNERS_CHILD: case EnemyType::CAVE_PREDATOR: case EnemyType::CAVE_RAT:
+            r = 150; g = 150; b = 170; break;                       // stone cave
+        case EnemyType::SHAFTS_RAPTOR: case EnemyType::GIANT_BATS: case EnemyType::SHAFTS_WORKER:
+            r = 170; g = 120; b = 70;  break;                       // wooden shaft
+        case EnemyType::ANKYLOSAURUS_CHILD: case EnemyType::HUNTER_RAPTOR: case EnemyType::HUNTER_EAGLE:
+            r = 210; g = 200; b = 80;  break;                       // plains
+        case EnemyType::PREDATOR_THEROPOD: case EnemyType::THEROPOD_CHILD: case EnemyType::PREDATOR_CAT:
+            r = 40;  g = 130; b = 60;  break;                       // woods
+        case EnemyType::MOUNTAIN_CAT: case EnemyType::CROCODYLOMORPH: case EnemyType::TARBOSAURUS_CHILD:
+            r = 110; g = 150; b = 210; break;                       // mountain
+        case EnemyType::TYRANNOSAURUS_REX_CHILD: case EnemyType::ALBERTOSAURUS: case EnemyType::DASPELTOSAURUS:
+            r = 220; g = 80;  b = 80;  break;                       // peak
+        default: break;
+    }
+    Uint8 a = 220;
+    if(e.isDead){ r = g = b = 90; a = 120; }
+    else if(e.isHurt || SDL_GetTicks() < e.whiteFlashEndTime){ r = 255; g = 120; b = 120; }
+
+    SDL_BlendMode prevBlend = SDL_BLENDMODE_NONE;
+    SDL_GetRenderDrawBlendMode(renderer, &prevBlend);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_FRect body{e.x - camX, e.y - camY, e.w, e.h};
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    SDL_RenderFillRect(renderer, &body);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderRect(renderer, &body);
+    SDL_FRect nub{e.isFacingRight ? body.x + body.w - 8.0f : body.x, body.y + 12.0f, 8.0f, 8.0f};
+    SDL_RenderFillRect(renderer, &nub);
+    SDL_SetRenderDrawBlendMode(renderer, prevBlend);
+}
+
+// One placeholder rect per attack, drawn from the real hitbox (what you see is what hurts):
+//   wind-up (animation playing, hitbox not live yet) = outline only
+//   live window                                       = filled + solid outline
+// colour = attack type: BITE red, SLASH orange, DASH yellow, SHOOT green, BEAM cyan, PROJECTILE purple
+void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, int camY) const {
+    SDL_BlendMode prevBlend = SDL_BLENDMODE_NONE;
+    SDL_GetRenderDrawBlendMode(renderer, &prevBlend);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    for(const auto& e : m_enemies){
+        if(e.isDead || e.action != EnemyAction::ATTACK || e.attackHasHit || e.aniDone) continue;
+
+        Uint8 r = 255, g = 255, b = 255;
+        switch(e.attackType){
+            case AttackType::BITE:       r = 255; g =  60; b =  60; break;
+            case AttackType::SLASH:      r = 255; g = 160; b =  40; break;
+            case AttackType::DASH:       r = 255; g = 230; b =  60; break;
+            case AttackType::SHOOT:      r =  80; g = 220; b = 120; break;
+            case AttackType::BEAM:       r =  60; g = 200; b = 255; break;
+            case AttackType::PROJECTILE: r = 190; g = 100; b = 255; break;
+            default: break;
+        }
+        SDL_FRect box{e.attackHitBox.x - camX, e.attackHitBox.y - camY, e.attackHitBox.w, e.attackHitBox.h};
+        if(e.isAttackBoxActive){
+            SDL_SetRenderDrawColor(renderer, r, g, b, 150);
+            SDL_RenderFillRect(renderer, &box);
+            SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, r, g, b, 120);
+        }
+        SDL_RenderRect(renderer, &box);
+    }
+    SDL_SetRenderDrawBlendMode(renderer, prevBlend);
 }
 
 // 0 hp. The enemy stays exactly where it is: AI, attacks and damage stop, the DEAD animation plays once
@@ -498,6 +568,20 @@ namespace {
             if(cfg->attacks[i] == t) return cfg->attackRanges[i];
         return cfg->attackRange;
     }
+    // is the player overlapping the box an attack of this reach would occupy (in front of the enemy)?
+    bool playerInReach(const Enemy& e, const SDL_FRect& p, float range){
+        SDL_FRect r = EnemiesBuilder::getAttackBox(e, range);
+        return r.x < p.x + p.w && r.x + r.w > p.x && r.y < p.y + p.h && r.y + r.h > p.y;
+    }
+    // Pick the attack for the current distance. cfg->attacks is sorted shortest-reach first, so the
+    // first one that reaches the player is the shortest that works: close = bite/slash, far = the
+    // long one. NONE = nothing reaches yet, keep closing in.
+    AttackType chooseAttack(const Enemy& e, const EnemyAIConfig* cfg, const SDL_FRect& p){
+        for(int i = 0; i < 2; ++i)
+            if(cfg->attacks[i] != AttackType::NONE && playerInReach(e, p, cfg->attackRanges[i]))
+                return cfg->attacks[i];
+        return AttackType::NONE;
+    }
 }
 
 void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
@@ -546,18 +630,11 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                              ? std::fabs(enemy.x - enemy.baseX)
                              : std::sqrt((enemy.x-enemy.baseX)*(enemy.x-enemy.baseX) + (enemy.y-enemy.baseY)*(enemy.y-enemy.baseY));
 
-            // Attack only when the player is actually inside the box the attack would occupy
-            // (in front of the enemy, atkRange long, body height). Ranged attackers keep the
-            // old distance trigger since their damage doesn't come from this box.
-            bool inReach;
-            if(isRangedAttack(enemy.attackType)){
-                inReach = distToPlayer <= atkRange;
-            } else {
-                SDL_FRect reach = getAttackBox(enemy, atkRange);
-                inReach = reach.x < player.x + player.w && reach.x + reach.w > player.x &&
-                          reach.y < player.y + player.h && reach.y + reach.h > player.y;
-            }
-            if(inReach && now >= enemy.nextAttackTime){
+            // Pick the attack that fits the current distance (shortest one that reaches). Every attack,
+            // ranged or not, is a box `range` long in front of the enemy, so one overlap test covers all.
+            const AttackType pick = chooseAttack(enemy, cfg, player);
+            if(pick != AttackType::NONE && now >= enemy.nextAttackTime){
+                enemy.attackType = pick;                 // before setAction so the ATTACK sheet/range are the right ones
                 setAction(enemy, EnemyAction::ATTACK);   // cooldown is enforced here, not just on the damage
                 break;
             }
@@ -570,14 +647,14 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                 // Close the gap horizontally and stop at the edge of the player's box - never walk
                 // into or over the player. If the player is on another level (no vertical overlap)
                 // the enemy still stops at the same standoff distance instead of stacking under them.
-                const float stopGap = atkRange * ENEMY_CHASE_STOP_FRACTION;
+                const float stopGap = cfg->attackRanges[0] * ENEMY_CHASE_STOP_FRACTION;   // close in to the SHORTEST attack's reach (bite/slash), longer attacks fire on the way
                 if(gapX > stopGap){
                     float step = std::min(enemy.movingSpeed * dt, gapX - stopGap);
                     float nextX = enemy.x + (dx > 0 ? step : -step);
                     if(isHorizontalPathClear(enemy, nextX, wallCollisionRect, blocks))
                         enemy.x = nextX;
                 }
-            } else if(!inReach){
+            } else if(!playerInReach(enemy, player, cfg->attackRanges[0])){
                 moveToward(enemy, player.x, player.y, enemy.movingSpeed, dt);
             }
             break;
@@ -973,30 +1050,55 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
     return it != table.end() ? &it->second : nullptr;
 }
 
+namespace {
+    // Enforces the reach ordering bite < slash < dash < shoot < beam < projectile on every config:
+    // attacks sorted by rank, ranges strictly increasing, and the aggro radii wide enough that the
+    // longest attack can actually be used (an attack longer than detectRadius would never fire).
+    void normalizeAIConfig(EnemyAIConfig& c){
+        if(attackRank(c.attacks[0]) > attackRank(c.attacks[1])){
+            std::swap(c.attacks[0], c.attacks[1]);
+            std::swap(c.attackRanges[0], c.attackRanges[1]);
+        }
+        c.attackRanges[0] = std::max(c.attackRanges[0], 1.0f);
+        if(c.attackRanges[1] <= c.attackRanges[0]) c.attackRanges[1] = c.attackRanges[0] + 20.0f;
+        c.attackRange  = c.attackRanges[0];
+        c.detectRadius = std::max(c.detectRadius, c.attackRanges[1] + 40.0f);
+        c.loseRadius   = std::max(c.loseRadius,   c.detectRadius + 100.0f);
+        c.leashRadius  = std::max(c.leashRadius,  c.loseRadius + 100.0f);
+    }
+}
+
+// {detect, lose, leash, (default range, overwritten), cooldownMs, {attackA, attackB}, {rangeA, rangeB}}
+// Ranges are per enemy (pixels, box length in front of the enemy). Order inside the pair doesn't matter -
+// normalizeAIConfig() sorts them bite < slash < dash < shoot < beam < projectile.
 const EnemyAIConfig* getEnemyAIConfig(EnemyType type) {
-    static const std::unordered_map<EnemyType, EnemyAIConfig> table{
-            {EnemyType::SPIDER_CHILD, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SHOOT},{60.f,40.f}}},
-            {EnemyType::MOSS_GLOW_WORM, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::DASH},{60.f,40.f}}},
-            {EnemyType::MOSS_BAT, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::SINNERS_CHILD, {300.f,400.f,500.f,60.f,1500u,{AttackType::SLASH,AttackType::BEAM},{60.f,40.f}}},
-            {EnemyType::CAVE_PREDATOR, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::CAVE_RAT, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::DASH},{60.f,40.f}}},
-            {EnemyType::SHAFTS_RAPTOR, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::GIANT_BATS, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::SHAFTS_WORKER, {300.f,400.f,500.f,60.f,1500u,{AttackType::SLASH,AttackType::PROJECTILE},{60.f,40.f}}},
-            {EnemyType::ANKYLOSAURUS_CHILD, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::HUNTER_RAPTOR, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::HUNTER_EAGLE, {300.f,400.f,500.f,60.f,1500u,{AttackType::SLASH,AttackType::DASH},{60.f,40.f}}},
-            {EnemyType::PREDATOR_THEROPOD, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::THEROPOD_CHILD, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::PREDATOR_CAT, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::MOUNTAIN_CAT, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::DASH},{60.f,40.f}}},
-            {EnemyType::CROCODYLOMORPH, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::TARBOSAURUS_CHILD, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::DASH},{60.f,40.f}}},
-            {EnemyType::TYRANNOSAURUS_REX_CHILD, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::BEAM},{60.f,40.f}}},
-            {EnemyType::ALBERTOSAURUS, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-            {EnemyType::DASPELTOSAURUS, {300.f,400.f,500.f,60.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,40.f}}},
-    };
+    static const std::unordered_map<EnemyType, EnemyAIConfig> table = []{
+        std::unordered_map<EnemyType, EnemyAIConfig> t{
+                {EnemyType::SPIDER_CHILD,            {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SHOOT},{40.f,240.f}}},
+                {EnemyType::MOSS_GLOW_WORM,          {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{45.f,130.f}}},
+                {EnemyType::MOSS_BAT,                {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{40.f,70.f}}},
+                {EnemyType::SINNERS_CHILD,           {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::BEAM},{60.f,320.f}}},
+                {EnemyType::CAVE_PREDATOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,85.f}}},
+                {EnemyType::CAVE_RAT,                {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{40.f,140.f}}},
+                {EnemyType::SHAFTS_RAPTOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,90.f}}},
+                {EnemyType::GIANT_BATS,              {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{55.f,95.f}}},
+                {EnemyType::SHAFTS_WORKER,           {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::PROJECTILE},{75.f,400.f}}},
+                {EnemyType::ANKYLOSAURUS_CHILD,      {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,80.f}}},
+                {EnemyType::HUNTER_RAPTOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,90.f}}},
+                {EnemyType::HUNTER_EAGLE,            {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::DASH},{80.f,170.f}}},
+                {EnemyType::PREDATOR_THEROPOD,       {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{55.f,95.f}}},
+                {EnemyType::THEROPOD_CHILD,          {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,80.f}}},
+                {EnemyType::PREDATOR_CAT,            {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,85.f}}},
+                {EnemyType::MOUNTAIN_CAT,            {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{45.f,160.f}}},
+                {EnemyType::CROCODYLOMORPH,          {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,100.f}}},
+                {EnemyType::TARBOSAURUS_CHILD,       {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{55.f,150.f}}},
+                {EnemyType::TYRANNOSAURUS_REX_CHILD, {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::BEAM},{60.f,360.f}}},
+                {EnemyType::ALBERTOSAURUS,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,105.f}}},
+                {EnemyType::DASPELTOSAURUS,          {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{60.f,105.f}}},
+        };
+        for(auto& kv : t) normalizeAIConfig(kv.second);
+        return t;
+    }();
     auto it = table.find(type);
     return it != table.end() ? &it->second : nullptr;
 }

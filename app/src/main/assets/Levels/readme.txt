@@ -14,3 +14,9 @@ D darkness [playerRadius playerSoftness]
 L x y radius r g b intensity [flicker] [visible]
     light object in world pixels. r g b = 0..255, intensity 0..1, flicker 0..1 (torch wobble), visible 0/1 (glowing core)
     example:  L 600 430 420 255 170 90 1.0 0.35 1
+
+E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]
+    enemy that patrols the horizontal line pathStartX..pathEndX (x should be between them) at speed px/s.
+    ground enemies fall onto the floor from y, AERIAL ones fly and hover at y. ENEMY_TYPE = any EnemyType name
+    (SPIDER_CHILD, CAVE_RAT, HUNTER_EAGLE, ...). Each enemy picks its attack by distance (see Enemies.cpp).
+    example:  E 1200 600 CAVE_RAT 1000 1500 120

@@ -11,11 +11,15 @@
 #include "level/BackGroundBuilder.h"
 #include "level/ForeGroundBuilder.h"
 #include "level/Lights.h"
+#include "level/Enemies.h"
 #include <sstream>
 #include <filesystem>
 
 
 #define LOG_TAG "LevelLoader"
+
+// highest level_N.txt that exists; TransitionState wraps back to level 0 after this one
+constexpr int LAST_LEVEL = 10;
 
 class LevelLoader{
 public:
@@ -50,6 +54,9 @@ public:
     }
     const std::vector<ForeGroundElement>& getForeGroundElements(){
         return m_foreGroundElements;
+    }
+    const std::vector<Enemy>& getEnemies(){
+        return m_enemies;
     }
     CheckPoint getCheckPoint(){
         return m_checkPoint;
@@ -88,6 +95,8 @@ private:
 
     void parseForeGround(std::istringstream& ss);
 
+    void parseEnemy(std::istringstream& ss);
+
     void parseTraps(std::istringstream& ss);//some traps have additional param trailing at end
 
     void parseSawTail(std::istringstream& ss,Trap& trap);
@@ -110,6 +119,7 @@ private:
     std::vector<Fruit> m_fruits;
     std::vector<Trap> m_traps;
     std::vector<Block> m_blocks;
+    std::vector<Enemy> m_enemies;
     std::vector<BackGroundElement> m_backGroundElements;
     std::vector<ForeGroundElement> m_foreGroundElements;
     CheckPoint m_checkPoint;
