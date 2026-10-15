@@ -87,6 +87,8 @@ public:
     bool ok() const { return m_font != nullptr; }
     // anti-aliased white text, tint it with SDL_SetTextureColorMod. Caller owns the texture.
     SDL_Texture* render(SDL_Renderer* renderer, const char* text, int size = 0);
+    // pixel size of `text` at `size` without rendering it (word-wrapping, centring). false if the font isn't loaded
+    bool measure(const char* text, int size, int& w, int& h);
 private:
     SDL_IOStream* m_io = nullptr;
     TTF_Font* m_font = nullptr;

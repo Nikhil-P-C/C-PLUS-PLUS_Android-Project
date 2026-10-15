@@ -134,6 +134,13 @@ SDL_Texture* MenuFont::render(SDL_Renderer* renderer, const char* text, int size
     return t;
 }
 
+bool MenuFont::measure(const char* text, int size, int& w, int& h) {
+    w = h = 0;
+    if (!m_font || !text) return false;
+    if (size > 0 && size != m_size) { TTF_SetFontSize(m_font, static_cast<float>(size)); m_size = size; }
+    return TTF_GetStringSize(m_font, text, 0, &w, &h);
+}
+
 void MenuLabel::set(SDL_Renderer* renderer, MenuFont& font, const char* text, int fontSize) {
     reset();
     tex = font.render(renderer, text, fontSize);
