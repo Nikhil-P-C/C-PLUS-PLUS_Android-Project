@@ -18,14 +18,23 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_jumpButtonTexture, nullptr, &jumpButtonDst);
     SDL_RenderTexture(renderer, m_leftButtonTexture, nullptr, &leftButtonDst);
     SDL_RenderTexture(renderer, m_rightButtonTexture, nullptr, &rightButtonDst);
-    // up = the left arrow rotated 90 degrees clockwise
+    // up / down have their own art now
     SDL_FRect upButtonDst{m_UpButton.x, m_UpButton.y, m_UpButton.w, m_UpButton.h};
-    SDL_RenderTextureRotated(renderer, m_leftButtonTexture, nullptr, &upButtonDst, 90.0, nullptr, SDL_FLIP_NONE);
-    // down = the left arrow rotated 90 degrees counter-clockwise
+    SDL_RenderTexture(renderer, m_upButtonTexture, nullptr, &upButtonDst);
     SDL_FRect downButtonDst{m_DownButton.x, m_DownButton.y, m_DownButton.w, m_DownButton.h};
-    SDL_RenderTextureRotated(renderer, m_leftButtonTexture, nullptr, &downButtonDst, -90.0, nullptr, SDL_FLIP_NONE);
+    SDL_RenderTexture(renderer, m_downButtonTexture, nullptr, &downButtonDst);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
     SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
+
+    // dash button: placeholder rect until the art exists
+    {
+        Uint8 r, g, b, a;
+        SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+        SDL_FRect dashButtonDst{m_DashButton.x, m_DashButton.y, m_DashButton.w, m_DashButton.h};
+        SDL_SetRenderDrawColor(renderer, 80, 200, 255, 255);
+        SDL_RenderRect(renderer, &dashButtonDst);
+        SDL_SetRenderDrawColor(renderer, r, g, b, a);
+    }
 
 //    SDL_FRect crouchButtonDst{m_CrouchButton.x, m_CrouchButton.y, m_CrouchButton.w, m_CrouchButton.h};
 //    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
@@ -131,6 +140,10 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
             m_downFingerID = event.tfinger.fingerID;
             m_downFingerActive = true;
         }
+        if(touchX > m_DashButton.x && touchX < m_DashButton.x + m_DashButton.w &&
+           touchY > m_DashButton.y && touchY < m_DashButton.y + m_DashButton.h){
+            InputDispatcher::getInstance().triggerDash();   // one-shot, fired from the event so a fast tap isn't lost
+        }
         if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
             touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
 
@@ -201,6 +214,8 @@ ButtonOverlay::ButtonOverlay(SDL_Renderer *renderer) {
     m_jumpButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_JUMP_BUTTON);
     m_leftButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_LEFT_BUTTON);
     m_rightButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_RIGHT_BUTTON);
+    m_upButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_UP_BUTTON);
+    m_downButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_DOWN_BUTTON);
     m_slashButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_SLASH_BUTTON);
     m_magicButtonTexture =Engine::Get().getAssetManager().getTexture(TextureType::BUTTON_MAGIC_BUTTON);
 }

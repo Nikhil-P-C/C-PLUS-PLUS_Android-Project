@@ -490,6 +490,7 @@ void GameState::update(float dt){
     {
         // slammed into a wall/block at speed: dust puff + small shake, once per impact
         const float push = xBeforeCollision - m_player.x;      // >0 = shoved left (wall on the right)
+        if(m_isDashing && std::fabs(push) > 1.0f) endDash();   // ran into a wall: the lunge is over
         if(std::fabs(push) > 1.0f){
             if(!m_wallBump && speedBeforeCollision >= 350.0f){
                 m_wallBump = true;
@@ -699,6 +700,7 @@ void GameState::update(float dt){
 
     if(m_isGrounded){
         m_jumpsUsed = 0;
+        m_dashUsed = false;   // dash refills on the ground (and on a pogo, see startPogo)
     }
     else if(m_jumpsUsed == 0 && m_coyoteTimer <= 0.0f){
         m_jumpsUsed = 1;   // coyote window over: the first jump is gone, only the air jump is left
@@ -893,11 +895,21 @@ void GameState::applyRecoilY(float dirY, float speed) {
     m_knockbackEndTime = now + 120;
 }
 
+void GameState::endDash() {
+    if(!m_isDashing) return;
+    m_isDashing = false;
+    m_dashTimer = 0.0f;
+    m_dashCooldown = DASH_COOLDOWN_S;
+    m_velocityX = 0.0f;   // hand control back to the normal move input
+}
+
 void GameState::startPogo() {
     m_velocityY = -POGO_VELOCITY;
     m_jumpCutEligible = false;   // pogo is a fixed-height bounce, releasing jump must not shorten it
     m_isGrounded = false;
     m_pogoId = m_attackId;
+    endDash();
+    m_dashUsed = false;      // pogo refills the dash
     // like a trampoline: counts as the first jump, so one air jump is still available afterwards
     m_jumpsUsed = 1;
     m_jumpBufferTimer = 0.0f;
@@ -1084,6 +1096,7 @@ void GameState::startPlayerDeath() {
     m_playerHitBox = {0.0f,0.0f,0.0f,0.0f};
     m_isDoubleJumping = false;
     m_doubleJumpFrame = 0;
+    endDash();
     m_velocityX = 0.0f;
     m_velocityY = 0.0f;
     m_knockbackEndTime = 0;
@@ -1098,6 +1111,7 @@ void GameState::updateDeath(float dt) {
     InputDispatcher::getInstance().consumeJumpPressed();
     InputDispatcher::getInstance().consumeAttack();
     InputDispatcher::getInstance().consumeHeal();
+    InputDispatcher::getInstance().consumeDash();
 
     if(m_deathTimer >= PLAYER_DEATH_FREEZE_S){
         if(!m_deathPopped){
@@ -1174,6 +1188,9 @@ void GameState::respawnPlayer() {
     m_velocityY = 0.0f;
     m_isGrounded = false;
     m_jumpsUsed = 0;
+    endDash();
+    m_dashUsed = false;
+    m_dashCooldown = 0.0f;
     m_playerAction = PlayerAction::IDLE;
     m_hurtAnimEndTime = 0;
     m_knockbackEndTime = 0;
@@ -1189,6 +1206,7 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
     PlayerDetail::getInstance().setInvincibility(true);
     m_hurtAnimEndTime = now + HURT_ANIM_MS;
     m_knockbackEndTime = now + knockbackDurationMs;
+    endDash();
     const float KNOCK_H = knockbackStrength, KNOCK_V = knockbackStrength;
     switch(side){
         case gameMath::collisionSide::TOP:    m_velocityY = -KNOCK_V; break; // pushed up
@@ -1517,7 +1535,7 @@ void GameState::handlePhysicAndInput(float dt) {
     // while the previous step clip is still playing, so steps queue up one after another and
     // every clip plays for its full length (no per-frame spam, no cut-offs).
     if((InputDispatcher::getInstance().movingLeft || InputDispatcher::getInstance().movingRight)
-       && m_isGrounded && !inKnockback){
+       && m_isGrounded && !inKnockback && !m_isDashing){
         Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_FOOTSTEPS);
     }
 
@@ -1534,7 +1552,7 @@ void GameState::handlePhysicAndInput(float dt) {
     // and by every real jump / trampoline), so this can't be used to jump twice off one ledge.
     const bool canGroundJump = m_isGrounded || (m_coyoteTimer > 0.0f && m_jumpsUsed == 0);
 
-    if(m_jumpBufferTimer > 0.0f && canGroundJump){
+    if(m_jumpBufferTimer > 0.0f && canGroundJump && !m_isDashing){
         Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
@@ -1545,7 +1563,7 @@ void GameState::handlePhysicAndInput(float dt) {
         m_coyoteTimer = 0.0f;
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
     }
-    else if(jumpPressed && m_jumpsUsed < m_maxJumps){
+    else if(jumpPressed && m_jumpsUsed < m_maxJumps && !m_isDashing){
         // Air jump - body keeps whatever pose it was already in (same idea as
         // attack not touching the base animation); the double-jump sheet is
         // drawn as its own overlay pass in render().
@@ -1586,9 +1604,51 @@ void GameState::handlePhysicAndInput(float dt) {
         if(m_velocityY >= 0.0f)                            m_jumpCutEligible = false;   // apex reached
         else if(!InputDispatcher::getInstance().jump)      gravityNow *= JUMP_CUT_GRAVITY_MULT;
     }
-    m_player.x +=m_velocityX * dt;
-    m_velocityY+=gravityNow*dt;
-    m_player.y +=m_velocityY*dt;
+
+    // ---- power dash ----
+    // Shift / RB / dash button. One dash per airtime: m_dashUsed is cleared when grounded or on a pogo.
+    const bool dashPressed = InputDispatcher::getInstance().consumeDash();
+    if(m_dashCooldown > 0.0f) m_dashCooldown = std::max(0.0f, m_dashCooldown - dt);
+    if(m_isDashing && (inKnockback || inRecoil)) endDash();   // got hit / shoved: the dash is cancelled
+    if(dashPressed && !m_isDashing && !m_dashUsed && m_dashCooldown <= 0.0f && !inKnockback && !inRecoil){
+        m_isDashing = true;
+        m_dashUsed = true;
+        m_dashFromGround = m_isGrounded;
+        m_dashTimer = DASH_DURATION_S;
+        m_dashDir = m_isPlayerfacingRight ? 1.0f : -1.0f;
+        m_dashTrailTimer = 0.0f;
+        m_jumpCutEligible = false;
+        m_isDoubleJumping = false;
+        m_velocityY = 0.0f;
+        m_particleSystem.emitBurst(m_player.x + m_player.w * 0.5f, m_player.y + m_player.h * 0.6f,
+                                   8, 100.0f, 260.0f, 0.20f, 0.35f, 36.0f, 230, 240, 255);
+        Camera::getInstance().addTrauma(0.10f);
+    }
+
+    if(m_isDashing){
+        // lunge: constant horizontal speed, no gravity, vertical speed pinned to 0 until the dash finishes
+        m_velocityX = m_dashDir * DASH_SPEED;
+        m_velocityY = 0.0f;
+        m_playerAction = m_dashDir > 0.0f ? PlayerAction::MOVINGRIGHT : PlayerAction::MOVINGLEFT;
+        m_player.x += m_velocityX * dt;
+        // gravity is off, so a grounded dash presses 1px into the floor each frame: collision snaps it back and
+        // keeps m_isGrounded true (otherwise the ground jump / coyote time would be lost mid-dash)
+        if(m_dashFromGround) m_player.y += 1.0f;
+
+        m_dashTrailTimer -= dt;
+        if(m_dashTrailTimer <= 0.0f){
+            m_dashTrailTimer = 0.03f;
+            m_particleSystem.emitBurst(m_player.x + m_player.w * 0.5f - m_dashDir * 30.0f, m_player.y + m_player.h * 0.55f,
+                                       2, 20.0f, 90.0f, 0.15f, 0.30f, 30.0f, 200, 225, 255);
+        }
+        m_dashTimer -= dt;
+        if(m_dashTimer <= 0.0f) endDash();
+    }
+    else{
+        m_player.x +=m_velocityX * dt;
+        m_velocityY+=gravityNow*dt;
+        m_player.y +=m_velocityY*dt;
+    }
 
     const unsigned int nowTicks = SDL_GetTicks();
     if(InputDispatcher::getInstance().consumeHeal()){

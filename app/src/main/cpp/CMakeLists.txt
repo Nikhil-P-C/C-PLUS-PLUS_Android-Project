@@ -67,7 +67,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/SDL_mixer EXCLUDE_FROM_ALL)
 # --- Shared source list ---
 set(MYAPP_SOURCES
         main.cpp
-        States/inputOverlayState/JoystickOverlay.cpp
         States/inputOverlayState/ButtonOverlay.cpp
         States/inputOverlayState/SepJoysticknButton.cpp
         States/inputOverlayState/KeyboardOverlay.cpp

@@ -66,6 +66,10 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
             InputDispatcher::getInstance().setLookDown(true);
             return true;
         }
+        if(key == SDLK_LSHIFT || key == SDLK_RSHIFT){   // Shift = dash (no OS key-repeat re-triggers)
+            if(!event.key.repeat) InputDispatcher::getInstance().triggerDash();
+            return true;
+        }
         if(key == SDLK_K){
             if(!event.key.repeat) InputDispatcher::getInstance().triggerAttack();   // holding K must not auto-swing (OS key repeat)
             return true;

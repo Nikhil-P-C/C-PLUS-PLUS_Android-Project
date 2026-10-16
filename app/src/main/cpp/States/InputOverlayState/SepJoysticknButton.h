@@ -24,6 +24,7 @@ private:
     Button m_joystick{0+ 200, 720 -400,300,300};
     Button m_joystickHandle{350.00f,470.00f,150.00f,150.00f};
     Button m_MagicButton{1300,300,100,100};
+    Button m_DashButton{1280,420,100,100};   // placeholder rect (no art yet): tap = dash
 
     float m_touchX =m_joystick.x + m_joystick.w/2,m_touchY =m_joystick.y + m_joystick.h/2;
 

@@ -22,8 +22,9 @@ private:
     Button m_JumpButton{1400,400,100,100};
     Button m_LeftButton{200 ,400,100,100};
     Button m_RightButton{300,400,100,100};
-    Button m_UpButton{250,290,100,100};      // above left/right; the left arrow texture rotated to point up. Held = aim up
-    Button m_DownButton{250,510,100,100};    // below left/right; the left arrow texture rotated to point down. Held = aim down
+    Button m_UpButton{250,290,100,100};      // above left/right. Tap = interact, held = aim up
+    Button m_DownButton{250,510,100,100};    // below left/right. Held = aim down
+    Button m_DashButton{1280,420,100,100};   // placeholder rect (no art yet): tap = dash
     Button m_CrouchButton{1400,600,100,100};
     Button m_AttackButton{1450,300,100,100};
     Button m_MagicButton{1300,300,100,100};
@@ -31,6 +32,8 @@ private:
     SDL_Texture* m_jumpButtonTexture = nullptr;
     SDL_Texture* m_leftButtonTexture = nullptr;
     SDL_Texture* m_rightButtonTexture = nullptr;
+    SDL_Texture* m_upButtonTexture = nullptr;
+    SDL_Texture* m_downButtonTexture = nullptr;
     SDL_Texture* m_slashButtonTexture = nullptr;
     SDL_Texture* m_magicButtonTexture = nullptr;
 

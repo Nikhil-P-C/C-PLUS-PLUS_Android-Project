@@ -87,6 +87,10 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_WEST){
                 InputDispatcher::getInstance().triggerAttack();
             }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER){   // RB = dash
+                InputDispatcher::getInstance().triggerDash();
+                return true;
+            }
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_NORTH){
                 InputDispatcher::getInstance().triggerInteract();
             }

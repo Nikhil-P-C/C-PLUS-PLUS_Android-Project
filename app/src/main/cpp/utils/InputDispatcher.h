@@ -13,6 +13,7 @@ public:
     bool attack =false;
     bool heal =false;
     bool beaming =false;
+    bool dash =false;       // dash pressed (one-shot, consumed by GameState)
     bool interact =false;   // talk to / read the interactable in range (also advances an open dialog)
     // held aim directions, shared by every input overlay. Attack + lookUp = upward slash,
     // attack + lookDown (in the air) = downward slash / pogo, otherwise the slash goes sideways.
@@ -32,6 +33,7 @@ public:
         heal =false;
         beaming =false;
         interact =false;
+        dash =false;
         lookUp =false;
         lookDown =false;
         m_jumpPressed =false;
@@ -69,6 +71,14 @@ public:
         bool prevHeal =heal;
         heal = false;
         return prevHeal;
+    }
+    void triggerDash(){
+        dash=true;
+    }
+    bool consumeDash(){
+        bool prevDash =dash;
+        dash = false;
+        return prevDash;
     }
     void triggerInteract(){
         interact=true;

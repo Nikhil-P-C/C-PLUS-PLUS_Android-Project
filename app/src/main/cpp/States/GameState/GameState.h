@@ -68,6 +68,10 @@ const float PLAYER_DEATH_TOTAL_S    = 2.00f;    // time from the fatal hit until
 const float COYOTE_TIME_S           = 0.10f;    // can still make the first (full) jump this long after walking off a ledge
 const float JUMP_BUFFER_S           = 0.12f;    // a jump pressed this long before landing fires on touchdown
 const float ATTACK_BUFFER_S         = 0.15f;    // an attack pressed during a swing is queued and starts the moment the swing ends
+// power dash: a straight horizontal lunge with no gravity. One dash per airtime - it refills on touching the ground or on a pogo.
+const float DASH_SPEED              = 1300.0f;  // px/s while dashing
+const float DASH_DURATION_S         = 0.18f;    // ~234px lunge
+const float DASH_COOLDOWN_S         = 0.20f;    // short lockout after a dash so a grounded dash can't be chained instantly
 const float JUMP_CUT_GRAVITY_MULT   = 3.0f;     // gravity multiplier while rising with the jump button released (variable jump height)
 // full hold ~278px, quick tap ~92px, anything in between depending on release time
 const int   PLAYER_DEATH_FRAME_WHITE = 15;      // hurt row is 14-16, 15 is the all-white flash frame
@@ -139,6 +143,8 @@ public:
     void applyRecoilY(float dirY, float speed);
     // downward slash landed on something bounceable: launch the player upward and refill an air jump
     void startPogo();
+    // ends a dash in progress (wall hit, pogo, knockback, death). Gravity takes over again immediately.
+    void endDash();
     // player took damage: big impact frame + the same hit spark made larger + particles
     void playerImpactEffect(float dirX);
     // Hollow-Knight style damage audio: boom, then the whole mix stays slowed + muffled for `ms` (= the
@@ -339,6 +345,15 @@ private:
     bool  m_respawnScreenOpen =false;
     float m_respawnX =109.0f, m_respawnY =0.0f;   // level start (from the 'S' line when the level has one)
     bool m_isDoubleJumping =false;
+
+    // power dash
+    bool  m_isDashing =false;
+    bool  m_dashUsed =false;          // true after a dash; cleared on touching the ground or on a pogo
+    bool  m_dashFromGround =false;    // dash started on the ground: keep a 1px press into the floor so it stays 'grounded'
+    float m_dashTimer =0.0f;          // seconds left in the current dash
+    float m_dashCooldown =0.0f;
+    float m_dashDir =1.0f;            // +1 right / -1 left, locked at the start of the dash
+    float m_dashTrailTimer =0.0f;
     int m_doubleJumpFrame =0;
 
     unsigned int m_healCooldownEndTime =0;

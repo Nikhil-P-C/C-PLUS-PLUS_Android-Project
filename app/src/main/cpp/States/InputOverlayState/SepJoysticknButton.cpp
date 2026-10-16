@@ -22,6 +22,13 @@ void SepJoysticknButton::render(SDL_Renderer *renderer) {
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
     SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
 
+    // dash button: placeholder rect until the art exists
+    Uint8 r, g, b, a;
+    SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+    SDL_FRect dashButtonDst{m_DashButton.x, m_DashButton.y, m_DashButton.w, m_DashButton.h};
+    SDL_SetRenderDrawColor(renderer, 80, 200, 255, 255);
+    SDL_RenderRect(renderer, &dashButtonDst);
+    SDL_SetRenderDrawColor(renderer, r, g, b, a);
 }
 
 void SepJoysticknButton::update(float dt) {
@@ -139,6 +146,11 @@ bool SepJoysticknButton::handleEvents(SDL_Event &event) {
 
             m_attackFingerID = event.tfinger.fingerID;
             m_attackFingerActive =true;
+        }
+
+        if(touchX > m_DashButton.x && touchX < m_DashButton.x + m_DashButton.w &&
+           touchY > m_DashButton.y && touchY < m_DashButton.y + m_DashButton.h){
+            InputDispatcher::getInstance().triggerDash();   // one-shot, fired from the event so a fast tap isn't lost
         }
 
         if((touchX > m_MagicButton.x && touchX < m_MagicButton.x + m_MagicButton.w&&
