@@ -41,6 +41,14 @@ public:
     void setControlType(ControlType type){
         m_controlType= type;
     }
+    // true = the control scheme follows whatever device the player is using (touch / keyboard + mouse / gamepad).
+    // Picking a scheme by hand in the control menu turns it off, the AUTO DETECT row turns it back on.
+    bool isAutoInput() const{
+        return m_autoInput;
+    }
+    void setAutoInput(bool autoInput){
+        m_autoInput = autoInput;
+    }
     void setPaused(bool pause){
         m_paused =pause;
     }
@@ -90,4 +98,5 @@ private:
     float m_musicAudioScale= 1.0f;
     float m_sfxAudioScale= 1.0f;
     ControlType m_controlType=ControlType::BUTTONS;
+    bool m_autoInput=true;
 };

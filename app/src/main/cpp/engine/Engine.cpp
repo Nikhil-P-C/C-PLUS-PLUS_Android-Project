@@ -7,6 +7,11 @@
 #include "engine/Engine.h"
 #include "States/GameState/GameState.h"
 #include "States/MenuState/TitleScreenState.h"
+#include "States/InputOverlayState/ButtonOverlay.h"
+#include "States/InputOverlayState/SepJoysticknButton.h"
+#include "States/InputOverlayState/KeyboardOverlay.h"
+#include "States/InputOverlayState/GamepadOverlay.h"
+#include "engine/InputAutoDetect.h"
 
 void Engine::run(){
     m_assetManager.init(m_renderer,m_mixer);
@@ -88,6 +93,12 @@ void Engine::run(){
 
         while(SDL_PollEvent(&m_event)) {
 
+            // gamepads must be opened before SDL delivers their input, do it here so it works in menus too
+            handleGamepadHotplug(m_event);
+            // switch the control scheme (and the on-screen overlay) to whatever device just sent input,
+            // before the event is dispatched so the very first press already reaches the right overlay
+            autoDetectInput(m_event);
+
             for (auto it = m_OverlayStates.rbegin(); it != m_OverlayStates.rend() ; ++it)
                 if((*it)->handleEvents(m_event))break;
             for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
@@ -147,6 +158,10 @@ Engine::Engine(){
         }
         SDL_free(gamepadIDs);
     }
+    // start-up guess: gamepad if one is plugged in, touch on Android, keyboard + mouse elsewhere.
+    // The first real input event corrects it (autoDetectInput).
+    if(GameData::getInstance().isAutoInput())
+        GameData::getInstance().setControlType(InputAutoDetect::guessInitial());
     if (!TTF_Init())
         LOGI("failed ttf:%s", SDL_GetError());
     m_window = SDL_CreateWindow("Dino", 0, 0, SDL_WINDOW_FULLSCREEN);
@@ -211,4 +226,89 @@ Engine::~Engine(){
     if(m_window)SDL_DestroyWindow(m_window);
     if(m_renderer)SDL_DestroyRenderer(m_renderer);
     SDL_Quit();
+}
+
+// ---- input auto-detection ----------------------------------------------------------------------
+
+namespace {
+    bool isInputOverlay(const State* s){
+        if(!s) return false;
+        return s->Name == "ButtonState" || s->Name == "JnBState" || s->Name == "JoystickState" ||
+               s->Name == "KeyboardState" || s->Name == "GamepadState";
+    }
+    const char* overlayNameFor(ControlType type){
+        switch(type){
+            case ControlType::BUTTONS:             return "ButtonState";
+            case ControlType::SEP_JUMP_W_JOYSTICK: return "JnBState";
+            case ControlType::KEYBOARD:            return "KeyboardState";
+            case ControlType::GAMEPAD:             return "GamepadState";
+        }
+        return "ButtonState";
+    }
+    std::unique_ptr<State> makeInputOverlay(ControlType type, SDL_Renderer* renderer){
+        switch(type){
+            case ControlType::SEP_JUMP_W_JOYSTICK: return std::make_unique<SepJoysticknButton>(renderer);
+            case ControlType::KEYBOARD:            return std::make_unique<KeyboardOverlay>(renderer);
+            case ControlType::GAMEPAD:             return std::make_unique<GamepadOverlay>(renderer);
+            case ControlType::BUTTONS:
+            default:                               return std::make_unique<ButtonOverlay>(renderer);
+        }
+    }
+}
+
+void Engine::handleGamepadHotplug(const SDL_Event& event){
+    if(event.type == SDL_EVENT_GAMEPAD_ADDED){
+        if(!SDL_GetGamepadFromID(event.gdevice.which)){          // not already opened at start-up
+            if(!SDL_OpenGamepad(event.gdevice.which))
+                LOGE("failed to open gamepad: %s", SDL_GetError());
+        }
+    }
+    else if(event.type == SDL_EVENT_GAMEPAD_REMOVED){
+        if(SDL_Gamepad* gp = SDL_GetGamepadFromID(event.gdevice.which))
+            SDL_CloseGamepad(gp);
+        // last pad unplugged while it was the active scheme: fall back to touch / keyboard
+        GameData& gd = GameData::getInstance();
+        if(gd.isAutoInput() && gd.getControlType() == ControlType::GAMEPAD && !SDL_HasGamepad()){
+            const ControlType fallback = InputAutoDetect::guessInitial(false);
+            gd.setControlType(fallback);
+            swapInputOverlay(fallback);
+        }
+    }
+}
+
+void Engine::autoDetectInput(const SDL_Event& event){
+    GameData& gd = GameData::getInstance();
+    if(!gd.isAutoInput()) return;
+    const InputAutoDetect::Device dev = InputAutoDetect::detect(event);
+    if(dev == InputAutoDetect::Device::NONE) return;
+
+    const ControlType current = gd.getControlType();
+    const ControlType next = InputAutoDetect::controlFor(dev, current);
+    if(next == current) return;
+
+    LOGI("input device changed: control type %d -> %d", (int)current, (int)next);
+    gd.setControlType(next);
+    swapInputOverlay(next);
+}
+
+// Replaces the live input overlay (if a level is running) with the one for `type`. It is swapped in place so the
+// overlay stack keeps its order and size: other states pop overlays by count (HUD, [debug], input).
+void Engine::swapInputOverlay(ControlType type){
+    bool swapped = false;
+    for(auto& overlay : m_OverlayStates){
+        if(isInputOverlay(overlay.get())){
+            if(overlay->Name == overlayNameFor(type)) continue;
+            overlay = makeInputOverlay(type, m_renderer);
+            swapped = true;
+        }
+    }
+    // an input overlay that is queued but not pushed yet (e.g. a level transition happening right now)
+    for(auto& cmd : m_CommandOverlayQueue){
+        if(cmd.type == commandType::PUSH && isInputOverlay(cmd.state.get()) && cmd.state->Name != overlayNameFor(type)){
+            cmd.state = makeInputOverlay(type, m_renderer);
+            swapped = true;
+        }
+    }
+    // drop whatever the old scheme had held down (a stuck run direction, a half-pressed jump...)
+    if(swapped) InputDispatcher::getInstance().inputLogClear();
 }

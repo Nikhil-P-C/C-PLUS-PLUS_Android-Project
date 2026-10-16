@@ -92,6 +92,11 @@ public:
         return m_postProcessor;
     }
 private:
+    // input auto-detection (see engine/InputAutoDetect.h)
+    void handleGamepadHotplug(const SDL_Event& event);
+    void autoDetectInput(const SDL_Event& event);
+    void swapInputOverlay(ControlType type);
+
     std::vector<Command> m_CommandQueue;
     std::vector<std::unique_ptr<State>> m_States;
 
@@ -112,6 +117,7 @@ private:
 
     //remove this after fix
     uint32_t lasttimelog =0;
+
     AssetManager m_assetManager;
     PostProcessor m_postProcessor;
 };

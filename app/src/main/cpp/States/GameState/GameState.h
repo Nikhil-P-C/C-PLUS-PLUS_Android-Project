@@ -45,7 +45,8 @@ const unsigned int HEAL_COOLDOWN_MS = 800;
 const int ENEMY_KILL_SCORE = 10;
 
 // --- directional slash / pogo / pushback ---
-const float POGO_VELOCITY          = 1100.0f;   // px/s upward after a downward slash lands on an enemy / hazard trap / rock head
+const float POGO_VELOCITY          = 760.0f;    // px/s upward after a downward slash lands on an enemy / hazard trap / rock head
+// (~160px rise = ~58% of a full jump, short + snappy like Hollow Knight's nail bounce)
 const float UP_SLASH_PUSH_SPEED    = 320.0f;    // px/s downward shove when an upward slash connects
 const float VERT_SLASH_REACH       = 122.5f;    // how far past the player's body the up/down slash reaches
 
@@ -66,6 +67,9 @@ const float PLAYER_DEATH_TOTAL_S    = 2.00f;    // time from the fatal hit until
 // jump forgiveness (seconds)
 const float COYOTE_TIME_S           = 0.10f;    // can still make the first (full) jump this long after walking off a ledge
 const float JUMP_BUFFER_S           = 0.12f;    // a jump pressed this long before landing fires on touchdown
+const float ATTACK_BUFFER_S         = 0.15f;    // an attack pressed during a swing is queued and starts the moment the swing ends
+const float JUMP_CUT_GRAVITY_MULT   = 3.0f;     // gravity multiplier while rising with the jump button released (variable jump height)
+// full hold ~278px, quick tap ~92px, anything in between depending on release time
 const int   PLAYER_DEATH_FRAME_WHITE = 15;      // hurt row is 14-16, 15 is the all-white flash frame
 const int   PLAYER_DEATH_FRAME_POSE  = 14;
 
@@ -330,6 +334,8 @@ private:
     int m_maxJumps =2;
     float m_coyoteTimer =0.0f;       // >0 while the first jump is still allowed after leaving the ground
     float m_jumpBufferTimer =0.0f;   // >0 while a recent jump press is waiting for the ground
+    float m_attackBufferTimer =0.0f; // >0 while a recent attack press is waiting for the current swing to finish
+    bool  m_jumpCutEligible =false;  // true while the current upward motion came from a real jump (not pogo/trampoline/fan/recoil)
     bool  m_respawnScreenOpen =false;
     float m_respawnX =109.0f, m_respawnY =0.0f;   // level start (from the 'S' line when the level has one)
     bool m_isDoubleJumping =false;

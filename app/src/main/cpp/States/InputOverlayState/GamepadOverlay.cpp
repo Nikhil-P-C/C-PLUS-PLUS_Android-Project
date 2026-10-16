@@ -33,14 +33,17 @@ void GamepadOverlay::update(float dt) {
     // stick held up / down aims the slash (stick up = upward slash, stick down in the air = downward slash / pogo)
     {
         const bool vertical = std::fabs(m_leftStickY) > std::fabs(m_leftStickX);
-        InputDispatcher::getInstance().setLookUp(m_leftStickY < -0.5f && vertical);
-        InputDispatcher::getInstance().setLookDown(m_leftStickY > 0.5f && vertical);
+        InputDispatcher::getInstance().setLookUp((m_leftStickY < -0.5f && vertical) || m_dpadUp);
+        InputDispatcher::getInstance().setLookDown((m_leftStickY > 0.5f && vertical) || m_dpadDown);
     }
-    if(m_leftStickX>deadzone){
+    // d-pad works exactly like the stick for left / right
+    const bool goRight = m_leftStickX >  deadzone || m_dpadRight;
+    const bool goLeft  = m_leftStickX < -deadzone || m_dpadLeft;
+    if(goRight && !goLeft){
         InputDispatcher::getInstance().setMovingRight(true);
         InputDispatcher::getInstance().setMovingLeft(false);
     }
-    else if(m_leftStickX<-deadzone){
+    else if(goLeft && !goRight){
         InputDispatcher::getInstance().setMovingRight(false);
         InputDispatcher::getInstance().setMovingLeft(true);
     }
@@ -52,15 +55,12 @@ void GamepadOverlay::update(float dt) {
 
 bool GamepadOverlay::handleEvents(SDL_Event &event) {
 
-    if(event.type == SDL_EVENT_GAMEPAD_ADDED){
-        m_gamepad = SDL_OpenGamepad(event.gdevice.which);
-        if(!m_gamepad)
-            LOGE("gamepad failed");
-    }
-    if(event.type ==SDL_EVENT_GAMEPAD_REMOVED){
-        if(m_gamepad && SDL_GetGamepadID(m_gamepad) == event.gdevice.which)
-            SDL_CloseGamepad(m_gamepad);
-        m_gamepad = nullptr;
+    // (opening / closing gamepads is done centrally in Engine::handleGamepadHotplug, so it also works in the menus)
+    if(event.type == SDL_EVENT_GAMEPAD_REMOVED){
+        // unplugged mid-game: drop the held stick / d-pad so the player doesn't keep running
+        m_leftStickX = m_leftStickY = 0.0f;
+        m_dpadLeft = m_dpadRight = m_dpadUp = m_dpadDown = false;
+        InputDispatcher::getInstance().inputLogClear();
     }
 
     switch(event.type){
@@ -76,6 +76,10 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
             }
             break;
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_LEFT)  { m_dpadLeft  = true; return true; }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) { m_dpadRight = true; return true; }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_DOWN)  { m_dpadDown  = true; return true; }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_UP)    { m_dpadUp    = true; InputDispatcher::getInstance().triggerInteract(); return true; }
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH){
                 InputDispatcher::getInstance().setJump(true);
                 return true;
@@ -95,6 +99,10 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
 
         case SDL_EVENT_GAMEPAD_BUTTON_UP:
 
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_LEFT)  { m_dpadLeft  = false; return true; }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT) { m_dpadRight = false; return true; }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_DOWN)  { m_dpadDown  = false; return true; }
+            if(event.gbutton.button == SDL_GAMEPAD_BUTTON_DPAD_UP)    { m_dpadUp    = false; return true; }
             if(event.gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH){
                 InputDispatcher::getInstance().setJump(false);
             }

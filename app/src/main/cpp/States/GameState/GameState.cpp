@@ -544,6 +544,7 @@ void GameState::update(float dt){
             m_velocityY=0.0f;
             m_isGrounded = false;
             m_velocityY += -1500;
+            m_jumpCutEligible = false;
             m_jumpsUsed = 1; // counts as the first jump - one air jump still available after
         }
 
@@ -691,6 +692,7 @@ void GameState::update(float dt){
     {
         m_velocityY=0.0f;
         m_velocityY += Force;
+        m_jumpCutEligible = false;
         m_isGrounded = false;
     }
 
@@ -885,6 +887,7 @@ void GameState::applyRecoilY(float dirY, float speed) {
     const uint32_t now = SDL_GetTicks();
     if(now < m_knockbackEndTime && now >= m_recoilEndTime) return;   // real hurt-knockback in progress: don't override
     m_velocityY = dirY * speed;
+    m_jumpCutEligible = false;
     m_isGrounded = false;
     m_recoilEndTime = now + 120;
     m_knockbackEndTime = now + 120;
@@ -892,6 +895,7 @@ void GameState::applyRecoilY(float dirY, float speed) {
 
 void GameState::startPogo() {
     m_velocityY = -POGO_VELOCITY;
+    m_jumpCutEligible = false;   // pogo is a fixed-height bounce, releasing jump must not shorten it
     m_isGrounded = false;
     m_pogoId = m_attackId;
     // like a trampoline: counts as the first jump, so one air jump is still available afterwards
@@ -1534,6 +1538,7 @@ void GameState::handlePhysicAndInput(float dt) {
         Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
         m_playerAction=PlayerAction::JUMP;
         m_velocityY =-m_jumpVelocity;
+        m_jumpCutEligible = true;
         m_wasGrounded =true;
         m_jumpsUsed =1;
         m_jumpBufferTimer = 0.0f;
@@ -1547,6 +1552,7 @@ void GameState::handlePhysicAndInput(float dt) {
         // (If no air jump is left the press just stays in the buffer for a moment, see above.)
         Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
         m_velocityY = -m_jumpVelocity * 0.85f;
+        m_jumpCutEligible = true;
         m_jumpsUsed++;
         m_jumpBufferTimer = 0.0f;
         m_isDoubleJumping = true;
@@ -1554,22 +1560,34 @@ void GameState::handlePhysicAndInput(float dt) {
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
     }
 
-    // slash attacks are air-only: a press while standing on the ground is swallowed (no swing).
-    // A swing that is already playing when the player touches down is allowed to finish.
-    if(InputDispatcher::getInstance().consumeAttack() && (!m_isGrounded || m_isAttacking)){
-        if(!m_isAttacking){
-            m_attackId++;   // new swing -> new id; enemies take at most one hit per id
-            // aim is locked in for the whole swing: up held = upward slash, down held = downward slash
-            // (pogo target check), otherwise the slash goes the way the player faces. (Air only, see above.)
-            if(InputDispatcher::getInstance().lookUp)        m_slashDir = SlashDir::UP;
-            else if(InputDispatcher::getInstance().lookDown) m_slashDir = SlashDir::DOWN;
-            else                                             m_slashDir = SlashDir::SIDE;
-        }
+    // Slashes work on the ground and in the air. The only restriction: a DOWN slash (the pogo swing) needs the
+    // player to be airborne - holding down on the ground just gives a normal sideways slash.
+    // Attack buffer: a press made during a swing is queued for ATTACK_BUFFER_S and starts the next swing the
+    // moment the current one ends, so mashing slash chains smoothly instead of dropping every other press.
+    if(InputDispatcher::getInstance().consumeAttack())      m_attackBufferTimer = ATTACK_BUFFER_S;
+    else if(m_attackBufferTimer > 0.0f)                     m_attackBufferTimer = std::max(0.0f, m_attackBufferTimer - dt);
+
+    if(m_attackBufferTimer > 0.0f && !m_isAttacking){
+        m_attackBufferTimer = 0.0f;
+        m_attackId++;   // new swing -> new id; enemies take at most one hit per id
+        // aim is locked in for the whole swing: up held = upward slash, down held (airborne only) = downward
+        // slash (pogo target check), otherwise the slash goes the way the player faces.
+        if(InputDispatcher::getInstance().lookUp)                             m_slashDir = SlashDir::UP;
+        else if(InputDispatcher::getInstance().lookDown && !m_isGrounded)     m_slashDir = SlashDir::DOWN;
+        else                                                                  m_slashDir = SlashDir::SIDE;
         m_isAttacking =true;
     }
 
+    // Variable jump height (jump cancel): while rising from a real jump, letting go of the button multiplies
+    // gravity so the jump is cut short smoothly. Pogo / trampoline / fan / recoil never set the flag, so they
+    // always keep their full, fixed height.
+    float gravityNow = m_gravity;
+    if(m_jumpCutEligible){
+        if(m_velocityY >= 0.0f)                            m_jumpCutEligible = false;   // apex reached
+        else if(!InputDispatcher::getInstance().jump)      gravityNow *= JUMP_CUT_GRAVITY_MULT;
+    }
     m_player.x +=m_velocityX * dt;
-    m_velocityY+=m_gravity*dt;
+    m_velocityY+=gravityNow*dt;
     m_player.y +=m_velocityY*dt;
 
     const unsigned int nowTicks = SDL_GetTicks();

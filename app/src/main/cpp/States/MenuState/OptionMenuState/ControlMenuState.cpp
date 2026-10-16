@@ -11,13 +11,15 @@ namespace {
     constexpr float ROW_TOP = 230.0f, ROW_STEP = 85.0f;
     constexpr int   LABEL_FONT = 36;
 
-    struct Option { const char* name; ControlType type; };
+    struct Option { const char* name; ControlType type; bool isAuto; };
     // same order as the old screen, minus the plain joystick scheme (JOYSTICK + BUTTON replaces it)
-    const Option OPTIONS[4] = {
-            {"BUTTONS",           ControlType::BUTTONS},
-            {"JOYSTICK + BUTTON", ControlType::SEP_JUMP_W_JOYSTICK},
-            {"KEYBOARD",          ControlType::KEYBOARD},
-            {"GAMEPAD",           ControlType::GAMEPAD},
+    // AUTO DETECT follows the device in use (touch / keyboard + mouse / gamepad); the rest pin one scheme
+    const Option OPTIONS[5] = {
+            {"BUTTONS",           ControlType::BUTTONS,             false},
+            {"JOYSTICK + BUTTON", ControlType::SEP_JUMP_W_JOYSTICK, false},
+            {"KEYBOARD",          ControlType::KEYBOARD,            false},
+            {"GAMEPAD",           ControlType::GAMEPAD,             false},
+            {"AUTO DETECT",       ControlType::BUTTONS,             true},
     };
 }
 
@@ -38,17 +40,26 @@ ControlMenuState::~ControlMenuState() {
 }
 
 int ControlMenuState::currentIndex() const {
+    if(GameData::getInstance().isAutoInput()) return OPTION_COUNT - 1;   // AUTO DETECT row
     const ControlType type = GameData::getInstance().getControlType();
     for(int i=0;i<OPTION_COUNT;i++)
-        if(OPTIONS[i].type == type) return i;
+        if(!OPTIONS[i].isAuto && OPTIONS[i].type == type) return i;
     return 0;
 }
 
 void ControlMenuState::choose(int index) {
     if(index < 0 || index >= OPTION_COUNT) return;
     m_rows.setFocus(index);
-    if(OPTIONS[index].type == GameData::getInstance().getControlType()) return;
-    GameData::getInstance().setControlType(OPTIONS[index].type);
+    GameData& gd = GameData::getInstance();
+    if(OPTIONS[index].isAuto){
+        if(gd.isAutoInput()) return;
+        gd.setAutoInput(true);               // keeps the current scheme until the next input event says otherwise
+    }
+    else{
+        if(!gd.isAutoInput() && OPTIONS[index].type == gd.getControlType()) return;
+        gd.setAutoInput(false);              // a hand-picked scheme is never overridden by auto-detection
+        gd.setControlType(OPTIONS[index].type);
+    }
     m_pop[index] = 1.0f;
     Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_CONFIRM);
 }

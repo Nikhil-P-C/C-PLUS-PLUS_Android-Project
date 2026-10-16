@@ -92,7 +92,7 @@ void JoystickOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingRight(false);
         InputDispatcher::getInstance().setInputReleased(true);
     }
-    
+
     if(!m_joystickFingerActive){
         gameMath::interpolate(m_joystickHandle.x,m_joystickHandle.y,centerX,centerY,0.5f);
     }
@@ -104,19 +104,21 @@ bool JoystickOverlay::handleEvents(SDL_Event &event) {
         float touchY = event.tfinger.y * (float)GameData::getInstance().getWinHeight();
 
         if ((touchX >= m_joystick.x &&
-            touchX <= m_joystick.x + m_joystick.w &&
-            touchY >= m_joystick.y &&
-            touchY <= m_joystick.y + m_joystick.h )&& !m_joystickFingerActive)
+             touchX <= m_joystick.x + m_joystick.w &&
+             touchY >= m_joystick.y &&
+             touchY <= m_joystick.y + m_joystick.h )&& !m_joystickFingerActive)
         {
             m_joystickFingerID = event.tfinger.fingerID;
             m_joystickFingerActive = true;
+            m_touchX = touchX;   // start from the real touch point, not the previous touch's stale position
+            m_touchY = touchY;
             InputDispatcher::getInstance().setInputReleased(false);
         }
         if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
             touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
 
             m_attackFingerID = event.tfinger.fingerID;
-            m_attackFingerActive =true;
+            InputDispatcher::getInstance().triggerAttack();   // fire from the event itself so a fast tap can't be missed by update()
         }
         if((touchX > m_MagicButton.x && touchX < m_MagicButton.x + m_MagicButton.w&&
             touchY > m_MagicButton.y && touchY < m_MagicButton.y + m_MagicButton.h )&& !m_magicFingerActive){

@@ -118,6 +118,7 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
 
             m_jumpFingerID = event.tfinger.fingerID;
             m_jumpFingerActive=true;
+            InputDispatcher::getInstance().setJump(true);   // latch the press now: a tap shorter than one frame must not be lost
         }
         if(touchX > m_UpButton.x && touchX < m_UpButton.x + m_UpButton.w &&
            touchY > m_UpButton.y && touchY < m_UpButton.y + m_UpButton.h && !m_upFingerActive){
@@ -134,7 +135,7 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
             touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
 
             m_attackFingerID = event.tfinger.fingerID;
-            m_attackFingerActive =true;
+            InputDispatcher::getInstance().triggerAttack();   // fire from the event itself so a fast tap can't be missed by update()
         }
         if((touchX > m_MagicButton.x && touchX < m_MagicButton.x + m_MagicButton.w&&
             touchY > m_MagicButton.y && touchY < m_MagicButton.y + m_MagicButton.h )&& !m_magicFingerActive){
@@ -165,6 +166,7 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
     if(event.type == SDL_EVENT_FINGER_UP){
         if(m_jumpFingerActive && event.tfinger.fingerID == m_jumpFingerID){
             m_jumpFingerActive =false;
+            InputDispatcher::getInstance().setJump(false);
         }
         if(m_dFingerActive && event.tfinger.fingerID == m_dFingerID){
             m_dFingerActive =false;

@@ -16,7 +16,7 @@ public:
     explicit ControlMenuState(SDL_Renderer* renderer);
     ~ControlMenuState()override;
 private:
-    static constexpr int OPTION_COUNT = 4;
+    static constexpr int OPTION_COUNT = 5;
 
     void choose(int index);
     void perform(InputUtils::MenuAction action);

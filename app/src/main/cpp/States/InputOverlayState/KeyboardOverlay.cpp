@@ -19,34 +19,58 @@ void KeyboardOverlay::update(float dt) {
 }
 
 bool KeyboardOverlay::handleEvents(SDL_Event &event) {
+    // window lost focus (alt-tab, notification shade...): the key-up never arrives, so release everything
+    // here or the player keeps running / aiming on its own
+    if(event.type == SDL_EVENT_WINDOW_FOCUS_LOST){
+        InputDispatcher::getInstance().inputLogClear();
+        m_magicKeyActive = false;
+        m_magicBeamStarted = false;
+        return false;
+    }
+    // mouse: left click = slash (real mouse only, touch-generated clicks are ignored). Not consumed, so clicking an
+    // interactable still works.
+    if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT &&
+       event.button.which != SDL_TOUCH_MOUSEID && event.button.which != SDL_PEN_MOUSEID){
+        InputDispatcher::getInstance().triggerAttack();
+        return false;
+    }
+    // arrow keys work like WASD (A/D/W/S keep working)
+    SDL_Keycode key = event.key.key;
+    if(event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP){
+        if(key == SDLK_LEFT)  key = SDLK_A;
+        if(key == SDLK_RIGHT) key = SDLK_D;
+        if(key == SDLK_UP)    key = SDLK_W;
+        if(key == SDLK_DOWN)  key = SDLK_S;
+    }
+
     if(event.type == SDL_EVENT_KEY_DOWN){
-        if(event.key.key == SDLK_A){
+        if(key == SDLK_A){
             InputDispatcher::getInstance().setMovingLeft(true);
             return true;
         }
-        if(event.key.key == SDLK_D){
+        if(key == SDLK_D){
             InputDispatcher::getInstance().setMovingRight(true);
             return true;
         }
-        if(event.key.key == SDLK_SPACE){
-            InputDispatcher::getInstance().setJump(true);
+        if(key == SDLK_SPACE){
+            if(!event.key.repeat) InputDispatcher::getInstance().setJump(true);
             return true;
         }
-        if(event.key.key == SDLK_E || event.key.key == SDLK_W){   // W = "up" = interact (E still works too)
+        if(key == SDLK_E || key == SDLK_W){   // W = "up" = interact (E still works too)
             if(!event.key.repeat) InputDispatcher::getInstance().triggerInteract();
             // W is also held to aim up (K + W = upward slash)
-            if(event.key.key == SDLK_W) InputDispatcher::getInstance().setLookUp(true);
+            if(key == SDLK_W) InputDispatcher::getInstance().setLookUp(true);
             return true;
         }
-        if(event.key.key == SDLK_S){                               // S = "down": K + S in the air = downward slash / pogo
+        if(key == SDLK_S){                               // S = "down": K + S in the air = downward slash / pogo
             InputDispatcher::getInstance().setLookDown(true);
             return true;
         }
-        if(event.key.key == SDLK_K){
-            InputDispatcher::getInstance().triggerAttack();
+        if(key == SDLK_K){
+            if(!event.key.repeat) InputDispatcher::getInstance().triggerAttack();   // holding K must not auto-swing (OS key repeat)
             return true;
         }
-        if(event.key.key == SDLK_J){
+        if(key == SDLK_J){
             // Holding a key makes the OS send repeated KEY_DOWN events. Without this guard every
             // repeat re-armed the "tap" state (beamStarted=false, new press time), so releasing
             // shortly after a repeat looked like a tap and triggered a heal right after the beam.
@@ -58,27 +82,27 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
         }
     }
     else if(event.type == SDL_EVENT_KEY_UP){
-        if(event.key.key == SDLK_A){
+        if(key == SDLK_A){
             InputDispatcher::getInstance().setMovingLeft(false);
             return true;
         }
-        if(event.key.key == SDLK_D){
+        if(key == SDLK_D){
             InputDispatcher::getInstance().setMovingRight(false);
             return true;
         }
-        if(event.key.key == SDLK_SPACE){
+        if(key == SDLK_SPACE){
             InputDispatcher::getInstance().setJump(false);
             return true;
         }
-        if(event.key.key == SDLK_W){
+        if(key == SDLK_W){
             InputDispatcher::getInstance().setLookUp(false);
             return true;
         }
-        if(event.key.key == SDLK_S){
+        if(key == SDLK_S){
             InputDispatcher::getInstance().setLookDown(false);
             return true;
         }
-        if(event.key.key == SDLK_J){
+        if(key == SDLK_J){
             m_magicKeyActive =false;
             if(!m_magicBeamStarted){
                 InputDispatcher::getInstance().triggerHeal();
