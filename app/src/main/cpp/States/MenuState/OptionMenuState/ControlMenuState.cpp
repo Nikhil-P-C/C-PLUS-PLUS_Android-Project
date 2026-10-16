@@ -12,9 +12,8 @@ namespace {
     constexpr int   LABEL_FONT = 36;
 
     struct Option { const char* name; ControlType type; };
-    // same order as the old screen
-    const Option OPTIONS[5] = {
-            {"JOYSTICK",          ControlType::JOYSTICK},
+    // same order as the old screen, minus the plain joystick scheme (JOYSTICK + BUTTON replaces it)
+    const Option OPTIONS[4] = {
             {"BUTTONS",           ControlType::BUTTONS},
             {"JOYSTICK + BUTTON", ControlType::SEP_JUMP_W_JOYSTICK},
             {"KEYBOARD",          ControlType::KEYBOARD},

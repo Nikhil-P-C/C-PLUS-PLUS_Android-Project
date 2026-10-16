@@ -65,7 +65,6 @@ void InteractableBuilder::closeDialog(){
 void InteractableBuilder::ensureResources(SDL_Renderer* renderer){
     if(!m_menuFont) m_menuFont = std::make_unique<MenuFont>(BODY_SIZE);
     if(!m_painter)  m_painter  = std::make_unique<MenuPainter>(renderer);
-    if(!m_bang.tex && m_menuFont->ok()) m_bang.set(renderer, *m_menuFont, "!", 28);
 }
 
 // greedy word wrap on the real font metrics. Over-long words are broken between UTF-8 characters.
@@ -463,7 +462,7 @@ void InteractableBuilder::renderWorld(SDL_Renderer* renderer){
     // 2) rising light motes, sparks and shock rings
     renderFx(m_worldFx, (float)camX, (float)camY);
 
-    // 3) the "!" markers: a glowing diamond with orbiting lights when you are close
+    // 3) the interact markers: a glowing diamond with orbiting lights when you are close
     for(int i = 0; i < (int)m_interactables.size(); ++i){
         const auto& it = m_interactables[i];
         if(i == m_active) continue;                  // no marker while talking to it
@@ -485,7 +484,6 @@ void InteractableBuilder::renderWorld(SDL_Renderer* renderer){
         m_painter->diamond(mx, my, s + 6.0f, th.core(), 0.50f * k);
         m_painter->diamond(mx, my, s, mix(th.accent(), WHITE, 0.35f), 0.95f * k + 0.05f);
         m_painter->diamondOutline(mx, my, s + 9.0f, 2.0f, th.accent(), 0.60f * k);
-        if(m_bang.tex) m_painter->label(m_bang, mx, my + 1.0f, 1.0f, Rgb{0.04f, 0.05f, 0.09f}, 1.0f);
     }
     SDL_SetRenderDrawBlendMode(renderer, prev);
 }

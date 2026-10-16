@@ -30,6 +30,12 @@ void GamepadOverlay::update(float dt) {
     else if(m_leftStickY > -0.3f){
         m_stickUpLatched = false;
     }
+    // stick held up / down aims the slash (stick up = upward slash, stick down in the air = downward slash / pogo)
+    {
+        const bool vertical = std::fabs(m_leftStickY) > std::fabs(m_leftStickX);
+        InputDispatcher::getInstance().setLookUp(m_leftStickY < -0.5f && vertical);
+        InputDispatcher::getInstance().setLookDown(m_leftStickY > 0.5f && vertical);
+    }
     if(m_leftStickX>deadzone){
         InputDispatcher::getInstance().setMovingRight(true);
         InputDispatcher::getInstance().setMovingLeft(false);
@@ -60,7 +66,7 @@ bool GamepadOverlay::handleEvents(SDL_Event &event) {
     switch(event.type){
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
             if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX){
-                float x  =event.gaxis.value / 32767;
+                float x  =event.gaxis.value / 32767.0f;
                 m_leftStickX =x;
             }
             if(event.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY){

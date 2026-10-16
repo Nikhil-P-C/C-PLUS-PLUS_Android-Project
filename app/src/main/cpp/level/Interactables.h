@@ -1,6 +1,6 @@
 //
 // Interactables: things in the world the player can talk to / read (signs, NPCs, notes...).
-// Standing next to one shows a glowing "!" marker; pressing interact (W / E / gamepad stick up or north / the touch
+// Standing next to one shows a glowing diamond marker; pressing interact (W / E / gamepad stick up or north / the touch
 // up button / tap the marker) opens a speech bubble at the TOP of the screen that types out its lines one at a time.
 //
 // Look: the same language as the main menu (see States/MenuState/MenuKit.h) - black soft shade, the breathing core
@@ -44,7 +44,7 @@ public:
     const std::vector<Interactable>& getInteractables() const { return m_interactables; }
 
     void update(float dt, const SDL_FRect& player);
-    void renderWorld(SDL_Renderer* renderer);     // glow + light motes + "!" markers (world space)
+    void renderWorld(SDL_Renderer* renderer);     // glow + light motes + diamond markers (world space)
     void renderDialog(SDL_Renderer* renderer);    // the speech bubble (screen space, top of the screen, draw last)
 
     // interact pressed: opens the dialog of the interactable in range, or advances the open one
@@ -118,5 +118,4 @@ private:
     float m_lineH = 38.0f;
     int   m_totalBytes = 0;
     MenuLabel m_nameLabel;  int m_nameKey = -1;
-    MenuLabel m_bang;
 };

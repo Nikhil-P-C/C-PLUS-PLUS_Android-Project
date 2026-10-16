@@ -275,18 +275,36 @@ void GameState::render(SDL_Renderer* renderer)  {
     Engine::Get().getPostProcessor().beginBloomGroup(m_renderer);
     if(m_isAttacking)
     {
-        SDL_FRect slashDst{m_player.x - 40 - camX, m_player.y - 20 - camY, 48 * P_scale,
-                           24 * P_scale};
+        SDL_Texture* slashTex = Engine::Get().getAssetManager().getTexture(TextureType::ATTACK_PLAYER_SLASH);
         SDL_FRect slashSrc{static_cast<float>(0 + (m_tempInc * 48)), 0, 48, 24};
-        if (!m_isPlayerfacingRight) {
-            slashDst.x = slashDst.x - 120;
-            SDL_RenderTextureRotated(renderer, Engine::Get().getAssetManager().getTexture(
-                                             TextureType::ATTACK_PLAYER_SLASH), &slashSrc, &slashDst, 0.0f, nullptr,
-                                     SDL_FLIP_HORIZONTAL);
+        if(m_slashDir == SlashDir::SIDE){
+            SDL_FRect slashDst{m_player.x - 40 - camX, m_player.y - 20 - camY, 48 * P_scale,
+                               24 * P_scale};
+            if (!m_isPlayerfacingRight) {
+                slashDst.x = slashDst.x - 120;
+                SDL_RenderTextureRotated(renderer, slashTex, &slashSrc, &slashDst, 0.0f, nullptr,
+                                         SDL_FLIP_HORIZONTAL);
+            } else {
+                SDL_RenderTexture(renderer, slashTex, &slashSrc, &slashDst);
+            }
         } else {
-
-            SDL_RenderTexture(renderer, Engine::Get().getAssetManager().getTexture(
-                    TextureType::ATTACK_PLAYER_SLASH), &slashSrc, &slashDst);
+            // up / down: the same sheet turned 90 degrees. The side sprite's centre sits 60px out from the
+            // player's centre along the swing, so the turned one is centred 60px above / below it.
+            const bool up = (m_slashDir == SlashDir::UP);
+            const float pcx = m_player.x + m_player.w * 0.5f - camX;
+            const float pcy = m_player.y + m_player.h * 0.5f - camY;
+            const float cx = pcx;
+            const float cy = pcy + (up ? -60.0f : 60.0f);
+            SDL_FRect slashDst{cx - 24 * P_scale, cy - 12 * P_scale, 48 * P_scale, 24 * P_scale};
+            // facing right: the sprite points right -> turn it CCW to point up / CW to point down.
+            // facing left: mirror it first, then turn the other way so the arc keeps the facing side's handedness.
+            double angle = up ? -90.0 : 90.0;
+            SDL_FlipMode flip = SDL_FLIP_NONE;
+            if(!m_isPlayerfacingRight){
+                angle = -angle;
+                flip = SDL_FLIP_HORIZONTAL;
+            }
+            SDL_RenderTextureRotated(renderer, slashTex, &slashSrc, &slashDst, angle, nullptr, flip);
         }
     }
 
@@ -445,9 +463,19 @@ void GameState::update(float dt){
     handlePhysicAndInput(dt);
 
     if(m_isAttacking){
-        m_playerHitBox = {m_player.x+40,m_player.y +15,29* P_scale,15 * P_scale};
-        if (!m_isPlayerfacingRight) {
-            m_playerHitBox.x = m_playerHitBox.x - 185;
+        if(m_slashDir == SlashDir::SIDE){
+            m_playerHitBox = {m_player.x+40,m_player.y +15,29* P_scale,15 * P_scale};
+            if (!m_isPlayerfacingRight) {
+                m_playerHitBox.x = m_playerHitBox.x - 185;
+            }
+        } else {
+            // up / down: a box centred on the player, 145px long (same as the side swing) and 130px wide
+            const float pcx = m_player.x + m_player.w * 0.5f;
+            const float pcy = m_player.y + m_player.h * 0.5f;
+            m_playerHitBox.w = 130.0f;
+            m_playerHitBox.h = 145.0f;
+            m_playerHitBox.x = pcx - 65.0f;
+            m_playerHitBox.y = (m_slashDir == SlashDir::UP) ? (pcy - 165.0f) : (pcy + 20.0f);
         }
     }
     else {
@@ -540,23 +568,60 @@ void GameState::update(float dt){
     }
     flushEnemyHitEffects();
 
+    // Downward slash on a hazard trap / rock head = pogo. (Enemies pogo from onEnemyHit; walls, ground, platforms,
+    // blocks and every other trap never bounce the player.) One bounce per swing.
+    if(m_isAttacking && m_slashDir == SlashDir::DOWN && m_pogoId != m_attackId){
+        float hitX = 0.0f, hitY = 0.0f;
+        if(m_trapBuilder.checkPogoTarget(m_playerHitBox, hitX, hitY)){
+            startPogo();
+            m_enemyHitId = m_attackId;       // counts as a landed hit: no extra wall clink for this swing
+            const float facing = m_isPlayerfacingRight ? -1.0f : 1.0f;
+            m_fxParticles.emitObjectSpark(hitX, hitY, facing);
+            Camera::getInstance().addTrauma(0.10f);
+            requestHitStop(0.04f);
+            Engine::Get().getAssetManager().playSound(SoundType::SFX_ATTACK_SLASH_HIT);
+        }
+    }
+
     // Sword hits something solid (not an enemy): a hit spark whose look depends on WHAT it hit -
     // wall/ground/platform = warm sparks flung back, object (block/trap) = cold metallic sparks.
-    // Once per swing, skipped if the swing already hit an enemy.
+    // Once per swing, skipped if the swing already hit an enemy (or pogoed).
     if(m_isAttacking && m_tempInc >= 2 && m_wallHitId != m_attackId && m_enemyHitId != m_attackId){
-        const float originX = m_isPlayerfacingRight ? (m_player.x + m_player.w) : m_player.x;
         int kind = 0;
-        const float dist = probeSolidAhead(originX, m_playerHitBox.y, m_playerHitBox.h, m_isPlayerfacingRight, kind);
-        if(dist <= m_playerHitBox.w){
+        float contactX = 0.0f, contactY = 0.0f;
+        bool touched = false;
+        float pushDirX = 0.0f, pushDirY = 0.0f;       // which way the player is shoved back
+        float sparkDirX = m_isPlayerfacingRight ? -1.0f : 1.0f;
+        if(m_slashDir == SlashDir::SIDE){
+            const float originX = m_isPlayerfacingRight ? (m_player.x + m_player.w) : m_player.x;
+            const float dist = probeSolidAhead(originX, m_playerHitBox.y, m_playerHitBox.h, m_isPlayerfacingRight, kind);
+            if(dist <= m_playerHitBox.w){
+                touched = true;
+                contactX = m_isPlayerfacingRight ? originX + dist : originX - dist;
+                contactY = m_playerHitBox.y + m_playerHitBox.h * 0.5f;
+                pushDirX = m_isPlayerfacingRight ? -1.0f : 1.0f;     // sparks bounce back at the player
+                sparkDirX = pushDirX;
+            }
+        } else {
+            const bool up = (m_slashDir == SlashDir::UP);
+            const float originY = up ? m_player.y : (m_player.y + m_player.h);
+            const float dist = probeSolidVertical(originY, m_playerHitBox.x, m_playerHitBox.w, up, kind);
+            if(dist <= VERT_SLASH_REACH){
+                touched = true;
+                contactX = m_playerHitBox.x + m_playerHitBox.w * 0.5f;
+                contactY = up ? originY - dist : originY + dist;
+                // up: shoved down. down: no bounce - the pogo is reserved for enemies / hazards / rock heads.
+                pushDirY = up ? 1.0f : 0.0f;
+            }
+        }
+        if(touched){
             m_wallHitId = m_attackId;
-            const float contactX = m_isPlayerfacingRight ? originX + dist : originX - dist;
-            const float contactY = m_playerHitBox.y + m_playerHitBox.h * 0.5f;
-            const float backDir = m_isPlayerfacingRight ? -1.0f : 1.0f;     // sparks bounce back at the player
-            if(kind == 1) m_fxParticles.emitObjectSpark(contactX, contactY, backDir);
-            else          m_fxParticles.emitWallSpark(contactX, contactY, backDir);
+            if(kind == 1) m_fxParticles.emitObjectSpark(contactX, contactY, sparkDirX);
+            else          m_fxParticles.emitWallSpark(contactX, contactY, sparkDirX);
             Camera::getInstance().addTrauma(0.08f);
             requestHitStop(0.03f);
-            applyRecoil(backDir, 300.0f);
+            if(pushDirX != 0.0f) applyRecoil(pushDirX, 300.0f);
+            if(pushDirY != 0.0f) applyRecoilY(pushDirY, UP_SLASH_PUSH_SPEED);
             Engine::Get().getAssetManager().playSound(SoundType::SFX_ATTACK_SLASH_COLLISION);
         }
     }
@@ -816,6 +881,28 @@ void GameState::applyRecoil(float dirX, float speed) {
     m_knockbackEndTime = now + 120;      // also stops the "no input -> velocityX = 0" idle reset
 }
 
+void GameState::applyRecoilY(float dirY, float speed) {
+    const uint32_t now = SDL_GetTicks();
+    if(now < m_knockbackEndTime && now >= m_recoilEndTime) return;   // real hurt-knockback in progress: don't override
+    m_velocityY = dirY * speed;
+    m_isGrounded = false;
+    m_recoilEndTime = now + 120;
+    m_knockbackEndTime = now + 120;
+}
+
+void GameState::startPogo() {
+    m_velocityY = -POGO_VELOCITY;
+    m_isGrounded = false;
+    m_pogoId = m_attackId;
+    // like a trampoline: counts as the first jump, so one air jump is still available afterwards
+    m_jumpsUsed = 1;
+    m_jumpBufferTimer = 0.0f;
+    m_coyoteTimer = 0.0f;
+    m_isDoubleJumping = false;
+    m_playerAction = PlayerAction::JUMP;
+    m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
+}
+
 // Impact frame: the same hit spark art as on enemies but ~2x bigger, a radial burst of sharp streaks,
 // and a white full-screen flash that lands on the first frame of the hit-stop.
 void GameState::playerImpactEffect(float dirX) {
@@ -910,7 +997,14 @@ void GameState::onEnemyHit(const EnemyHitEvent& e) {
 
     const uint32_t now = SDL_GetTicks();
     if(now - m_lastComboHit > COMBO_WINDOW_MS) m_combo = 0;
-    applyRecoil(m_isPlayerfacingRight ? -1.0f : 1.0f, (m_combo + 1) % COMBO_FINISHER_EVERY == 0 ? 450.0f : 300.0f);
+    {
+        const float pushSpeed = (m_combo + 1) % COMBO_FINISHER_EVERY == 0 ? 450.0f : 300.0f;
+        switch(m_slashDir){
+            case SlashDir::SIDE: applyRecoil(m_isPlayerfacingRight ? -1.0f : 1.0f, pushSpeed); break;
+            case SlashDir::UP:   applyRecoilY(1.0f, pushSpeed + 20.0f); break;      // shoved down
+            case SlashDir::DOWN: if(m_pogoId != m_attackId) startPogo(); break;      // pogo off the enemy
+        }
+    }
     m_combo++;
     m_lastComboHit = now;
     m_comboPop = 1.0f;
@@ -1207,6 +1301,36 @@ float GameState::probeSolidAhead(float originX, float y, float h, bool facingRig
     return best;
 }
 
+float GameState::probeSolidVertical(float originY, float x, float w, bool up, int& kind) {
+    // levels are walled in at the sides; above / below the world there is nothing to hit, so start from "far"
+    float best = VERT_SLASH_REACH + 1000.0f;
+    kind = 0;
+    auto horizontalOverlap = [&](float sx, float sw){ return x < sx + sw && x + w > sx; };
+    auto clip = [&](float sx, float sw, float sy, float sh, int k){
+        if(!horizontalOverlap(sx, sw)) return;
+        float dist;
+        if(up){ const float sb = sy + sh; if(sb > originY) return; dist = originY - sb; }
+        else  { if(sy < originY) return; dist = sy - originY; }
+        if(dist < best){ best = dist; kind = k; }
+    };
+    for(const auto& ground : m_grounds)  clip(ground.x, ground.w * SCALE, ground.y, ground.h * SCALE, 0);
+    for(const auto& platform : m_platforms){
+        if(platform.colliderType != ColliderType::SOLID && platform.colliderType != ColliderType::ONE_WAY) continue;
+        clip(platform.x, platform.w * SCALE, platform.y, platform.h * SCALE, 0);
+    }
+    for(const auto& block : m_blocks)    clip(block.rect.x, block.rect.w, block.rect.y, block.rect.h, 1);
+    const std::vector<Trap>& liveTraps = m_trapBuilder.getTraps();
+    for(int i = 0; i < (int)liveTraps.size(); i++){
+        const Trap& t = liveTraps[i];
+        const bool hittable = m_trapBuilder.isSolid(i) || t.colliderType == ColliderType::SOLID ||
+                              t.colliderType == ColliderType::ONE_WAY;
+        if(!hittable) continue;
+        SDL_FRect box = m_trapBuilder.getTrapCollisionBox(t);
+        clip(box.x, box.w, box.y, box.h, 1);
+    }
+    return best;
+}
+
 void GameState::tryBeam(float dt) {
     float drain = BEAM_MAGIC_DRAIN_PER_SEC * dt;
     if(PlayerDetail::getInstance().getMagic() < drain){
@@ -1430,8 +1554,17 @@ void GameState::handlePhysicAndInput(float dt) {
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
     }
 
-    if(InputDispatcher::getInstance().consumeAttack()){
-        if(!m_isAttacking) m_attackId++;   // new swing -> new id; enemies take at most one hit per id
+    // slash attacks are air-only: a press while standing on the ground is swallowed (no swing).
+    // A swing that is already playing when the player touches down is allowed to finish.
+    if(InputDispatcher::getInstance().consumeAttack() && (!m_isGrounded || m_isAttacking)){
+        if(!m_isAttacking){
+            m_attackId++;   // new swing -> new id; enemies take at most one hit per id
+            // aim is locked in for the whole swing: up held = upward slash, down held = downward slash
+            // (pogo target check), otherwise the slash goes the way the player faces. (Air only, see above.)
+            if(InputDispatcher::getInstance().lookUp)        m_slashDir = SlashDir::UP;
+            else if(InputDispatcher::getInstance().lookDown) m_slashDir = SlashDir::DOWN;
+            else                                             m_slashDir = SlashDir::SIDE;
+        }
         m_isAttacking =true;
     }
 
@@ -1680,5 +1813,5 @@ bool SDLCALL GameState::HandleBackgroundEvents(void *userdata, SDL_Event *event)
     else if (event->type == SDL_EVENT_WILL_ENTER_FOREGROUND){
 
     }
-    return true; // Return true to keep the event in the queue for other systems
+    return true;
 }

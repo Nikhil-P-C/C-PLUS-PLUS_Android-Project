@@ -240,6 +240,8 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadTexture(TextureType::BUTTON_JUMP_BUTTON,"button/jump_button.png");
     loadTexture(TextureType::BUTTON_LEFT_BUTTON,"button/left_button.png");
     loadTexture(TextureType::BUTTON_RIGHT_BUTTON,"button/right_button.png");
+    loadTexture(TextureType::BUTTON_UP_BUTTON,"button/up_button.png");
+    loadTexture(TextureType::BUTTON_DOWN_BUTTON,"button/down_button.png");
     loadTexture(TextureType::BUTTON_SLASH_BUTTON,"button/slash_button.png");
     loadTexture(TextureType::BUTTON_MAGIC_BUTTON,"button/magic_button.png");
     loadTexture(TextureType::JOYSTICK_JOYSTICK_OUTERRING,"joystick/Joystick.png");

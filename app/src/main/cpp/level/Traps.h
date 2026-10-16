@@ -127,6 +127,11 @@ public:
     bool checkHazard(float playerX ,float playerY,float playerW,float playerH,
                      TrapType& outType,gameMath::collisionSide& outSide);
 
+    // pogo: does the player's downward slash box touch something a pogo bounce is allowed on?
+    // Only hazard traps (spikes, spike head/ball, saw, fire while lit) and rock heads count - never platforms,
+    // trampolines, fans etc. On a hit outX/outY is the centre of the overlap (for the spark).
+    bool checkPogoTarget(const SDL_FRect& slashBox, float& outX, float& outY);
+
     bool checkTrampolineBounce(int trapIndex,float playerX,float playerY,
                                float playerW,float playerH,ParticleSystem& particleSystem);
 

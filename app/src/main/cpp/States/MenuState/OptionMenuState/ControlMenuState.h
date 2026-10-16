@@ -1,8 +1,6 @@
 //
 // Created by LENOVO on 01-07-2026.
-//
-// Control page of the option screen: pick the on-screen / physical control scheme (radio list).
-//
+
 #pragma once
 
 #include "State/State.h"
@@ -18,7 +16,7 @@ public:
     explicit ControlMenuState(SDL_Renderer* renderer);
     ~ControlMenuState()override;
 private:
-    static constexpr int OPTION_COUNT = 5;
+    static constexpr int OPTION_COUNT = 4;
 
     void choose(int index);
     void perform(InputUtils::MenuAction action);
@@ -29,7 +27,7 @@ private:
     MenuFont      m_font;
     MenuLabel     m_labels[OPTION_COUNT];
     MenuRows      m_rows;
-    float         m_pick[OPTION_COUNT] = {};   // 0..1 eased "this one is the active scheme"
-    float         m_pop[OPTION_COUNT]  = {};   // 1 -> 0 flash right after choosing
+    float         m_pick[OPTION_COUNT] = {};
+    float         m_pop[OPTION_COUNT]  = {};
     InputUtils::MenuNavRepeater m_nav;
 };

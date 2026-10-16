@@ -4,7 +4,6 @@
 #pragma once
 enum ControlType{
     BUTTONS =0,
-    JOYSTICK,
     SEP_JUMP_W_JOYSTICK,
     KEYBOARD,
     GAMEPAD

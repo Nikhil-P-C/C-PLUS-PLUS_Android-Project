@@ -65,6 +65,11 @@ void SepJoysticknButton::update(float dt) {
             InputDispatcher::getInstance().setMovingRight(false);
         }
 
+        // pushed mostly up / down = aim the slash (held, follows the stick). Up also interacts, see below.
+        const bool vertical = std::fabs(dY) > std::fabs(dX);
+        InputDispatcher::getInstance().setLookUp(dY < -deadZone && vertical);
+        InputDispatcher::getInstance().setLookDown(dY > deadZone && vertical);
+
         // pushed mostly upward = interact, once per push (re-arms when it comes back toward the centre)
         if(dY < -deadZone * 1.5f && std::fabs(dY) > std::fabs(dX)){
             if(!m_upLatched){
@@ -96,6 +101,8 @@ void SepJoysticknButton::update(float dt) {
     if(!m_joystickFingerActive){
         InputDispatcher::getInstance().setMovingLeft(false);
         InputDispatcher::getInstance().setMovingRight(false);
+        InputDispatcher::getInstance().setLookUp(false);
+        InputDispatcher::getInstance().setLookDown(false);
         m_upLatched = false;
     }
     if(!m_jumpFingerActive){

@@ -13,7 +13,6 @@
 #include "States/MenuState/TitleScreenState.h"
 #include "States/MenuState/MenuState.h"
 
-#include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/InputOverlayState/KeyboardOverlay.h"
@@ -109,8 +108,6 @@ void PauseState::resume() {
     Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
     if(GameData::getInstance().isDebugEnabled())
         Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer ,m_gameState));
-    if(GameData::getInstance().getControlType() ==ControlType::JOYSTICK)
-        Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
     if(GameData::getInstance().getControlType() ==ControlType::BUTTONS)
         Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
     if(GameData::getInstance().getControlType() ==ControlType::SEP_JUMP_W_JOYSTICK)
@@ -176,7 +173,7 @@ bool PauseState::handleEvents(SDL_Event &event) {
         case InputUtils::MenuAction::CONFIRM:
             activate(m_rows.focus());
             return true;
-        case InputUtils::MenuAction::BACK:       // Esc / Android back / pad B / Start resumes, like before
+        case InputUtils::MenuAction::BACK:
             activate(ENTRY_RESUME);
             return true;
         default:

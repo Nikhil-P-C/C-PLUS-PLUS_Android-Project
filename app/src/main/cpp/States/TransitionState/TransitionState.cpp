@@ -3,7 +3,6 @@
 #include "engine/Engine.h"
 #include "States/GameState/GameState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
-#include "States/InputOverlayState/JoystickOverlay.h"
 #include "States/InputOverlayState/ButtonOverlay.h"
 #include "States/InputOverlayState/SepJoysticknButton.h"
 #include "States/InputOverlayState/KeyboardOverlay.h"
@@ -90,8 +89,6 @@ void TransitionState::update(float dt) {
             if(m_gameState)
                 Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
         }
-        if (GameData::getInstance().getControlType() == JOYSTICK)
-            Engine::Get().pushOverlayState(std::make_unique<JoystickOverlay>(m_renderer));
         if (GameData::getInstance().getControlType() == BUTTONS)
             Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
         if (GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK)

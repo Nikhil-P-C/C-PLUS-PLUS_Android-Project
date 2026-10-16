@@ -34,6 +34,12 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
         }
         if(event.key.key == SDLK_E || event.key.key == SDLK_W){   // W = "up" = interact (E still works too)
             if(!event.key.repeat) InputDispatcher::getInstance().triggerInteract();
+            // W is also held to aim up (K + W = upward slash)
+            if(event.key.key == SDLK_W) InputDispatcher::getInstance().setLookUp(true);
+            return true;
+        }
+        if(event.key.key == SDLK_S){                               // S = "down": K + S in the air = downward slash / pogo
+            InputDispatcher::getInstance().setLookDown(true);
             return true;
         }
         if(event.key.key == SDLK_K){
@@ -62,6 +68,14 @@ bool KeyboardOverlay::handleEvents(SDL_Event &event) {
         }
         if(event.key.key == SDLK_SPACE){
             InputDispatcher::getInstance().setJump(false);
+            return true;
+        }
+        if(event.key.key == SDLK_W){
+            InputDispatcher::getInstance().setLookUp(false);
+            return true;
+        }
+        if(event.key.key == SDLK_S){
+            InputDispatcher::getInstance().setLookDown(false);
             return true;
         }
         if(event.key.key == SDLK_J){

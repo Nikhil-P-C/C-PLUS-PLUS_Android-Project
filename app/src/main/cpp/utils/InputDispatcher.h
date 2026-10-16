@@ -14,6 +14,10 @@ public:
     bool heal =false;
     bool beaming =false;
     bool interact =false;   // talk to / read the interactable in range (also advances an open dialog)
+    // held aim directions, shared by every input overlay. Attack + lookUp = upward slash,
+    // attack + lookDown (in the air) = downward slash / pogo, otherwise the slash goes sideways.
+    bool lookUp =false;
+    bool lookDown =false;
 
 private:
     bool m_jumpPressed =false;
@@ -28,6 +32,8 @@ public:
         heal =false;
         beaming =false;
         interact =false;
+        lookUp =false;
+        lookDown =false;
         m_jumpPressed =false;
     }
     void setInputReleased(bool shouldRelease){
@@ -71,6 +77,18 @@ public:
         bool prevInteract =interact;
         interact = false;
         return prevInteract;
+    }
+    void setLookUp(bool shouldLookUp){
+        lookUp=shouldLookUp;
+    }
+    void setLookDown(bool shouldLookDown){
+        lookDown=shouldLookDown;
+    }
+    bool getLookUp() const{
+        return lookUp;
+    }
+    bool getLookDown() const{
+        return lookDown;
     }
     void setBeaming(bool shouldBeam){
         beaming=shouldBeam;

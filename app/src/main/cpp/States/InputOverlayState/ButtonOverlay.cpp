@@ -21,6 +21,9 @@ void ButtonOverlay::render(SDL_Renderer *renderer) {
     // up = the left arrow rotated 90 degrees clockwise
     SDL_FRect upButtonDst{m_UpButton.x, m_UpButton.y, m_UpButton.w, m_UpButton.h};
     SDL_RenderTextureRotated(renderer, m_leftButtonTexture, nullptr, &upButtonDst, 90.0, nullptr, SDL_FLIP_NONE);
+    // down = the left arrow rotated 90 degrees counter-clockwise
+    SDL_FRect downButtonDst{m_DownButton.x, m_DownButton.y, m_DownButton.w, m_DownButton.h};
+    SDL_RenderTextureRotated(renderer, m_leftButtonTexture, nullptr, &downButtonDst, -90.0, nullptr, SDL_FLIP_NONE);
     SDL_RenderTexture(renderer, m_slashButtonTexture, nullptr, &attackButtonDst);
     SDL_RenderTexture(renderer, m_magicButtonTexture, nullptr,&magicButtonDst);
 
@@ -44,6 +47,9 @@ void ButtonOverlay::update(float dt) {
         InputDispatcher::getInstance().triggerInteract();   // talk to / read the interactable, advance a dialog
         m_upPressed =false;
     }
+    // held up / down buttons aim the slash (up: upward slash, down in the air: downward slash / pogo)
+    InputDispatcher::getInstance().setLookUp(m_upFingerActive);
+    InputDispatcher::getInstance().setLookDown(m_downFingerActive);
 
     if(m_magicFingerActive){
         if(!m_magicBeamStarted && (SDL_GetTicks() - m_magicPressStartTime) >= MAGIC_HOLD_THRESHOLD_MS){
@@ -81,9 +87,7 @@ void ButtonOverlay::update(float dt) {
         InputDispatcher::getInstance().setMovingLeft(false);
         InputDispatcher::getInstance().setMovingRight(false);
     }
-//    if(!m_jumpFingerActive && !m_dFingerActive && m_attackFingerActive){
-//        InputDispatcher::getInstance().inputLogClear();
-//    }
+
     if(InputDispatcher::getInstance().released){
         InputDispatcher::getInstance().inputLogClear();
     }
@@ -116,8 +120,15 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
             m_jumpFingerActive=true;
         }
         if(touchX > m_UpButton.x && touchX < m_UpButton.x + m_UpButton.w &&
-           touchY > m_UpButton.y && touchY < m_UpButton.y + m_UpButton.h){
-            m_upPressed = true;
+           touchY > m_UpButton.y && touchY < m_UpButton.y + m_UpButton.h && !m_upFingerActive){
+            m_upFingerID = event.tfinger.fingerID;
+            m_upFingerActive = true;
+            m_upPressed = true;                  // the press itself still interacts; holding it aims up
+        }
+        if(touchX > m_DownButton.x && touchX < m_DownButton.x + m_DownButton.w &&
+           touchY > m_DownButton.y && touchY < m_DownButton.y + m_DownButton.h && !m_downFingerActive){
+            m_downFingerID = event.tfinger.fingerID;
+            m_downFingerActive = true;
         }
         if((touchX > m_AttackButton.x && touchX < m_AttackButton.x + m_AttackButton.w&&
             touchY > m_AttackButton.y && touchY < m_AttackButton.y + m_AttackButton.h )&& !m_attackFingerActive){
@@ -157,6 +168,12 @@ bool ButtonOverlay::handleEvents(SDL_Event &event) {
         }
         if(m_dFingerActive && event.tfinger.fingerID == m_dFingerID){
             m_dFingerActive =false;
+        }
+        if(m_upFingerActive && event.tfinger.fingerID == m_upFingerID){
+            m_upFingerActive =false;
+        }
+        if(m_downFingerActive && event.tfinger.fingerID == m_downFingerID){
+            m_downFingerActive =false;
         }
         if(m_attackFingerActive && event.tfinger.fingerID == m_attackFingerID){
             m_attackFingerActive =false;

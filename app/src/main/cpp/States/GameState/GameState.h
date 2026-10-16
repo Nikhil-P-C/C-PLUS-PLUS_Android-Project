@@ -44,6 +44,11 @@ const int HEAL_AMOUNT = 1;
 const unsigned int HEAL_COOLDOWN_MS = 800;
 const int ENEMY_KILL_SCORE = 10;
 
+// --- directional slash / pogo / pushback ---
+const float POGO_VELOCITY          = 1100.0f;   // px/s upward after a downward slash lands on an enemy / hazard trap / rock head
+const float UP_SLASH_PUSH_SPEED    = 320.0f;    // px/s downward shove when an upward slash connects
+const float VERT_SLASH_REACH       = 122.5f;    // how far past the player's body the up/down slash reaches
+
 // --- hit VFX / combo ---
 const unsigned int COMBO_WINDOW_MS   = 1200;   // a hit within this long of the previous one continues the combo
 const int          COMBO_FINISHER_EVERY = 5;   // every Nth combo hit is a "finisher" beat (bigger shake/stop/knockback)
@@ -63,6 +68,13 @@ const float COYOTE_TIME_S           = 0.10f;    // can still make the first (ful
 const float JUMP_BUFFER_S           = 0.12f;    // a jump pressed this long before landing fires on touchdown
 const int   PLAYER_DEATH_FRAME_WHITE = 15;      // hurt row is 14-16, 15 is the all-white flash frame
 const int   PLAYER_DEATH_FRAME_POSE  = 14;
+
+// which way the current melee swing points. Locked in when the swing starts.
+enum class SlashDir{
+    SIDE =0,   // the way the player faces
+    UP,        // attack + up held
+    DOWN       // attack + down held while airborne (this is the pogo swing)
+};
 
 enum PlayerAction{
     IDLE =0,
@@ -119,6 +131,10 @@ public:
     void requestHitStop(float seconds);
     // pushes the player away from what they just hit (dirX = -facing). A hurt-knockback in progress wins.
     void applyRecoil(float dirX, float speed);
+    // vertical pushback: dirY = +1 shoves the player down, -1 up. Same hurt-knockback guard as applyRecoil.
+    void applyRecoilY(float dirY, float speed);
+    // downward slash landed on something bounceable: launch the player upward and refill an air jump
+    void startPogo();
     // player took damage: big impact frame + the same hit spark made larger + particles
     void playerImpactEffect(float dirX);
     // Hollow-Knight style damage audio: boom, then the whole mix stays slowed + muffled for `ms` (= the
@@ -153,6 +169,8 @@ public:
     float computeBeamLength(float originX, float beamY, float beamH, bool facingRight);
     // nearest solid in front of originX (sword reach check) and what it is: 0 = wall/ground/platform, 1 = object (block/trap)
     float probeSolidAhead(float originX, float y, float h, bool facingRight, int& kind);
+    // same idea for the up / down swings: nearest solid above (up=true) or below the player's body edge `originY`
+    float probeSolidVertical(float originY, float x, float w, bool up, int& kind);
 
     const Player& getPlayer(){
         return m_player;
@@ -302,6 +320,8 @@ private:
     float    m_comboTexW =0.0f, m_comboTexH =0.0f;
 
     bool m_isAttacking =false;
+    SlashDir m_slashDir =SlashDir::SIDE;
+    int  m_pogoId =-1;    // last swing that already bounced the player (one pogo per swing)
     int  m_attackId =0;   // bumped at the start of every melee swing (see applyPlayerDamage)
     bool m_isBeaming =false;
 
