@@ -74,6 +74,13 @@ const float DASH_DURATION_S         = 0.18f;    // ~234px lunge
 const float DASH_COOLDOWN_S         = 0.20f;    // short lockout after a dash so a grounded dash can't be chained instantly
 const float JUMP_CUT_GRAVITY_MULT   = 3.0f;     // gravity multiplier while rising with the jump button released (variable jump height)
 // full hold ~278px, quick tap ~92px, anything in between depending on release time
+// wall jump: only off REAL walls (the 'W' level walls, grounds, blocks) - never off the invisible world bounds
+const float WALL_PROBE_W            = 6.0f;     // how far out from the player's side a wall still counts as touching
+const float WALL_COYOTE_S           = 0.10f;    // can still wall-jump this long after leaving the wall
+const float WALL_JUMP_VELOCITY_MULT = 0.95f;    // x the normal jump velocity
+const float WALL_JUMP_SPEED_X       = 520.0f;   // px/s kick away from the wall
+const float WALL_JUMP_LOCK_S        = 0.16f;    // horizontal input is ignored this long so the kick actually plays (~83px)
+const float WALL_SLIDE_SPEED        = 220.0f;   // max fall speed while holding toward a wall (set to 100000 to disable sliding)
 const int   PLAYER_DEATH_FRAME_WHITE = 15;      // hurt row is 14-16, 15 is the all-white flash frame
 const int   PLAYER_DEATH_FRAME_POSE  = 14;
 
@@ -122,6 +129,10 @@ public:
     void setLevel(int level);
 
     void handleCollision();
+    // wall jump helpers. -1 = real wall touching the player's left, +1 = right, 0 = none
+    int  getWallContactDir() const;
+    bool isWallJumpSurface(const SDL_FRect& probe) const;
+    bool pointInLevelWall(float x, float y) const;
     void handlePhysicAndInput(float dt);
     void startPlayerDeath();
     void updateDeath(float dt);
@@ -345,6 +356,13 @@ private:
     bool  m_respawnScreenOpen =false;
     float m_respawnX =109.0f, m_respawnY =0.0f;   // level start (from the 'S' line when the level has one)
     bool m_isDoubleJumping =false;
+
+    // wall jump
+    int   m_wallDir =0;               // wall touching the player this frame (-1 left / +1 right / 0 none)
+    int   m_wallCoyoteDir =0;         // side of the last wall touched (used while m_wallCoyoteTimer > 0)
+    float m_wallCoyoteTimer =0.0f;
+    float m_wallJumpLockTimer =0.0f;  // >0 while the kick away from the wall overrides horizontal input
+    float m_wallJumpDir =0.0f;        // +1 / -1 direction of the kick
 
     // power dash
     bool  m_isDashing =false;

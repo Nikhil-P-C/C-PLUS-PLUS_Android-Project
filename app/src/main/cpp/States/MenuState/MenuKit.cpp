@@ -153,9 +153,7 @@ void MenuLabel::reset() {
     w = h = 0.0f;
 }
 
-// =============================================================================================
-// MenuPainter
-// =============================================================================================
+
 MenuPainter::MenuPainter(SDL_Renderer* renderer) : m_renderer(renderer), m_assets(MenuAssets::acquire(renderer)) {}
 
 void MenuPainter::glow(float cx, float cy, float w, float h, Rgb c, float alpha) const {
@@ -261,9 +259,7 @@ void MenuPainter::rowFrame(float left, float right, float y, float focus, float 
     fadeLine(right + 12.0f, right + 12.0f + ext, y, t.accent(), a * 0.85f, 0.0f);
 }
 
-// =============================================================================================
-// MenuRows
-// =============================================================================================
+
 void MenuRows::setup(int count, float firstY, float step, int initialFocus, float revealDelay, float revealStep) {
     m_count = std::min(count, MAX_ROWS);
     m_firstY = firstY; m_step = step;
@@ -302,9 +298,6 @@ int MenuRows::hit(float px, float py, float x0, float x1, float halfH) const {
     return -1;
 }
 
-// =============================================================================================
-// MenuBackdrop
-// =============================================================================================
 MenuBackdrop::MenuBackdrop(SDL_Renderer* renderer, float coreX, float coreY, float introTime, bool overlay)
         : m_painter(renderer), m_coreX(coreX), m_coreY(coreY), m_introTime(introTime), m_overlay(overlay) {
     m_motes.init(renderer, AmbientTheme::MENU);

@@ -870,6 +870,51 @@ void GameState::handleCollision() {
     }
 }
 
+// true if (x,y) lies inside one of the visible 'W' level walls
+bool GameState::pointInLevelWall(float x, float y) const {
+    for(const auto& wall : m_levelWalls){
+        if(x >= wall.x && x < wall.x + wall.w && y >= wall.y && y < wall.y + wall.h) return true;
+    }
+    return false;
+}
+
+// Is `probe` (a thin box just outside the player's side) touching something the player may wall-jump off?
+//  yes: blocks, grounds, and the left/right world-bound strips - but ONLY where a visible 'W' wall is drawn there
+//  no : the world bounds of levels that have no walls (invisible), platforms, traps, floor/ceiling
+bool GameState::isWallJumpSurface(const SDL_FRect& probe) const {
+    for(const auto& block : m_blocks){
+        if(SDL_HasRectIntersectionFloat(&probe, &block.rect)) return true;
+    }
+    for(const auto& ground : m_grounds){
+        const SDL_FRect r{ground.x, ground.y, ground.w * SCALE, ground.h * SCALE};
+        if(SDL_HasRectIntersectionFloat(&probe, &r)) return true;
+    }
+
+    // world bounds: same left / right strips handleCollision() pushes the player out of
+    const float T = TILE_SIZE * SCALE;
+    const SDL_FRect& R = m_wallCollisionRect;
+    const float renderedHeight = std::ceil(R.h / T) * T;
+    const float probeMidY = probe.y + probe.h * 0.5f;
+    const SDL_FRect leftStrip {R.x,                 R.y, T, renderedHeight};
+    const SDL_FRect rightStrip{R.x + R.w - T,       R.y, T, renderedHeight};
+    if(SDL_HasRectIntersectionFloat(&probe, &leftStrip)  && pointInLevelWall(R.x + T * 0.5f,       probeMidY)) return true;
+    if(SDL_HasRectIntersectionFloat(&probe, &rightStrip) && pointInLevelWall(R.x + R.w - T * 0.5f, probeMidY)) return true;
+    return false;
+}
+
+int GameState::getWallContactDir() const {
+    const float probeY = m_player.y + m_player.h * 0.25f;     // middle half of the body, so a floor/ceiling corner doesn't count
+    const float probeH = m_player.h * 0.5f;
+    const SDL_FRect left {m_player.x - WALL_PROBE_W, probeY, WALL_PROBE_W, probeH};
+    const SDL_FRect right{m_player.x + m_player.w,   probeY, WALL_PROBE_W, probeH};
+    const bool l = isWallJumpSurface(left);
+    const bool r = isWallJumpSurface(right);
+    if(l && r) return m_isPlayerfacingRight ? 1 : -1;          // squeezed between two walls
+    if(l) return -1;
+    if(r) return 1;
+    return 0;
+}
+
 // poof where a finished enemy vanished
 void GameState::flushEnemyDeathEffects() {
     for(const SDL_FPoint& p : m_enemyBuilder.consumeDeathEvents()){
@@ -1096,6 +1141,7 @@ void GameState::startPlayerDeath() {
     m_playerHitBox = {0.0f,0.0f,0.0f,0.0f};
     m_isDoubleJumping = false;
     m_doubleJumpFrame = 0;
+    m_wallDir = 0; m_wallCoyoteTimer = 0.0f; m_wallJumpLockTimer = 0.0f;
     endDash();
     m_velocityX = 0.0f;
     m_velocityY = 0.0f;
@@ -1183,6 +1229,7 @@ void GameState::respawnPlayer() {
     }
     m_coyoteTimer = 0.0f;
     m_jumpBufferTimer = 0.0f;
+    m_wallDir = 0; m_wallCoyoteTimer = 0.0f; m_wallJumpLockTimer = 0.0f;
 
     m_velocityX = 0.0f;
     m_velocityY = 0.0f;
@@ -1485,7 +1532,13 @@ void GameState::handlePhysicAndInput(float dt) {
     const bool inRecoil = SDL_GetTicks() < m_recoilEndTime;
     if(inRecoil) m_velocityX *= std::exp(-8.0f * dt);   // push-back eases out
 
-    if(!inKnockback)
+    // wall contact (wall jump / slide): only while airborne and not mid-dash
+    m_wallDir = (m_isGrounded || m_isDashing) ? 0 : getWallContactDir();
+    if(inKnockback || inRecoil) m_wallJumpLockTimer = 0.0f;       // getting hit cancels the wall-jump kick
+    const bool wallJumpLocked = m_wallJumpLockTimer > 0.0f;
+    if(wallJumpLocked) m_wallJumpLockTimer = std::max(0.0f, m_wallJumpLockTimer - dt);
+
+    if(!inKnockback && !wallJumpLocked)
     {
         if (!InputDispatcher::getInstance().movingLeft &&
             !InputDispatcher::getInstance().movingRight) {
@@ -1494,7 +1547,7 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
-    if(InputDispatcher::getInstance().movingLeft && !inRecoil){
+    if(InputDispatcher::getInstance().movingLeft && !inRecoil && !wallJumpLocked){
         m_isPlayerfacingRight =false;
         m_playerAction=PlayerAction::MOVINGLEFT;
         m_velocityX = -400.00f;
@@ -1512,7 +1565,7 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
-    if(InputDispatcher::getInstance().movingRight && !inRecoil){
+    if(InputDispatcher::getInstance().movingRight && !inRecoil && !wallJumpLocked){
         m_isPlayerfacingRight =true;
         m_playerAction=PlayerAction::MOVINGRIGHT;
         m_velocityX=400.00f;
@@ -1531,6 +1584,8 @@ void GameState::handlePhysicAndInput(float dt) {
         }
     }
 
+    if(wallJumpLocked) m_velocityX = m_wallJumpDir * WALL_JUMP_SPEED_X;   // the kick off the wall
+
     // Footsteps: only while actually walking on the ground. playSoundIfIdle() ignores the call
     // while the previous step clip is still playing, so steps queue up one after another and
     // every clip plays for its full length (no per-frame spam, no cut-offs).
@@ -1548,6 +1603,11 @@ void GameState::handlePhysicAndInput(float dt) {
     if(jumpPressed)                      m_jumpBufferTimer = JUMP_BUFFER_S;
     else if(m_jumpBufferTimer > 0.0f)    m_jumpBufferTimer = std::max(0.0f, m_jumpBufferTimer - dt);
 
+    // Wall coyote: for WALL_COYOTE_S after leaving a real wall the wall jump still works.
+    if(m_wallDir != 0){ m_wallCoyoteTimer = WALL_COYOTE_S; m_wallCoyoteDir = m_wallDir; }
+    else if(m_wallCoyoteTimer > 0.0f) m_wallCoyoteTimer = std::max(0.0f, m_wallCoyoteTimer - dt);
+    if(m_isGrounded) m_wallCoyoteTimer = 0.0f;
+
     // m_jumpsUsed == 0 while airborne only happens in the coyote window (it is set to 1 once it ends,
     // and by every real jump / trampoline), so this can't be used to jump twice off one ledge.
     const bool canGroundJump = m_isGrounded || (m_coyoteTimer > 0.0f && m_jumpsUsed == 0);
@@ -1562,6 +1622,29 @@ void GameState::handlePhysicAndInput(float dt) {
         m_jumpBufferTimer = 0.0f;
         m_coyoteTimer = 0.0f;
         m_particleSystem.emitJumpDust(m_player.x, m_player.y + m_player.h - 40.00f);
+    }
+    else if(m_jumpBufferTimer > 0.0f && m_wallCoyoteTimer > 0.0f && !m_isGrounded && !m_isDashing
+            && !wallJumpLocked && !inKnockback && !inRecoil){
+        // Wall jump: kick off a real wall (checked in getWallContactDir). Takes priority over the air jump and
+        // does not spend it - it actually refills it, so the player always has one air jump left afterwards.
+        const int wallSide = m_wallCoyoteDir;                 // -1 wall on the left, +1 on the right
+        const float away = (float)-wallSide;
+        Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_JUMP);
+        m_playerAction = PlayerAction::JUMP;
+        m_velocityY = -m_jumpVelocity * WALL_JUMP_VELOCITY_MULT;
+        m_velocityX = away * WALL_JUMP_SPEED_X;
+        m_wallJumpDir = away;
+        m_wallJumpLockTimer = WALL_JUMP_LOCK_S;
+        m_isPlayerfacingRight = away > 0.0f;
+        m_jumpCutEligible = true;
+        m_isDoubleJumping = false;
+        m_jumpsUsed = 1;
+        m_jumpBufferTimer = 0.0f;
+        m_wallCoyoteTimer = 0.0f;
+        m_coyoteTimer = 0.0f;
+        const float contactX = wallSide < 0 ? m_player.x : m_player.x + m_player.w;
+        m_particleSystem.emitBurst(contactX, m_player.y + m_player.h * 0.7f, 6, 80.0f, 220.0f,
+                                   0.20f, 0.35f, 36.0f, 220, 220, 220);
     }
     else if(jumpPressed && m_jumpsUsed < m_maxJumps && !m_isDashing){
         // Air jump - body keeps whatever pose it was already in (same idea as
@@ -1647,6 +1730,12 @@ void GameState::handlePhysicAndInput(float dt) {
     else{
         m_player.x +=m_velocityX * dt;
         m_velocityY+=gravityNow*dt;
+        // wall slide: falling while holding toward a real wall caps the fall speed
+        if(m_wallDir != 0 && m_velocityY > WALL_SLIDE_SPEED && !wallJumpLocked && !inKnockback && !inRecoil){
+            const bool pushingIntoWall = (m_wallDir < 0 && InputDispatcher::getInstance().movingLeft) ||
+                                         (m_wallDir > 0 && InputDispatcher::getInstance().movingRight);
+            if(pushingIntoWall) m_velocityY = WALL_SLIDE_SPEED;
+        }
         m_player.y +=m_velocityY*dt;
     }
 
