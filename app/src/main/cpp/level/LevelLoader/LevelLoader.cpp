@@ -71,6 +71,9 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'L':
             parseLight(stream);
             break;
+        case 'M':
+            parseMusic(stream);
+            break;
         default:
             LOGI("Failed to decode:%c",recordType);
     }
@@ -381,8 +384,18 @@ void LevelLoader::parseSpikeBallTail(std::istringstream& ss,Trap& trap) {
     trap.showChain =showChain;
 }
 
+// optional last token on the trap line: UP | RIGHT | DOWN | LEFT (default UP) - see TrapOrientation
 void LevelLoader::parseGenericTail(std::istringstream& ss,Trap& trap) {
-    //do nothing : might remove this function later
+    std::string orientation;
+    if(ss>>orientation){
+        trap.orientation = toTrapOrientation(orientation);
+        if(!trapSupportsOrientation(trap.type) && trap.orientation != TrapOrientation::UP){
+            LOGI("trap type %d can't be rotated, orientation %s ignored",(int)trap.type,orientation.c_str());
+            trap.orientation = TrapOrientation::UP;
+        }
+    } else {
+        ss.clear();   // no token = normal end of line, not a parse failure (parseTraps checks ss.fail())
+    }
 }
 
 void LevelLoader::parseCheckPoint(std::istringstream& ss) {
@@ -444,7 +457,34 @@ void LevelLoader::parseLight(std::istringstream& ss) {
     m_lights.push_back(l);
 }
 
+// M file [gain]
+//   background music of this level (looped). file is relative to the assets folder; a bare name like
+//   cave.ogg means Sound/Music/cave.ogg. gain 0..1 trims this track (default 1). `M NONE` = silent level.
+void LevelLoader::parseMusic(std::istringstream& ss) {
+    std::string file;
+    ss>>file;
+    if(ss.fail()){
+        LOGE("Malformed music (M) line");
+        return;
+    }
+    float gain = 1.0f;
+    if(ss>>gain) gain = std::clamp(gain,0.0f,2.0f);
+    if(file == "NONE"){
+        m_musicPath.clear();
+        m_musicGain = 1.0f;
+        m_musicExplicit = true;
+        return;
+    }
+    if(file.find('/') == std::string::npos) file = "Sound/Music/" + file;
+    m_musicPath = file;
+    m_musicGain = gain;
+    m_musicExplicit = true;
+}
+
 void LevelLoader::loadLevel(int level) {
+    m_musicPath.clear();
+    m_musicGain = 1.0f;
+    m_musicExplicit = false;
     m_lights.clear();
     m_enemies.clear();
     m_interactables.clear();
@@ -458,6 +498,8 @@ void LevelLoader::loadLevel(int level) {
     while(std::getline(stream,line)){
         parseLine(line);
     }
+    // no M record: use the convention Sound/Music/level_<n>.ogg (silent if that file doesn't exist)
+    if(!m_musicExplicit) m_musicPath = "Sound/Music/level_" + std::to_string(level) + ".ogg";
 }
 
 LevelLoader::LevelLoader() {

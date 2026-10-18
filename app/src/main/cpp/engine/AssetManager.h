@@ -246,6 +246,18 @@ public:
     void playMusic(SoundType);
     void playMusicAt(float listenerX,float listenerY,float srcX ,float srcY,SoundType);
 
+    // --- streamed music files (menu music + one music file per level) ---------------------------
+    // Streams `path` on the single music track, looping. Calling it again with the path that is already
+    // playing does nothing (the music keeps going - e.g. when a level is restarted after dying).
+    // An empty path or a file that can't be opened = silence. `baseGain` is a per-track volume trim
+    // (level 'M' record); the player's music slider is applied on top.
+    void playMusicFile(const std::string& path,float baseGain =1.0f);
+    // The menu / title music. Only the menus play it - levels bring their own (or none).
+    void playMenuMusic();
+    void stopMusic();
+    // Music slider (0..1). Cheap: only touches the track when the value actually changed.
+    void setMusicScale(float scale);
+
     // Master pitch/speed of everything you hear (music + sfx): 1.0 = normal, <1 = slower and lower.
     // Used for the "pitch drop" when the player gets hurt. Clamped to a sane range.
     void setPitchRatio(float ratio);
@@ -284,6 +296,9 @@ private:
     std::array<MIX_Track*,MAX_SFX_VOICES> m_sfxPool{nullptr};
     std::array<MIX_Track*,(unsigned int)SoundType::COUNT> m_idleTracks{nullptr}; // one per sound, for playSoundIfIdle
     MIX_Track* m_musicTrack =nullptr;
+    MIX_Audio* m_musicFileAudio =nullptr;   // the streamed music file currently on m_musicTrack (owned here)
+    std::string m_musicFilePath;
+    float m_musicBaseGain =1.0f;
 
     // --- hearing-damage DSP (see HearingFx.h): runs on the AUDIO THREAD inside the MIX post-mix callback ---
     HearingFx m_hearingFx;

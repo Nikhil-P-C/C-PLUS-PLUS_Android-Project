@@ -10,6 +10,29 @@ namespace {
         return (static_cast<uint32_t>(type) <<8 |static_cast<uint32_t>(status));
     }
 }
+namespace {
+    inline bool isSideways(TrapOrientation o){
+        return o == TrapOrientation::LEFT || o == TrapOrientation::RIGHT;
+    }
+    // `r` is a box in WORLD coords that was worked out for the unrotated (UP) trap whose sprite cell is W x H.
+    // Returns the same box after the trap is turned to its orientation (rotation about the cell centre,
+    // cell top-left stays at trap.x/trap.y; sideways swaps the cell to H x W).
+    SDL_FRect orientBox(const Trap& trap, SDL_FRect r, float W, float H){
+        if(!trapSupportsOrientation(trap.type) || trap.orientation == TrapOrientation::UP) return r;
+        const float x = r.x - trap.x, y = r.y - trap.y, w = r.w, h = r.h;   // local to the cell
+        switch(trap.orientation){
+            case TrapOrientation::RIGHT:  // 90 deg clockwise
+                return { trap.x + (H - (y + h)), trap.y + x, h, w };
+            case TrapOrientation::DOWN:   // 180 deg
+                return { trap.x + (W - (x + w)), trap.y + (H - (y + h)), w, h };
+            case TrapOrientation::LEFT:   // 270 deg clockwise
+                return { trap.x + y, trap.y + (W - (x + w)), h, w };
+            default:
+                return r;
+        }
+    }
+}
+
 const std::vector<Trap> &TrapBuilder::getTraps()
 {
     return m_traps;
@@ -58,6 +81,19 @@ void TrapBuilder::render(SDL_Renderer *renderer)
         SDL_FRect Dst{trap.x - camX, trap.y - camY, info->frameW* SCALE, info->frameH * SCALE};
         SDL_FRect Src{0.0f+info->frameW*trap.aniStartFrame,0.0f,
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
+
+        if(trapSupportsOrientation(trap.type) && trap.orientation != TrapOrientation::UP){
+            // rotate the sprite about the centre of its (rotated) footprint
+            const float W = Dst.w, H = Dst.h;
+            const bool sideways = isSideways(trap.orientation);
+            const float footW = sideways ? H : W, footH = sideways ? W : H;
+            const float cx = trap.x - camX + footW * 0.5f, cy = trap.y - camY + footH * 0.5f;
+            SDL_FRect rotDst{cx - W * 0.5f, cy - H * 0.5f, W, H};
+            const double angle = trap.orientation == TrapOrientation::RIGHT ? 90.0 :
+                                 trap.orientation == TrapOrientation::DOWN  ? 180.0 : 270.0;
+            SDL_RenderTextureRotated(renderer,texture,&Src,&rotDst,angle,nullptr,SDL_FLIP_NONE);
+            continue;
+        }
 
         SDL_RenderTexture(renderer,texture,&Src,&Dst);
     }
@@ -299,26 +335,34 @@ SDL_FRect TrapBuilder::getTrapCollisionBox(const Trap& trap) {
         LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
         return{0.0f,0.0f,0.0f,0.0f};
     }
-    SDL_FRect rect{trap.x,trap.y,info->frameW*SCALE,info->frameH*SCALE};
+    SDL_FRect rect;
     switch(trap.type){
         case TrapType::MOVING_PLATFORM_BROWN:
         case TrapType::MOVING_PLATFORM_GREY:
-            return { trap.x+3, trap.y+7 , ((info->frameW)*SCALE)-6,(info->frameH) *SCALE-10 };
+            rect = { trap.x+3, trap.y+7 , ((info->frameW)*SCALE)-6,(info->frameH) *SCALE-10 };
+            break;
         case TrapType::FAN:
-            return { trap.x+3, trap.y , ((info->frameW)*SCALE)-3,(info->frameH) *SCALE };
+            rect = { trap.x+3, trap.y , ((info->frameW)*SCALE)-3,(info->frameH) *SCALE };
+            break;
         case TrapType::TRAMPOLINE:
-            return { trap.x+10 , trap.y+70 , (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
+            rect = { trap.x+10 , trap.y+70 , (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
+            break;
         case TrapType::FALLING_PLATFORM:
-            return { trap.x , trap.y, (info->frameW)*SCALE, info->frameH*SCALE };
+            rect = { trap.x , trap.y, (info->frameW)*SCALE, info->frameH*SCALE };
+            break;
         case TrapType::FIRE:
-            return { trap.x , trap.y+64, (info->frameW)*SCALE, (info->frameH-16)*SCALE};
+            rect = { trap.x , trap.y+64, (info->frameW)*SCALE, (info->frameH-16)*SCALE};
+            break;
         case TrapType::ROCK_HEAD:
             // only dangerous while actively hitting, not during the idle blink loop
-            return { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
+            rect = { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
+            break;
         default:
-            return { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
+            rect = { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
+            break;
     }
-    return rect;
+    // rotated traps (spikes / fire / trampoline on walls or ceilings): same box, turned with the sprite
+    return orientBox(trap, rect, info->frameW*SCALE, info->frameH*SCALE);
 }
 
 void TrapBuilder::triggerFall(int trapIndex) {
@@ -337,22 +381,33 @@ SDL_FRect TrapBuilder::getHazardHitBox(const Trap &trap) {
         LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
         return{0.0f,0.0f,0.0f,0.0f};
     }
+    SDL_FRect rect;
     switch(trap.type){
         case TrapType::SPIKES:
-            return { trap.x, trap.y +36, (info->frameW-1)*SCALE, (info->frameH-9)*SCALE };
+            rect = { trap.x, trap.y +36, (info->frameW-1)*SCALE, (info->frameH-9)*SCALE };
+            break;
         case TrapType::SAW:
-            return { trap.x+10 , trap.y +10, (info->frameW-6)*SCALE, (info->frameH-6)*SCALE };
+            rect = { trap.x+10 , trap.y +10, (info->frameW-6)*SCALE, (info->frameH-6)*SCALE };
+            break;
         case TrapType::FIRE:
-            return { trap.x+12, trap.y+5, (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
+            rect = { trap.x+12, trap.y+5, (info->frameW-6)*SCALE, (info->frameH-20)*SCALE };
+            break;
         case TrapType::SPIKE_BALL:
-            return { trap.x+20 , trap.y+20, (info->frameW-9)*SCALE, (info->frameH-9)*SCALE };
+            rect = { trap.x+20 , trap.y+20, (info->frameW-9)*SCALE, (info->frameH-9)*SCALE };
+            break;
         case TrapType::ROCK_HEAD:
-            return { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
+            rect = { trap.x+20, trap.y+20, (info->frameW-10)*SCALE, (info->frameH-10)*SCALE };
+            break;
         case TrapType::SPIKE_HEAD:
-            return { trap.x+40, trap.y+40, (info->frameW-20)*SCALE, (info->frameH-20)*SCALE };
+            rect = { trap.x+40, trap.y+40, (info->frameW-20)*SCALE, (info->frameH-20)*SCALE };
+            break;
         default:
-            return { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
+            rect = { trap.x, trap.y, info->frameW*SCALE, info->frameH*SCALE };
+            break;
     }
+    // wall / ceiling spikes: the hurt zone is the floor-spike zone turned the same way as the sprite,
+    // so a vertical strip of spikes hurts exactly like a horizontal one does
+    return orientBox(trap, rect, info->frameW*SCALE, info->frameH*SCALE);
 }
 
 bool TrapBuilder::checkPogoTarget(const SDL_FRect& slashBox, float& outX, float& outY) {
@@ -368,6 +423,9 @@ bool TrapBuilder::checkPogoTarget(const SDL_FRect& slashBox, float& outX, float&
             case TrapType::FIRE:      pogoable = trap.status == TrapStatus::ON; break;  // only while it is lit (= a hazard)
             default:                  pogoable = false; break;
         }
+        // a downward slash only bounces off hazards whose tips face up (not wall / ceiling spikes)
+        if((trap.type == TrapType::SPIKES || trap.type == TrapType::FIRE) && trap.orientation != TrapOrientation::UP)
+            pogoable = false;
         if(!pogoable) continue;
 
         const SDL_FRect box = getHazardHitBox(trap);
@@ -639,6 +697,16 @@ SDL_FPoint TrapBuilder::getTrapDelta(int trapIndex) {
     return { trap.x - trap.previousX, trap.y - trap.previousY };
 }
 
+
+SDL_FPoint TrapBuilder::getLaunchDir(int trapIndex) const {
+    if(trapIndex < 0 || trapIndex >= (int)m_traps.size()) return {0.0f,-1.0f};
+    switch(m_traps[trapIndex].orientation){
+        case TrapOrientation::RIGHT: return { 1.0f, 0.0f};
+        case TrapOrientation::LEFT:  return {-1.0f, 0.0f};
+        case TrapOrientation::DOWN:  return { 0.0f, 1.0f};
+        default:                     return { 0.0f,-1.0f};
+    }
+}
 
 Trap::Trap(float x, float y, TrapType type, TrapStatus status, float startPath,float endPath,
            float speed,PathAxis axis,PathShape shape,ColliderType colliderType,float radius,

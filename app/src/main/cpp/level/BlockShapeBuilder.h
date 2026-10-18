@@ -4,6 +4,7 @@
 #pragma once
 #include "SDL3/SDL.h"
 #include "utils/utils.h"
+#include <vector>
 
 enum class BlockType{
     CLAY =0,
@@ -21,7 +22,7 @@ enum class BlockVariant{
 };
 struct Block{
     Block(float x,float y,float w,float h,BlockVariant variant,BlockType type):
-    variant(variant),type(type){
+            variant(variant),type(type){
         rect.x = x;
         rect.y = y;
         rect.w = w;
@@ -32,6 +33,11 @@ struct Block{
     BlockVariant variant=BlockVariant::BLOCK;
     BlockType type=BlockType::NONE;
 };
+// One drawn piece of a block: where it goes in the world and which part of the tileset it samples.
+struct BlockTile{
+    SDL_FRect dst;
+    SDL_FRect src;
+};
 class BlockBuilder{
 public:
     void render(SDL_Renderer* renderer);
@@ -40,5 +46,9 @@ public:
 
 
 private:
+    // HORIZONTAL / VERTICAL blocks are auto-tiled (caps + repeated middle) instead of stretched
+    void buildStrip(const Block& block,float tilePx,int tileSize);
+
     std::vector<Block> m_blocks;
+    std::vector<BlockTile> m_tiles;
 };

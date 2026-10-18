@@ -48,6 +48,10 @@ const int ENEMY_KILL_SCORE = 10;
 const float POGO_VELOCITY          = 760.0f;    // px/s upward after a downward slash lands on an enemy / hazard trap / rock head
 // (~160px rise = ~58% of a full jump, short + snappy like Hollow Knight's nail bounce)
 const float UP_SLASH_PUSH_SPEED    = 320.0f;    // px/s downward shove when an upward slash connects
+// wall trampoline (TRAMPOLINE with orientation LEFT / RIGHT): sideways speed, upward lift, and how long the launch is held
+const float TRAMPOLINE_SIDE_SPEED  = 2200.0f;
+const float TRAMPOLINE_SIDE_LIFT   = 700.0f;
+const uint32_t TRAMPOLINE_SIDE_MS  = 350;
 const float VERT_SLASH_REACH       = 122.5f;    // how far past the player's body the up/down slash reaches
 
 // --- hit VFX / combo ---

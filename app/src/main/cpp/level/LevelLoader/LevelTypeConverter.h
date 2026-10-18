@@ -211,6 +211,20 @@ namespace {
         }
         return it->second;
     }
+    TrapOrientation toTrapOrientation(std::string_view stringOrientation){
+        static const std::unordered_map<std::string_view ,TrapOrientation> map{
+                {"UP",TrapOrientation::UP},
+                {"RIGHT",TrapOrientation::RIGHT},
+                {"DOWN",TrapOrientation::DOWN},
+                {"LEFT",TrapOrientation::LEFT}
+        };
+        const auto& it = map.find(stringOrientation);
+        if(it == map.end()){
+            logUnknownToken("trapOrientation",stringOrientation);
+            return TrapOrientation::UP;
+        }
+        return it->second;
+    }
     PathAxis toPathAxis(std::string_view stringPathAxis){
         static const std::unordered_map<std::string_view ,PathAxis> map{
                 {"AUTO",PathAxis::AUTO},

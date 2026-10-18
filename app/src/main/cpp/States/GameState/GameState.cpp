@@ -25,6 +25,10 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
     m_level = level;
     setLevel(m_level);
 
+    // level music (the menu music only plays in the menus). Same file as before = keeps playing
+    // (respawn rebuilds the state), a different level = switches, no file = silence.
+    Engine::Get().getAssetManager().playMusicFile(m_levelLoader.getMusicPath(), m_levelLoader.getMusicGain());
+
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
     m_player.setPosition(200.00f,400.00f,P_scale);
@@ -542,9 +546,22 @@ void GameState::update(float dt){
         if(m_traps[i].type == TrapType::TRAMPOLINE)
             trampolineJump=m_trapBuilder.checkTrampolineBounce(i,m_player.x,m_player.y,m_player.w,m_player.h,m_particleSystem);
         if(trampolineJump){
+            // throw the player the way the trampoline faces (UP = the original behaviour)
+            const SDL_FPoint launch = m_trapBuilder.getLaunchDir(i);
             m_velocityY=0.0f;
             m_isGrounded = false;
-            m_velocityY += -1500;
+            if(launch.x != 0.0f){
+                // wall trampoline: shoved sideways with a little lift; held like a recoil so the
+                // "no input -> velocityX = 0" reset doesn't eat the launch right away
+                const uint32_t launchNow = SDL_GetTicks();
+                m_velocityX = launch.x * TRAMPOLINE_SIDE_SPEED;
+                m_velocityY = -TRAMPOLINE_SIDE_LIFT;
+                m_recoilEndTime = launchNow + TRAMPOLINE_SIDE_MS;
+                m_knockbackEndTime = launchNow + TRAMPOLINE_SIDE_MS;
+                m_isPlayerfacingRight = launch.x > 0.0f;
+            } else {
+                m_velocityY += 1500.0f * launch.y;   // up: -1500 (as before), ceiling trampoline: pushes down
+            }
             m_jumpCutEligible = false;
             m_jumpsUsed = 1; // counts as the first jump - one air jump still available after
         }

@@ -45,6 +45,21 @@ enum class PathShape{
     CIRCLE,
     NONE
 };
+// Which way a trap "faces" = where its tips / jet / launch point. UP is the original floor-mounted look.
+//   UP    = on the floor            RIGHT = on a LEFT wall, pointing right
+//   DOWN  = on the ceiling          LEFT  = on a RIGHT wall, pointing left
+// The sprite is rotated and the collision / hazard boxes are rotated with it (same shape, turned around the trap's centre).
+// For a sideways trap, (x,y) is the top-left of the ROTATED footprint (height/width swapped for non-square sprites).
+enum class TrapOrientation{
+    UP=0,
+    RIGHT,
+    DOWN,
+    LEFT
+};
+// traps that can be rotated (FAN keeps its upward blast, platforms / heads / saws are path-driven)
+constexpr bool trapSupportsOrientation(TrapType type){
+    return type == TrapType::SPIKES || type == TrapType::FIRE || type == TrapType::TRAMPOLINE;
+}
 struct TrapFrameInfo{
     TextureType texture;
     int frameW, frameH;
@@ -79,6 +94,7 @@ struct Trap{
 
     PathAxis axis = PathAxis::AUTO;
     PathShape pathShape = PathShape::LINE;
+    TrapOrientation orientation = TrapOrientation::UP;   // see trapSupportsOrientation()
 
     unsigned int lastTime = 0;
     unsigned int lastSwitchTime =0;
@@ -114,6 +130,9 @@ public:
     SDL_FRect getHazardHitBox(const Trap& trap);
 
     SDL_FPoint getTrapDelta(int trapIndex);
+
+    // unit vector a trampoline throws the player along: (0,-1) up, (0,1) down, (1,0) right, (-1,0) left
+    SDL_FPoint getLaunchDir(int trapIndex) const;
 
     float checkFanForce(float playerX,float playerY,float playerW,float playerH,ParticleSystem& particleSystem);
 

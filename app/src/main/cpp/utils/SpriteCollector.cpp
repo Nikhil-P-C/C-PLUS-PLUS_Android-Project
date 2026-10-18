@@ -53,6 +53,16 @@ SDL_FRect SpriteCollection::getSrcRect(SpriteType type, SpriteVariant variant,fl
     return src;
 }
 
+SDL_FRect SpriteCollection::getBlockPartSrc(SpriteType type, SpriteVariant variant, int part, float tileSize) {
+    const auto& value = spriteValueTable[static_cast<size_t>(type)];
+    if(part < 0) part = 0;
+    if(part > 2) part = 2;
+    if(variant == SpriteVariant::VERTICAL)
+        return {value.x + tileSize * 3, value.y + tileSize * (float)part, tileSize, tileSize};
+    // HORIZONTAL (and anything else): the 3-tile strip on the first row
+    return {value.x + tileSize * (float)part, value.y, tileSize, tileSize};
+}
+
 bool SpriteCollection::isSpriteTypeGroundAndWall(SpriteType type) {
     if(type == SpriteType::GREEN_GRASS_GROUND)return true;
     if(type == SpriteType::BRICK_GROUND)return true;

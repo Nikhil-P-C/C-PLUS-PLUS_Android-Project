@@ -13,9 +13,6 @@
 
 using namespace MenuKit;
 
-// ---------------------------------------------------------------------------------------------
-// Tunables
-// ---------------------------------------------------------------------------------------------
 namespace {
     // Swap for a serif / caps display face (Cinzel, Trajan-like) to get closer to Silksong.
     constexpr const char* TITLE_TEXT = "";           // "" = no title, only the divider ornament
@@ -27,9 +24,6 @@ namespace {
     constexpr float ITEM_HIT_W = 460.0f, ITEM_HIT_H = 64.0f;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Construction / destruction
-// ---------------------------------------------------------------------------------------------
 MenuState::MenuState(SDL_Renderer *renderer, bool intro)
         : m_renderer(renderer),
           m_backdrop(renderer, CORE_X, CORE_Y, intro ? 1.2f : 0.4f),
@@ -49,15 +43,15 @@ MenuState::MenuState(SDL_Renderer *renderer, bool intro)
     if(TITLE_TEXT[0]) m_title.set(renderer,m_font,TITLE_TEXT,TITLE_FONT_SIZE);
 
     if(m_intro) Engine::Get().getAssetManager().playSound(SoundType::SFX_UI_INTRO);
+
+    // menu music lives only here (no-op if it is already playing)
+    Engine::Get().getAssetManager().playMenuMusic();
 }
 
 MenuState::~MenuState() {
     LOGI("menu destructor:%p",this);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Update
-// ---------------------------------------------------------------------------------------------
 float MenuState::revealOf(int index) const {
     // intro: entries fade in one after another; coming back from a sub menu: nearly instant
     const float delay = m_intro ? 0.45f : 0.05f;
@@ -89,9 +83,6 @@ void MenuState::update(float dt) {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Render
-// ---------------------------------------------------------------------------------------------
 void MenuState::render(SDL_Renderer* renderer) {
     const MenuTheme& theme = MenuTheme::get();
     const MenuPainter& p = m_backdrop.painter();
@@ -134,9 +125,6 @@ void MenuState::render(SDL_Renderer* renderer) {
     m_backdrop.renderFade(renderer);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Input
-// ---------------------------------------------------------------------------------------------
 int MenuState::hitTest(float x, float y) const {
     for(int i=0;i<4;i++){
         const MenuItem& it = m_items[i];
@@ -159,10 +147,8 @@ void MenuState::moveSelection(int dir) {
 bool MenuState::handleEvents(SDL_Event &event) {
     if(m_transitioning) return true;
 
-    // dpad / left stick: stored by the repeater, acted on in update()
     if(m_nav.handleEvent(event)) return true;
 
-    // ---- mouse hover / touch drag ----
     if(InputUtils::IsPointerMotion(event)){
         float x,y;
         InputUtils::GetPointerPosition(event,m_renderer,x,y);
@@ -171,7 +157,6 @@ bool MenuState::handleEvents(SDL_Event &event) {
         return true;
     }
 
-    // ---- mouse click / touch ----
     if(InputUtils::IsPointerDown(event)){
         float x,y;
         InputUtils::GetPointerPosition(event,m_renderer,x,y);
@@ -183,7 +168,6 @@ bool MenuState::handleEvents(SDL_Event &event) {
         return true;
     }
 
-    // ---- keyboard / gamepad buttons ----
     if(InputUtils::IsGamepadStart(event)){      // Start = go, here (it is "back" in the sub menus)
         activateSelection();
         return true;

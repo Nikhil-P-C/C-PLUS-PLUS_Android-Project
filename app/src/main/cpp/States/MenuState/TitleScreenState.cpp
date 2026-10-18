@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include "MenuState.h"
+#include "engine/Engine.h"
 
 using namespace MenuKit;
 
@@ -24,6 +25,7 @@ TitleScreenState::TitleScreenState(SDL_Renderer *renderer)
 
     m_title.set(renderer,m_font,GAME_TITLE,TITLE_FONT);
     setPrompt(detectPrompt());
+    Engine::Get().getAssetManager().playMenuMusic();
 }
 
 TitleScreenState::~TitleScreenState() {

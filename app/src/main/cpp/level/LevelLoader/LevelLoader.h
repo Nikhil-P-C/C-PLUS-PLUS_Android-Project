@@ -74,10 +74,15 @@ public:
     const LevelAmbient& getAmbient(){
         return m_ambient;
     }
+    // level music: from the level's 'M' record, else Sound/Music/level_<n>.ogg. Empty = silent level.
+    const std::string& getMusicPath() const { return m_musicPath; }
+    float getMusicGain() const { return m_musicGain; }
     // true if the level file has an 'S' line (otherwise getPlayer() is just 0,0)
     bool hasSpawn() const { return m_hasSpawn; }
 private:
     void parseAmbient(std::istringstream& ss);
+
+    void parseMusic(std::istringstream& ss);
 
     void parseLight(std::istringstream& ss);
 
@@ -133,5 +138,8 @@ private:
     std::vector<LightSource> m_lights;
     LevelAmbient m_ambient;
     bool m_hasSpawn = false;
+    std::string m_musicPath;
+    float m_musicGain = 1.0f;
+    bool m_musicExplicit = false;
 
 };

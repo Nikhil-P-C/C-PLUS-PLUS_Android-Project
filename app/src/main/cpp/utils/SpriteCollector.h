@@ -55,30 +55,33 @@ struct SpriteValue{
     float height =0.0f;
     float width =0.0f;
     constexpr SpriteValue(SpriteType t,float x,float y,float w,float h):
-                          type(t), x(x), y(y), width(w), height(h){}
+            type(t), x(x), y(y), width(w), height(h){}
     SpriteValue() =default;
 };
 struct SpriteCollection{
 public:
     static SDL_FRect getSrcRect(SpriteType type, SpriteVariant variant, float tileSize, float scale);
+    // One 1-tile piece of a HORIZONTAL (left cap / middle / right cap) or VERTICAL (top cap / middle /
+    // bottom cap) block strip. part: 0 = first cap, 1 = middle, 2 = last cap. Used to auto-tile blocks.
+    static SDL_FRect getBlockPartSrc(SpriteType type, SpriteVariant variant, int part, float tileSize);
 private:
     static bool isSpriteTypeGroundAndWall(SpriteType type);
     static bool isSpriteTypeBlock(SpriteType type);
 public:
     static constexpr SpriteValue stoneBrickWall{SpriteType::STONE_BRICK_WALL,
-                                            0.0f,0.0f,48.00f,48.00f};
+                                                0.0f,0.0f,48.00f,48.00f};
     static constexpr SpriteValue stoneBrickWallEdges{SpriteType::STONE_BRICK_WALL,
-                                                 48.00,0.0f,32.00f,32.00f};
+                                                     48.00,0.0f,32.00f,32.00f};
 
     static constexpr SpriteValue woodenShaftWall{SpriteType::WOODEN_SHAFT_WALL,
-                                             0.00f,64.0f,48.00f,48.00f};
+                                                 0.00f,64.0f,48.00f,48.00f};
     static constexpr SpriteValue woodenShaftWallEdges{SpriteType::WOODEN_SHAFT_WALL,
-                                                  48.00f,64.0f,32.00f,32.00f};
+                                                      48.00f,64.0f,32.00f,32.00f};
 
     static constexpr SpriteValue mossWall{SpriteType::MOSS_WALL,
-                                           0.00f,128.0f,48.00f,48.00f};
+                                          0.00f,128.0f,48.00f,48.00f};
     static constexpr SpriteValue mossWallEdges{SpriteType::MOSS_WALL,
-                                                48.00f,128.0f,32.00f,32.00f};
+                                               48.00f,128.0f,32.00f,32.00f};
 
     static constexpr SpriteValue greenGrassGround{SpriteType::GREEN_GRASS_GROUND,
                                                   96.00f,0.00f,48.00f,48.00f};

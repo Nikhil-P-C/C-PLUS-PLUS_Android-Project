@@ -106,12 +106,8 @@ private:
     SDL_Window*   m_window = nullptr;
     SDL_Renderer* m_renderer = nullptr;
     SDL_Event     m_event;
-    SDL_IOStream* m_musicfile = SDL_IOFromFile("Sound/Ambient/Ambient 2.ogg", "rb");
-
-
-    MIX_Audio* m_audio = nullptr;
+    // Music is owned by AssetManager (menus play the menu music, each level plays its own).
     MIX_Mixer* m_mixer =nullptr;
-    MIX_Track* m_track = nullptr;
 
     bool m_running =true;
 

@@ -197,6 +197,67 @@ void AssetManager::playMusicAt(float listenerX, float listenerY, float srcX, flo
     if(m_musicTrack) setTrackWorldPosition(m_musicTrack,listenerX,listenerY,srcX,srcY);
 }
 
+namespace {
+    constexpr const char* MENU_MUSIC_PATH = "Sound/Ambient/Ambient 2.ogg";
+}
+
+void AssetManager::playMusicFile(const std::string& path,float baseGain) {
+    if(!m_mixer) return;
+    if(path.empty()){ stopMusic(); return; }
+
+    // same file already playing: leave it alone (only refresh the trim in case it changed)
+    if(m_musicFileAudio && path == m_musicFilePath && m_musicTrack && MIX_TrackPlaying(m_musicTrack)){
+        m_musicBaseGain = baseGain;
+        MIX_SetTrackGain(m_musicTrack,GameData::getInstance().getMusicAudioScale() * m_musicBaseGain);
+        return;
+    }
+
+    SDL_IOStream* io = SDL_IOFromFile(path.c_str(),"rb");
+    if(!io){
+        LOGI("no music file:%s (%s)",path.c_str(),SDL_GetError());
+        stopMusic();
+        return;
+    }
+    // predecode=false: stream it, music is big. closeio=true: SDL_mixer closes the stream with the audio.
+    MIX_Audio* audio = MIX_LoadAudio_IO(m_mixer,io,false,true);
+    if(!audio){
+        LOGI("failed to load music:%s (%s)",path.c_str(),SDL_GetError());
+        stopMusic();
+        return;
+    }
+    if(!m_musicTrack){
+        m_musicTrack = MIX_CreateTrack(m_mixer);
+        if(!m_musicTrack){
+            LOGI("MIX_CreateTrack failed:%s",SDL_GetError());
+            MIX_DestroyAudio(audio);
+            return;
+        }
+    }
+    MIX_StopTrack(m_musicTrack,0);
+    MIX_SetTrackAudio(m_musicTrack,audio);
+    if(m_musicFileAudio) MIX_DestroyAudio(m_musicFileAudio);   // old file is no longer on the track
+    m_musicFileAudio = audio;
+    m_musicFilePath = path;
+    m_musicBaseGain = baseGain;
+    MIX_SetTrack3DPosition(m_musicTrack,nullptr);
+    MIX_SetTrackGain(m_musicTrack,GameData::getInstance().getMusicAudioScale() * m_musicBaseGain);
+    MIX_SetTrackLoops(m_musicTrack,-1);
+    MIX_PlayTrack(m_musicTrack,0);
+}
+
+void AssetManager::playMenuMusic() {
+    playMusicFile(MENU_MUSIC_PATH);
+}
+
+void AssetManager::stopMusic() {
+    if(m_musicTrack) MIX_StopTrack(m_musicTrack,0);
+    m_musicFilePath.clear();
+}
+
+void AssetManager::setMusicScale(float scale) {
+    if(m_musicTrack) MIX_SetTrackGain(m_musicTrack,scale * m_musicBaseGain);
+}
+
 AssetManager::~AssetManager()
 {
     for(const auto& texture:m_textureTable){
@@ -207,6 +268,7 @@ AssetManager::~AssetManager()
         if(audio) MIX_DestroyAudio(audio);
         audio = nullptr;
     }
+    if(m_musicFileAudio){ MIX_DestroyAudio(m_musicFileAudio); m_musicFileAudio = nullptr; }
 
 }
 

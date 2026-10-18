@@ -26,7 +26,7 @@ void Engine::run(){
 
     // apply the saved volume settings once at startup (before, they only applied after the sliders moved)
     MIX_SetMixerGain(m_mixer,GameData::getInstance().getAudioScale());
-    MIX_SetTrackGain(m_track,GameData::getInstance().getMusicAudioScale());
+    m_assetManager.setMusicScale(GameData::getInstance().getMusicAudioScale());
 
 
     float lastMasterAudioScale = GameData::getInstance().getAudioScale();
@@ -42,7 +42,7 @@ void Engine::run(){
 
         nowMusicAudioScale = GameData::getInstance().getMusicAudioScale();
         if(nowMusicAudioScale != lastMusicAudioScale)
-            MIX_SetTrackGain(m_track,GameData::getInstance().getMusicAudioScale());
+            m_assetManager.setMusicScale(GameData::getInstance().getMusicAudioScale());
         lastMasterAudioScale = nowMasterAudioScale;
         lastMusicAudioScale = nowMusicAudioScale;
 
@@ -133,8 +133,6 @@ void Engine::run(){
 void Engine::exitEngine(){
     m_running =false;
     if(m_mixer)MIX_DestroyMixer(m_mixer);
-    if(m_audio)MIX_DestroyAudio(m_audio);
-    if(m_musicfile)SDL_CloseIO(m_musicfile);
 }
 
 Engine::Engine(){
@@ -210,12 +208,6 @@ Engine::Engine(){
     if (!m_mixer) {
         LOGE("Mixer creation failed: %s", SDL_GetError());
     }
-
-    m_audio = MIX_LoadAudio_IO(m_mixer,m_musicfile,false,false);
-    m_track = MIX_CreateTrack(m_mixer);
-    MIX_SetTrackAudio(m_track, m_audio);
-    MIX_PlayTrack(m_track,0);
-    MIX_SetTrackLoops(m_track,-1);
 
     const char* name = SDL_GetRendererName(m_renderer);
     LOGI("Renderer: %s", name);
