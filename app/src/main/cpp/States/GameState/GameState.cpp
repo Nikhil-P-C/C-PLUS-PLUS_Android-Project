@@ -31,7 +31,9 @@ GameState::GameState(SDL_Renderer *renderer,int level) {
 
     //init player attributes
     m_player.setSize(SPRITE_WIDTH*P_scale-80.00f,SPRITE_HEIGHT*P_scale-35.00f);
-    m_player.setPosition(200.00f,400.00f,P_scale);
+    // start at the level's 'S' spawn (setLevel() already stored it in m_respawnX/Y); levels without one keep the old default
+    if(m_levelLoader.hasSpawn()) m_player.setPosition(m_respawnX, m_respawnY, P_scale);
+    else                         m_player.setPosition(200.00f,400.00f,P_scale);
 
     m_player.setSpriteOffset(-40.00f,-20.00f);
     m_player.setSpriteSize(SPRITE_WIDTH*P_scale,SPRITE_HEIGHT*P_scale);

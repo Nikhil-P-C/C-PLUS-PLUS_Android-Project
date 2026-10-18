@@ -423,9 +423,8 @@ bool TrapBuilder::checkPogoTarget(const SDL_FRect& slashBox, float& outX, float&
             case TrapType::FIRE:      pogoable = trap.status == TrapStatus::ON; break;  // only while it is lit (= a hazard)
             default:                  pogoable = false; break;
         }
-        // a downward slash only bounces off hazards whose tips face up (not wall / ceiling spikes)
-        if((trap.type == TrapType::SPIKES || trap.type == TrapType::FIRE) && trap.orientation != TrapOrientation::UP)
-            pogoable = false;
+        // orientation does not matter: wall / ceiling spikes bounce the player just like floor ones, as long as the
+        // slash box touches the (already orientation-aware) hazard hit box below
         if(!pogoable) continue;
 
         const SDL_FRect box = getHazardHitBox(trap);
