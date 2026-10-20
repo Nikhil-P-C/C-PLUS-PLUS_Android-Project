@@ -23,6 +23,16 @@ void Camera::cameraClamp(SDL_FRect rect) {
     if(m_camera.y < rect.y)m_camera.y = rect.y;
 }
 
+// Glides to the lock target (exponential ease, ~0.5s), then sits exactly on it: no drift, no follow.
+void Camera::updateLock(float dt) {
+    if(!m_locked) return;
+    const float k = 1.0f - std::exp(-7.0f * dt);
+    m_camera.x += (m_lockX - m_camera.x) * k;
+    m_camera.y += (m_lockY - m_camera.y) * k;
+    if(std::fabs(m_lockX - m_camera.x) < 0.5f) m_camera.x = m_lockX;
+    if(std::fabs(m_lockY - m_camera.y) < 0.5f) m_camera.y = m_lockY;
+}
+
 void Camera::updateShake(float dt) {
     m_trauma -= 1.8f * dt;                       // ~0.55s from full trauma to calm
     if(m_trauma < 0.0f) m_trauma = 0.0f;

@@ -254,6 +254,12 @@ public:
     void playMusicFile(const std::string& path,float baseGain =1.0f);
     // The menu / title music. Only the menus play it - levels bring their own (or none).
     void playMenuMusic();
+    // Like playMusicFile(), but if the file is missing/unreadable it returns false and leaves whatever is
+    // playing UNTOUCHED (playMusicFile would go silent). Boss fights use it so a missing phase track falls
+    // back to the previous track / the level music instead of silence.
+    bool tryPlayMusicFile(const std::string& path,float baseGain =1.0f);
+    // Fades the music track out over `ms` and then stops it (0 = stop at once).
+    void fadeOutMusic(unsigned int ms);
     void stopMusic();
     // Music slider (0..1). Cheap: only touches the track when the value actually changed.
     void setMusicScale(float scale);

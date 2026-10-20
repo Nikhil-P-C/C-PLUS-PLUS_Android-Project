@@ -317,6 +317,9 @@ public:
     const std::vector<Enemy>& getEnemies() const { return m_enemies; }
     const std::vector<EnemyProjectile>& getProjectiles() const { return m_projectiles; }
 
+    // add one enemy at runtime (boss SUMMON)
+    void spawn(const Enemy& e){ m_enemies.push_back(e); }
+
     // Centres (world space) of enemies that were killed since the last call -
     // GameState turns these into a puff of particles. Clears the list.
     std::vector<SDL_FPoint> consumeDeathEvents(){

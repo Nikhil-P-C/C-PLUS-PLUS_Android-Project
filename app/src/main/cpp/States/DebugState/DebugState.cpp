@@ -133,6 +133,24 @@ void DebugState::render(SDL_Renderer *renderer) {
         }
     }
 
+    // bosses: body (cyan), live attack box (red), the fight arena the camera/player are locked to (magenta)
+    for(const auto& boss : m_gameState->getBossBuilder().getBosses()){
+        if(boss.isDead()) continue;
+        SDL_FRect body{boss.x-camX,boss.y-camY,boss.w,boss.h};
+        SDL_SetRenderDrawColor(renderer,0,255,255,255);
+        SDL_RenderRect(renderer,&body);
+        if(boss.isAttackBoxActive){
+            SDL_FRect atk{boss.attackHitBox.x-camX,boss.attackHitBox.y-camY,boss.attackHitBox.w,boss.attackHitBox.h};
+            SDL_SetRenderDrawColor(renderer,255,0,0,255);
+            SDL_RenderFillRect(renderer,&atk);
+        }
+        if(boss.arenaReady){
+            SDL_FRect arena{boss.arena.x-camX,boss.arena.y-camY,boss.arena.w,boss.arena.h};
+            SDL_SetRenderDrawColor(renderer,255,0,255,255);
+            SDL_RenderRect(renderer,&arena);
+        }
+    }
+
     SDL_SetRenderDrawColor(renderer,0,255,0,255);
     SDL_FRect checkPointBorder{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
     SDL_RenderRect(renderer,&checkPointBorder);

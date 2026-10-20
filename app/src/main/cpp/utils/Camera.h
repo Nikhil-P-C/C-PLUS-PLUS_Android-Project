@@ -36,6 +36,16 @@ public:
         return c;
     }
 
+    // --- arena lock (boss fights) -------------------------------------------
+    // lockTo(x,y): stop following the player; glide to this top-left position and hold it there.
+    // updateLock(dt) does the gliding (call it instead of lockCameraOn()/cameraClamp() while locked).
+    void lockTo(float x, float y){ m_locked = true; m_lockX = x; m_lockY = y; }
+    void unlock(){ m_locked = false; }
+    bool isLocked() const { return m_locked; }
+    void updateLock(float dt);
+    // instantly put the camera at x,y (level start, respawn after a boss fight)
+    void snapTo(float x, float y){ m_camera.x = x; m_camera.y = y; }
+
     // --- screen shake -------------------------------------------------------
     // trauma 0..1 (offset scales with trauma^2). Stacks, then decays on its own.
     void addTrauma(float t){ m_trauma = m_trauma + t > 1.0f ? 1.0f : m_trauma + t; }
@@ -54,4 +64,6 @@ private:
     float m_kickX = 0.0f;
     float m_shakeX = 0.0f, m_shakeY = 0.0f;
     float m_shakeScale = 1.0f;
+    bool  m_locked = false;
+    float m_lockX = 0.0f, m_lockY = 0.0f;
 };

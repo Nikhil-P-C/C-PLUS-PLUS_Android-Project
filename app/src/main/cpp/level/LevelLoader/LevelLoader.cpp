@@ -51,6 +51,12 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'I':
             parseInteractable(stream);
             break;
+        case 'K':
+            parseBoss(stream);
+            break;
+        case 'A':
+            parseBossArena(stream);
+            break;
         case '#':
             break;   // comment line
         case 'C':
@@ -488,6 +494,8 @@ void LevelLoader::loadLevel(int level) {
     m_lights.clear();
     m_enemies.clear();
     m_interactables.clear();
+    m_bosses.clear();
+    m_hasBossArena = false;
     m_ambient = LevelAmbient{};
     m_hasSpawn = false;
     std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");
@@ -500,6 +508,56 @@ void LevelLoader::loadLevel(int level) {
     }
     // no M record: use the convention Sound/Music/level_<n>.ogg (silent if that file doesn't exist)
     if(!m_musicExplicit) m_musicPath = "Sound/Music/level_" + std::to_string(level) + ".ogg";
+
+    // the level's 'A' arena (if any) belongs to every boss in the level
+    if(m_hasBossArena)
+        for(Boss& b : m_bosses){ b.hasArena = true; b.arena = m_bossArena; }
+}
+
+// K x y BOSS_TYPE [phase1Music [phase2Music [gain]]]
+//   a boss. x y = top-left of its hitbox (it falls onto the floor). The fight starts when the player walks
+//   into the level's arena (see 'A'); the arena then locks (camera fixed, player can't leave) until the boss dies.
+//   Music for the fight: phase 1 / phase 2 track. A bare file name means Sound/Music/Boss/<name>; '-' = use
+//   the default Sound/Music/Boss/<biome>_<mini|main>_phase<1|2>.ogg. gain trims both tracks (default: per boss).
+//   The level's own M record (or level_<n>.ogg) is the music BEFORE the fight and after the boss dies.
+//   example:  K 3400 400 MOSS_BROODMOTHER
+//   example:  K 3400 400 PEAK_REX_EMPEROR rex_p1.ogg rex_p2.ogg 0.9
+void LevelLoader::parseBoss(std::istringstream& ss) {
+    float x = 0.0f, y = 0.0f;
+    std::string typeStr;
+    ss >> x >> y >> typeStr;
+    if(ss.fail()){ LOGE("Malformed boss (K) line"); return; }
+    const BossType type = bossTypeFromName(typeStr);
+    if(type == BossType::NONE){ LOGE("Unknown boss type: %s", typeStr.c_str()); return; }
+
+    Boss boss(x, y, type);
+    auto readTrack = [&](std::string& out){
+        std::string f;
+        if(!(ss >> f)) return false;
+        if(f == "-") return true;                                        // keep the default
+        if(f.find('/') == std::string::npos) f = "Sound/Music/Boss/" + f;
+        out = f;
+        return true;
+    };
+    if(readTrack(boss.musicPhase1) && readTrack(boss.musicPhase2)){
+        float gain = 1.0f;
+        if(ss >> gain) boss.musicGain = std::clamp(gain, 0.0f, 2.0f);
+    }
+    m_bosses.push_back(boss);
+}
+
+// A x y w h
+//   the boss arena: the world rectangle the player is locked into during the fight. While it is locked the camera
+//   stops following the player and sits centred on this rectangle, so it must fit on one screen
+//   (<= 1600 x 720; wider than that is trimmed). Put it at the end of the level so the camera's normal clamp and
+//   the lock agree, e.g. a 4000 px wide level -> A 2400 0 1600 704.
+//   Without an 'A' record the arena is one screen wide, centred on the boss.
+void LevelLoader::parseBossArena(std::istringstream& ss) {
+    float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f;
+    ss >> x >> y >> w >> h;
+    if(ss.fail() || w <= 0.0f || h <= 0.0f){ LOGE("Malformed arena (A) line"); return; }
+    m_bossArena = {x, y, w, h};
+    m_hasBossArena = true;
 }
 
 LevelLoader::LevelLoader() {

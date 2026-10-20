@@ -12,6 +12,7 @@
 #include "level/ForeGroundBuilder.h"
 #include "level/Lights.h"
 #include "level/Enemies.h"
+#include "level/Bosses.h"
 #include "level/Interactables.h"
 #include <sstream>
 #include <filesystem>
@@ -20,7 +21,27 @@
 #define LOG_TAG "LevelLoader"
 
 // highest level_N.txt that exists; TransitionState wraps back to level 0 after this one
-constexpr int LAST_LEVEL = 10;
+constexpr int LAST_LEVEL = 24;
+
+// Play order. Level numbers are just file names (Levels/level_<n>.txt); this table says which one comes next:
+// each biome level is followed by that biome's MINI boss level, then its MAIN boss level.
+//   4/5/6/7/8/9/10 = Moss, Stone, Wooden shaft, Plains, Woods, Mountain, Peak (normal levels)
+//   11/12 Moss mini+main, 13/14 Stone, 15/16 Shaft, 17/18 Plains, 19/20 Woods, 21/22 Mountain, 23/24 Peak
+constexpr int LEVEL_ORDER[] = {0, 1, 2, 3,
+                               4, 11, 12,
+                               5, 13, 14,
+                               6, 15, 16,
+                               7, 17, 18,
+                               8, 19, 20,
+                               9, 21, 22,
+                               10, 23, 24};
+// the level that follows `level` in LEVEL_ORDER (wraps to the first one; unknown numbers fall back to level+1)
+inline int nextLevelAfter(int level){
+    constexpr int N = (int)(sizeof(LEVEL_ORDER) / sizeof(LEVEL_ORDER[0]));
+    for(int i = 0; i < N; ++i)
+        if(LEVEL_ORDER[i] == level) return (i + 1 < N) ? LEVEL_ORDER[i + 1] : LEVEL_ORDER[0];
+    return level + 1;
+}
 
 class LevelLoader{
 public:
@@ -62,6 +83,8 @@ public:
     const std::vector<Enemy>& getEnemies(){
         return m_enemies;
     }
+    // boss fights: 'K' records (see parseBoss). Boss levels also have an 'A' arena rect (see parseBossArena).
+    const std::vector<Boss>& getBosses() const { return m_bosses; }
     CheckPoint getCheckPoint(){
         return m_checkPoint;
     }
@@ -106,6 +129,8 @@ private:
 
     void parseEnemy(std::istringstream& ss);
     void parseInteractable(std::istringstream& ss);
+    void parseBoss(std::istringstream& ss);
+    void parseBossArena(std::istringstream& ss);
 
     void parseTraps(std::istringstream& ss);//some traps have additional param trailing at end
 
@@ -131,6 +156,9 @@ private:
     std::vector<Block> m_blocks;
     std::vector<Enemy> m_enemies;
     std::vector<Interactable> m_interactables;
+    std::vector<Boss> m_bosses;
+    bool m_hasBossArena = false;
+    SDL_FRect m_bossArena{0.0f,0.0f,0.0f,0.0f};
     std::vector<BackGroundElement> m_backGroundElements;
     std::vector<ForeGroundElement> m_foreGroundElements;
     CheckPoint m_checkPoint;

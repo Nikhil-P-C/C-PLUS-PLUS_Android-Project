@@ -19,6 +19,7 @@
 #include "level/Fruits.h"
 #include "level/Traps.h"
 #include "level/Enemies.h"
+#include "level/Bosses.h"
 #include "level/Interactables.h"
 #include "level/BlockShapeBuilder.h"
 #include "level/CheckPoint.h"
@@ -121,6 +122,7 @@ public:
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
         if (m_comboTexture)    SDL_DestroyTexture(m_comboTexture);
+        if (m_bossNameTexture) SDL_DestroyTexture(m_bossNameTexture);
         if (m_fontFile)        SDL_CloseIO(m_fontFile);
         SDL_SetTextureAlphaMod(m_playerTexture,255);
         SDL_RemoveEventWatch(HandleBackgroundEvents, this);
@@ -148,6 +150,16 @@ public:
         return m_checkPoint.aniType == CheckPointAni::FLAG_OUT || m_checkPoint.aniType == CheckPointAni::FLAG_IDLE;
     }
     void flushEnemyDeathEffects();
+    // --- boss fights ---
+    // death burst, minion summons, level music coming back after the kill (fed by BossBuilder's event queues)
+    void flushBossEffects();
+    // While a fight is on: camera pinned on the arena + player kept inside it. Otherwise the normal follow camera.
+    // Replaces the old "lockCameraOn + cameraClamp" block at the end of update().
+    void updateBossArena(float realDt);
+    // player died: bosses go back to sleep at full hp, arena unlocks, level music returns (called from respawnPlayer)
+    void resetBossFight();
+    void renderArenaGates(SDL_Renderer* renderer);   // energy walls on the arena edges while it is locked
+    void renderBossName(SDL_Renderer* renderer);     // name under the boss health bar
     // hit VFX: sparks, screen shake, hit-stop, combo (fed by EnemiesBuilder::consumeHitEvents)
     void flushEnemyHitEffects();
     void onEnemyHit(const EnemyHitEvent& e);
@@ -188,6 +200,7 @@ public:
         return m_enemyBuilder.getEnemies();
     }
     const EnemiesBuilder& getEnemyBuilder() const { return m_enemyBuilder; }
+    const BossBuilder& getBossBuilder() const { return m_bossBuilder; }
     void triggerCheckpoint();
     bool tryHeal(unsigned int now);
     void tryBeam(float dt);
@@ -280,6 +293,16 @@ private:
     FruitBuilder m_fruitBuilder;
     TrapBuilder m_trapBuilder;
     EnemiesBuilder m_enemyBuilder;
+    std::vector<Boss> m_bosses;
+    BossBuilder m_bossBuilder;
+    bool      m_arenaLocked = false;          // camera pinned + player locked in (mirrors BossBuilder::isArenaLocked)
+    SDL_FRect m_arenaRect{0.0f,0.0f,0.0f,0.0f};
+    float     m_arenaGate = 0.0f;             // 0..1 fade of the arena edge walls
+    bool      m_bossWasAlive = false;         // for the "exit appears" burst when the last boss dies
+    SDL_FRect m_deathPlayerRect{0.0f,0.0f,0.0f,0.0f};   // where the player fell, bosses keep targeting it during the death anim
+    SDL_Texture* m_bossNameTexture = nullptr;
+    const char*  m_bossNameKey = nullptr;
+    float        m_bossNameW = 0.0f, m_bossNameH = 0.0f;
     InteractableBuilder m_interactableBuilder;
     GroundShape m_wallShape;
     BlockBuilder m_blockBuilder;
