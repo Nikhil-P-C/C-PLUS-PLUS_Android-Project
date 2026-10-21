@@ -1,5 +1,5 @@
 //
-// Bosses.h - 7 biomes x (1 mini boss + 1 main boss), 2 phases each, 4-5 attacks each.
+// Bosses.h - 13 bosses: 6 biomes x (mini + main) + the Preacher (no mini at the Peak).
 //
 // Mirrors EnemiesBuilder on purpose so it plugs into GameState at the same call sites:
 //   init / update / render / applyPlayerDamage / checkAttackOnPlayer / shiftTimers / consume*Events
@@ -24,6 +24,8 @@
 #include <string>
 #include <random>
 #include <SDL3/SDL.h>
+#include <memory>
+#include "States/MenuState/MenuKit.h"   // title cards reuse the menu pixel font
 #include "level/Enemies.h"   // EnemyType, EnemyHitEvent, combatType, ENEMY_* tuning, Platform/LevelGround/Block
 
 // ----------------------------------------------------------------------------------------------------
@@ -51,7 +53,10 @@ const unsigned int BOSS_PARRY_PRE_MS    = 260;     // a slash this long BEFORE a
 const unsigned int BOSS_PARRY_POST_MS   = 110;     // ...and this long after
 const unsigned int BOSS_GRAB_MS         = 1100;    // how long a grab holds the player before the final bite
 const int          BOSS_GRAB_BREAK_HITS = 2;       // hit the grabber this many times to break free
-const int          BOSS_QTE_STEPS       = 3;       // parries needed to finish the Ancient Sinner
+const int          BOSS_QTE_STEPS       = 5;       // samurai dashes the player must parry to finish the Ancient Sinner
+const unsigned int BOSS_QTE_DASH_MS     = 150;     // length of one samurai dash (the parry lands in the middle of it)
+const float        BOSS_QTE_HOVER_ABOVE_FLOOR = 250.0f;   // the QTE keeps the player pushed up this high above the floor
+const float BOSS_PREACHER_UPPER_RISE    = 1408.0f; // phase 3: the upper arena is the fight arena moved this far UP (level_23 has its ground there)
 const float BOSS_BOUNCE_VELOCITY        = 1150.0f; // ghost pads (Preacher phase 3) throw the player up this hard
 
 // ----------------------------------------------------------------------------------------------------
@@ -91,7 +96,6 @@ enum class BossType {
     MOUNTAIN_CAT_QUEEN,      // mini  - sword claws, high pounce, reactive dodge-dash, bite
     MOUNTAIN_BROTHER,        // main  - the preacher's brother: tail whip, flame breath, jump stomp; phase 2 faster + tankier
     // Peak
-    PEAK_DASPLETO_WARLORD,   // mini
     PEAK_THE_PREACHER,       // main  - final boss, 3 phases (see Bosses.cpp)
     NONE
 };
@@ -198,6 +202,15 @@ struct BossDef {
     int        hpPhase3 = 0;            // hp of the phase 3 bar
     float      chainP2 = 0.0f;          // phase 2: chance to start another attack with no pause ("more random")
 };
+
+// Title cards: every boss gets a name card at the start of the fight and a card for each phase.
+// THREAT = normal boss, CHALLENGE = the three big ones (Ancient Sinner, Sentinel Para, The Preacher).
+enum class BossRank { THREAT = 0, CHALLENGE };
+struct BossTitleInfo {
+    BossRank    rank;
+    const char* phaseName[3];     // [0] = shown with the name card, [1] = phase 2 card, [2] = phase 3 card (nullptr = no card)
+};
+BossTitleInfo getBossTitleInfo(BossType type);
 
 const BossDef* getBossDef(BossType type);
 BossType       bossTypeFromName(const std::string& name);                 // "PEAK_REX_EMPEROR" -> enum
@@ -313,6 +326,7 @@ struct Boss {
     int   qteStep = 0;
     unsigned int qteStrike = 0;
     bool  qteDone = false;
+    float qteFromX = 0, qteToX = 0;   // current samurai dash (x of the hitbox)
     // Brontos
     std::vector<BossPart> parts;
     // Preacher phase 3
@@ -401,6 +415,9 @@ public:
     std::vector<BossParryEvent> consumeParryEvents(){ std::vector<BossParryEvent> o; o.swap(m_parryEvents); return o; }
     // true while a boss/head holds the player: put the player at `pos` (top-left), zero his velocity
     bool isPlayerGrabbed(SDL_FPoint& pos) const;
+    // Ancient Sinner QTE: the player is pushed upward and held in the air (arena must be tall enough for it).
+    // Returns true while that applies; outVelocityY is the vertical speed to force on the player this frame.
+    bool getQteLift(const SDL_FRect& player, float& outVelocityY) const;
     // Preacher phase 3: ghost pads the player can bounce on. Returns true (and the new upward speed) when
     // the player (falling, feet crossing a pad's top) should be bounced.
     bool checkBounce(const SDL_FRect& player, float velocityY, float& outVelocityY);
@@ -408,6 +425,11 @@ public:
     // True from the moment the fight starts until BOSS_ARENA_UNLOCK_MS after the kill: GameState pins the camera
     // on getArena() and keeps the player inside it for exactly this long.
     bool isArenaLocked() const;
+    // Preacher phase 3: while the player climbs the ghost pads toward the upper arena the camera follows him inside
+    // this tall column instead of being pinned. True only during the climb.
+    bool getClimbBounds(SDL_FRect& out) const;
+    // true from the Preacher's rise until the fight is reset (the camera needs the whole tall level then)
+    bool isUpperActive() const { return m_upper; }
     // The arena (full rect, world space) of the fight in progress / just finished. False before the first fight.
     bool getArena(SDL_FRect& out) const;
     // any boss in the level still alive? (a level's exit stays shut until this is false)
@@ -417,6 +439,8 @@ public:
     // Returns true if a fight was actually in progress.
     bool resetFight();
     BossHudInfo getHudInfo() const;
+    BossRank getRank() const;
+    void showTitleCard(const Boss& b, int phaseIdx, bool nameCard);
     const std::vector<Boss>& getBosses() const { return m_bosses; }
     const std::vector<BossHazard>& getHazards() const { return m_hazards; }
 
@@ -438,6 +462,7 @@ private:
     void beginFalseDeath(Boss& b, unsigned int now);
     void updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now);
     void startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now);
+    void spawnClimbGhosts();
     bool tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now);
     void doParry(Boss& b, unsigned int now);
     void setSurface(Boss& b, Boss::Surface s);
@@ -498,6 +523,9 @@ private:
     bool m_pendingBite = false;
     unsigned int m_pendingBiteUntil = 0;
     float m_ceilY = 0.0f;
+    bool  m_upper = false;          // Preacher: risen to the upper arena (phase 3)
+    bool  m_upperReached = false;   // ...and the player is up there too: the arena lock moves up
+    float m_lowerFloorY = 0.0f;
     std::vector<SDL_FPoint> m_deathEvents;
     std::vector<BossSummonRequest> m_summons;
     float m_floorY = 0.0f;          // bottom of the arena (set every update, used by the rock warning columns)
@@ -511,4 +539,11 @@ private:
     bool  m_arenaValid = false;
     unsigned int m_unlockAt = 0;    // arena stays locked until this tick after the kill
     std::mt19937 m_rng{12345u};
+    // title card (see showTitleCard / renderTitleCard)
+    struct TitleCard { bool on = false; unsigned int start = 0, dur = 0; bool nameCard = true; BossRank rank = BossRank::THREAT;
+        std::string main, sub; } m_card;
+    mutable std::unique_ptr<MenuFont> m_cardFont;
+    mutable MenuLabel m_cardMain, m_cardTag, m_cardSub;
+    mutable std::string m_cardMainKey, m_cardTagKey, m_cardSubKey;
+    void renderTitleCard(SDL_Renderer* renderer) const;
 };

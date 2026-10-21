@@ -174,11 +174,7 @@ void DebugState::update(float dt) {
 // ---- DEBUG level jump: "<  LVL n  >  GO" at the bottom centre (touch / mouse), or [ ] to pick and J to go ----
 void DebugState::stepJump(int dir){
     if(m_jumpLevel < 0) m_jumpLevel = m_gameState->getLevel();
-    int idx = 0;
-    constexpr int N = (int)(sizeof(LEVEL_ORDER) / sizeof(LEVEL_ORDER[0]));
-    for(int i = 0; i < N; ++i) if(LEVEL_ORDER[i] == m_jumpLevel){ idx = i; break; }
-    idx = (idx + dir + N) % N;                 // steps through the play order: ... 4, 11, 12, 5, 13, 14 ...
-    m_jumpLevel = LEVEL_ORDER[idx];
+    m_jumpLevel = (m_jumpLevel + dir + LAST_LEVEL + 1) % (LAST_LEVEL + 1);   // plain numerical order 0..LAST_LEVEL
 }
 
 void DebugState::doJump(){

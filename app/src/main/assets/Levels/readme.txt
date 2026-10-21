@@ -29,7 +29,7 @@ I x y w h SPEAKER line one|line two|line three
     example:  I 300 560 64 208 OLD_MAN Welcome, traveler.|Mind the cave ahead.
 
 K x y BOSS_TYPE [phase1Music [phase2Music [phase3Music] [gain]]]
-    boss (see level/Bosses.cpp for the 14 types). x y = top-left of its hitbox, it falls onto the floor.
+    boss (see level/Bosses.cpp for the 13 types). x y = top-left of its hitbox, it falls onto the floor.
     The fight starts when the player walks into the arena (A); until the boss dies the camera is pinned on the
     arena and the player cannot leave it. Boss music: phase 1 track from the start of the fight, phase 2 track when
     the boss roars at 50% hp, fade out on the kill, the level's own music (M / level_<n>.ogg) returns after ~3 s.

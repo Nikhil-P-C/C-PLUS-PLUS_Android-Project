@@ -134,13 +134,6 @@ namespace {
                                                                                                                              { K::BITE_SNAP,    "Jaw Clamp",    450,  240, 700, 280, 280, 0, 0, 290, 1500, BOTH },
                                                                                                                      }, BossBehavior::NONE, 1.4f, 0.65f },
             // ------------------------------------------------------------------ PEAK
-            { BossType::PEAK_DASPLETO_WARLORD, Biome::PEAK, BossTier::MINI, "Dasplet Warlord",
-                    380, 200, 210, 220, combatType::GROUND, EnemyType::DASPELTOSAURUS, 700, 900, 850, 0.5f, 1.0f, 4, {
-                                                                                                                             { K::BITE_SNAP,      "Warlord Bite",     420, 230, 550, 220, 300, 0, 0, 240, 1400, BOTH },
-                                                                                                                             { K::CHARGE,         "Warhorn Rush",     650, 1000, 850, 1000, 720, 0, 300, 0, 3500, BOTH },
-                                                                                                                             { K::TAIL_SWEEP,     "Spiked Sweep",     550, 420, 700, 230,   0, 0, 0, 260, 2400, BOTH },
-                                                                                                                             { K::PROJECTILE_FAN, "Shard Volley",     650, 300, 850,   0, 600, 5, 0, 0, 3200, P2 },
-                                                                                                                     }},
             // The Preacher (final boss). Phase 1/2: Sentinel's blades + blink, the Sinner's beam + slam, the Brother's whip,
             // flame and stomp. Phase 2 = Second Berserker (overdrive). At 0 hp he "dies"... then a god ray lifts him back up with
             // angelic wings and he flees to the high platform. Phase 3: the sinner children's ghosts let you pogo up to him;
@@ -169,7 +162,7 @@ namespace {
             {"PLAINS_ANKYLOSAUR", BossType::PLAINS_ANKYLOSAUR},         {"PLAINS_SENTINEL_PARA", BossType::PLAINS_SENTINEL_PARA},
             {"WOODS_THORN_MATRIARCH", BossType::WOODS_THORN_MATRIARCH}, {"WOODS_TREEHORN_ELDER", BossType::WOODS_TREEHORN_ELDER},
             {"MOUNTAIN_CAT_QUEEN", BossType::MOUNTAIN_CAT_QUEEN},       {"MOUNTAIN_BROTHER", BossType::MOUNTAIN_BROTHER},
-            {"PEAK_DASPLETO_WARLORD", BossType::PEAK_DASPLETO_WARLORD}, {"PEAK_THE_PREACHER", BossType::PEAK_THE_PREACHER},
+            {"PEAK_THE_PREACHER", BossType::PEAK_THE_PREACHER},
     };
 
     const char* kBiomeTag[] = {"moss", "stone", "shaft", "plains", "woods", "mountain", "peak"};
@@ -193,6 +186,26 @@ namespace {
 // ====================================================================================================
 //  lookups
 // ====================================================================================================
+BossTitleInfo getBossTitleInfo(BossType t){
+    using T = BossType;
+    switch(t){
+        case T::MOSS_LUMINOUS_WYRM:     return { BossRank::THREAT,    { "Burrowing Terror", nullptr, nullptr } };
+        case T::MOSS_CAVE_SPIDER:       return { BossRank::THREAT,    { "Weaver of the Dark", "Frenzy", nullptr } };
+        case T::STONE_GIANT_RAT:        return { BossRank::THREAT,    { "Snatcher", nullptr, nullptr } };
+        case T::STONE_ANCIENT_SINNER:   return { BossRank::CHALLENGE, { "The Condemned", "First Berserker", nullptr } };
+        case T::SHAFT_WARDEN:           return { BossRank::THREAT,    { "Keeper of the Shaft", nullptr, nullptr } };
+        case T::SHAFT_BRONTOS:          return { BossRank::THREAT,    { "Three Heads, No Mercy", "Double Strike", nullptr } };
+        case T::PLAINS_ANKYLOSAUR:      return { BossRank::THREAT,    { "Living Fortress", nullptr, nullptr } };
+        case T::PLAINS_SENTINEL_PARA:   return { BossRank::CHALLENGE, { "Sentinel of the Plains", "Duty Unbound", nullptr } };
+        case T::WOODS_THORN_MATRIARCH:  return { BossRank::THREAT,    { "Rooted Hunger", nullptr, nullptr } };
+        case T::WOODS_TREEHORN_ELDER:   return { BossRank::THREAT,    { "Ancient of the Woods", "Wildgrowth", nullptr } };
+        case T::MOUNTAIN_CAT_QUEEN:     return { BossRank::THREAT,    { "Queen of Claws", nullptr, nullptr } };
+        case T::MOUNTAIN_BROTHER:       return { BossRank::THREAT,    { "The Preacher's Brother", "Fury", nullptr } };
+        case T::PEAK_THE_PREACHER:      return { BossRank::CHALLENGE, { "God's Only Preacher", "Second Berserker", "Ascension" } };
+        default:                        return { BossRank::THREAT,    { "", nullptr, nullptr } };
+    }
+}
+
 const BossDef* getBossDef(BossType type){
     for(const auto& d : kDefs) if(d.type == type) return &d;
     return nullptr;
@@ -271,6 +284,7 @@ void BossBuilder::beginFight(int idx, unsigned int now){
     setState(b, BossState::INTRO, now);
     playBossMusic(b, *def, BossPhase::PHASE_1);   // level music -> boss phase 1
     Camera::getInstance().addTrauma(0.5f);
+    showTitleCard(b, 0, true);
 }
 
 void BossBuilder::beginPhaseTransition(Boss& b, unsigned int now){
@@ -286,6 +300,7 @@ void BossBuilder::beginPhaseTransition(Boss& b, unsigned int now){
     m_hazards.clear();   // a clean screen for the roar
     playBossMusic(b, *def, BossPhase::PHASE_2);   // boss phase 1 -> boss phase 2 (starts with the roar)
     Camera::getInstance().addTrauma(0.8f);
+    showTitleCard(b, 1, false);
 }
 
 void BossBuilder::startDeath(Boss& b, unsigned int now){
@@ -316,6 +331,74 @@ void BossBuilder::startDeath(Boss& b, unsigned int now){
         m_restorePending = true;
         m_restoreAt = now + BOSS_DEATH_MUSIC_RESTORE_MS;
     }
+}
+
+BossRank BossBuilder::getRank() const {
+    if(m_activeIdx < 0) return BossRank::THREAT;
+    return getBossTitleInfo(m_bosses[(size_t)m_activeIdx].type).rank;
+}
+
+// nameCard: boss name + its sub-title, then THREAT / CHALLENGE. Phase cards: the phase name, then the same label.
+void BossBuilder::showTitleCard(const Boss& b, int phaseIdx, bool nameCard){
+    const BossDef* def = getBossDef(b.type);
+    if(!def) return;
+    const BossTitleInfo ti = getBossTitleInfo(b.type);
+    const char* phaseName = ti.phaseName[std::clamp(phaseIdx, 0, 2)];
+    if(!nameCard && !phaseName) return;
+    m_card.on = true;
+    m_card.start = SDL_GetTicks();
+    m_card.nameCard = nameCard;
+    m_card.dur = nameCard ? 2800 : 2200;
+    m_card.rank = ti.rank;
+    m_card.main = nameCard ? def->name : phaseName;
+    m_card.sub  = (nameCard && ti.phaseName[0]) ? ti.phaseName[0] : "";
+}
+
+void BossBuilder::renderTitleCard(SDL_Renderer* renderer) const {
+    if(!m_card.on) return;
+    const unsigned int now = SDL_GetTicks();
+    const unsigned int el = now - m_card.start;
+    if(el >= m_card.dur) return;
+    if(!m_cardFont) m_cardFont = std::make_unique<MenuFont>(38);
+    if(!m_cardFont->ok()) return;
+
+    const bool challenge = m_card.rank == BossRank::CHALLENGE;
+    const std::string tag = challenge ? "CHALLENGE" : "THREAT";
+    const int mainSize = m_card.nameCard ? 92 : 64;
+    const std::string mainKey = m_card.main + "#" + std::to_string(mainSize);
+    if(mainKey != m_cardMainKey){ m_cardMain.set(renderer, *m_cardFont, m_card.main.c_str(), mainSize); m_cardMainKey = mainKey; }
+    if(tag != m_cardTagKey){ m_cardTag.set(renderer, *m_cardFont, tag.c_str(), 40); m_cardTagKey = tag; }
+
+    const float fadeIn = MenuKit::clamp01((float)el / 300.0f);
+    const float fadeOut = MenuKit::clamp01((float)(m_card.dur - el) / 500.0f);
+    const float a = std::min(fadeIn, fadeOut);
+    // slow "push-in" so the card breathes
+    const float scale = 1.0f + 0.04f * ((float)el / (float)m_card.dur);
+
+    const float sw = Camera::getInstance().getCamera().w, sh = Camera::getInstance().getCamera().h;
+    const float cy = sh * 0.40f;
+    const MenuKit::Rgb tagCol = challenge ? MenuKit::Rgb{0.95f, 0.18f, 0.15f} : MenuKit::Rgb{0.95f, 0.70f, 0.22f};
+
+    SDL_BlendMode prev = SDL_BLENDMODE_NONE;
+    SDL_GetRenderDrawBlendMode(renderer, &prev);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    const float bandH = m_card.nameCard ? 230.0f : 170.0f;
+    SDL_FRect band{0.0f, cy - bandH * 0.5f, sw, bandH};
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, (Uint8)(165.0f * a));
+    SDL_RenderFillRect(renderer, &band);
+    SDL_SetRenderDrawColor(renderer, (Uint8)(tagCol.r * 255), (Uint8)(tagCol.g * 255), (Uint8)(tagCol.b * 255), (Uint8)(200.0f * a));
+    SDL_FRect l1{sw * 0.5f - 360.0f * a, band.y, 720.0f * a, 2.0f}, l2{sw * 0.5f - 360.0f * a, band.y + bandH - 2.0f, 720.0f * a, 2.0f};
+    SDL_RenderFillRect(renderer, &l1);
+    SDL_RenderFillRect(renderer, &l2);
+
+    MenuPainter p(renderer);
+    p.label(m_cardTag, sw * 0.5f, cy - bandH * 0.30f, 1.0f, tagCol, a);
+    p.label(m_cardMain, sw * 0.5f, cy + 6.0f, scale, MenuKit::Rgb{1.0f, 0.95f, 0.88f}, a);
+    if(!m_card.sub.empty()){
+        if(m_card.sub != m_cardSubKey){ m_cardSub.set(renderer, *m_cardFont, m_card.sub.c_str(), 36); m_cardSubKey = m_card.sub; }
+        p.label(m_cardSub, sw * 0.5f, cy + bandH * 0.32f, 1.0f, MenuKit::Rgb{0.8f, 0.78f, 0.74f}, a * 0.9f);
+    }
+    SDL_SetRenderDrawBlendMode(renderer, prev);
 }
 
 BossHudInfo BossBuilder::getHudInfo() const {
@@ -378,20 +461,22 @@ void BossBuilder::setupArena(Boss& b, const SDL_FRect& wall){
     b.arenaReady = true;
 
     if(b.type == BossType::SHAFT_BRONTOS && b.parts.empty()){
-        // the body stands at the right end of the arena; three heads hang from it on long necks
+        // The body is only background art, centred in the arena (nothing is drawn or hit there). The three heads are
+        // independent goliath-class enemies: each has its own neck root in the background, its own hp and its own bar.
         const float floorY = wall.y + std::ceil(wall.h / wallT) * wallT - wallT;
-        const float ceilY = wall.y + wallT;
+        const float ceilY = std::max(wall.y, a.y) + wallT;
+        const float cx = (b.arenaL + b.arenaR) * 0.5f;
         b.noPhysics = true;
-        b.x = b.baseX = b.arenaR - b.w;
+        b.x = b.baseX = cx - b.w * 0.5f;
         b.y = floorY - b.h;
         for(int i = 0; i < 3; ++i){
             BossPart p;
             p.maxHp = p.hp = b.maxHp / 3;
-            p.anchorX = b.arenaR - 50.0f;
-            p.anchorY = floorY - b.h + 40.0f + (float)i * 60.0f;
-            p.homeX = b.arenaL + 380.0f + (float)i * 330.0f;
-            p.homeY = ceilY + 110.0f + (float)(i % 2) * 70.0f;
-            p.rect = { p.homeX, p.homeY, 130.0f, 100.0f };
+            p.anchorX = cx + ((float)i - 1.0f) * 190.0f;               // three neck roots behind the arena centre
+            p.anchorY = floorY - 90.0f - (float)(i % 2) * 50.0f;
+            p.homeX = b.arenaL + 170.0f + (float)i * 470.0f;
+            p.homeY = ceilY + 120.0f + (float)(i % 2) * 80.0f;
+            p.rect = { p.homeX, p.homeY, 190.0f, 150.0f };
             p.swayPhase = (float)i * 2.1f;
             b.parts.push_back(p);
         }
@@ -419,6 +504,12 @@ bool BossBuilder::isArenaLocked() const {
     return m_activeIdx >= 0 || SDL_GetTicks() < m_unlockAt;
 }
 
+bool BossBuilder::getClimbBounds(SDL_FRect& out) const {
+    if(!m_arenaValid || !m_upper || m_upperReached || m_activeIdx < 0) return false;
+    out = { m_arena.x, m_arena.y - BOSS_PREACHER_UPPER_RISE, m_arena.w, m_arena.h + BOSS_PREACHER_UPPER_RISE };
+    return true;
+}
+
 bool BossBuilder::getArena(SDL_FRect& out) const {
     if(!m_arenaValid) return false;
     out = m_arena;
@@ -431,6 +522,7 @@ bool BossBuilder::hasLivingBoss() const {
 }
 
 bool BossBuilder::resetFight(){
+    m_card.on = false;
     const bool wasActive = m_activeIdx >= 0;
     for(size_t i = 0; i < m_bosses.size() && i < m_template.size(); ++i){
         if(m_bosses[i].isDead()) continue;                 // a boss that was beaten stays beaten
@@ -439,6 +531,8 @@ bool BossBuilder::resetFight(){
     m_grab = Grab{};
     m_pendingBite = false;
     m_ghosts.clear();
+    if(m_upperReached) m_arena.y += BOSS_PREACHER_UPPER_RISE;       // back to the lower arena
+    m_upper = m_upperReached = false;
     m_parryEvents.clear();
     m_hazards.clear();
     m_hitEvents.clear();
@@ -459,7 +553,21 @@ void BossBuilder::update(float dt, const SDL_FRect& player, const SDL_FRect& wal
                          const std::vector<LevelGround>& grounds, const std::vector<Platform>& platforms,
                          const std::vector<Block>& blocks){
     const unsigned int now = SDL_GetTicks();
-    m_floorY = wallBottomOf(wall);
+    m_lowerFloorY = wallBottomOf(wall);
+    m_floorY = m_upper ? m_lowerFloorY - BOSS_PREACHER_UPPER_RISE : m_lowerFloorY;   // floor / ceiling of the arena being fought in
+    {
+        const float arenaTop = m_arenaValid ? m_arena.y - (m_upper && !m_upperReached ? BOSS_PREACHER_UPPER_RISE : 0.0f) : wall.y;
+        m_ceilY = std::max(wall.y, arenaTop) + TILE_SIZE * SCALE;
+    }
+    if(m_upper && !m_upperReached){                    // the player made it up to the ground of the upper arena
+        const float feet = player.y + player.h;
+        if(feet <= m_floorY + 6.0f && feet >= m_floorY - 40.0f && player.x + player.w > m_arena.x && player.x < m_arena.x + m_arena.w){
+            m_upperReached = true;
+            m_arena.y -= BOSS_PREACHER_UPPER_RISE;
+            m_ghosts.clear();
+            Camera::getInstance().addTrauma(0.5f);
+        }
+    }
 
     if(m_restorePending && m_activeIdx < 0 && now >= m_restoreAt){
         m_restorePending = false;
@@ -487,7 +595,6 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
 
     if(!b.arenaReady) setupArena(b, wall);
     if(b.isHurt && now >= b.hurtFlashEnd) b.isHurt = false;
-    m_ceilY = wall.y + TILE_SIZE * SCALE;
 
     const float pcx = player.x + player.w * 0.5f, pcy = player.y + player.h * 0.5f;
     const float bcx = b.x + b.w * 0.5f;
@@ -553,7 +660,11 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
             if(spd > 0.0f){
                 if(b.combat == combatType::AERIAL){
                     if(def->behavior == BossBehavior::PREACHER){   // phase 3: he stays up on his perch
-                        hoverToward(b, b.arenaR - b.w - 40.0f, b.baseY + std::sin(now * 0.002f) * 16.0f, spd * 0.6f, dt, wall);
+                        {   // phase 3: he drifts left and right across the upper arena, never up or down
+                            const float span = std::max(0.0f, (b.arenaR - b.arenaL - b.w) * 0.5f);
+                            const float tx = (b.arenaL + b.arenaR) * 0.5f - b.w * 0.5f + std::sin(now * 0.0009f) * span * 0.9f;
+                            hoverToward(b, tx, b.baseY, spd * 0.6f, dt, wall);
+                        }
                     } else {
                         hoverToward(b, pcx - b.w * 0.5f, b.baseY + std::sin(now * 0.003f) * 14.0f, spd * 0.8f, dt, wall);
                     }
@@ -573,6 +684,8 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
                     }
                 }
             }
+            if(def->behavior == BossBehavior::PREACHER && b.phase == BossPhase::PHASE_3 && !m_upperReached)
+                b.nextAttackTime = now + 1500;          // he waits (no attacks) until the player has climbed up to him
             if(now >= b.nextAttackTime){
                 int pick = b.forcedAttack >= 0 ? b.forcedAttack : pickAttack(b, *def, player, now);
                 b.forcedAttack = -1;
@@ -731,23 +844,78 @@ void BossBuilder::doParry(Boss& b, unsigned int now){
 // ----------------------------------------------------------------------------------------------------
 //  Ancient Sinner finisher: parry BOSS_QTE_STEPS strikes in a row (a miss costs a hit and repeats the step)
 // ----------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------
+//  Ancient Sinner finisher: a series of fast samurai dashes. Each dash is telegraphed (he crouches back), then he
+//  blinks THROUGH the player to the other side; a slash timed on the crossing parries it. BOSS_QTE_STEPS parries kill
+//  him. A miss lets the dash connect and the same dash is tried again. The player is pushed up and held in the air
+//  for the whole sequence (getQteLift), so the arena has to stay tall.
+// ----------------------------------------------------------------------------------------------------
+namespace {
+    // telegraph length before dash n: it gets faster and faster
+    inline unsigned int qteTelegraphMs(int step){
+        static const unsigned int t[] = { 1000, 850, 720, 620, 520, 480 };
+        return t[std::clamp(step, 0, 5)];
+    }
+}
+
 void BossBuilder::beginQte(Boss& b, unsigned int now){
     setState(b, BossState::QTE, now);
     b.hp = 1;
     b.qteStep = 0;
-    b.qteStrike = now + 1600;
+    b.stage = 0;
+    b.qteFromX = b.x;
+    b.qteStrike = now + 1600 + BOSS_QTE_DASH_MS / 2;
     m_hazards.clear();
     b.attack = -1;
     Camera::getInstance().addTrauma(0.8f);
 }
 
+bool BossBuilder::getQteLift(const SDL_FRect& player, float& outVelocityY) const {
+    for(const Boss& b : m_bosses){
+        if(b.state != BossState::QTE) continue;
+        const float hoverFeet = m_floorY - BOSS_QTE_HOVER_ABOVE_FLOOR;
+        const float feet = player.y + player.h;
+        outVelocityY = (feet > hoverFeet) ? -430.0f : 0.0f;    // rise, then hang
+        return true;
+    }
+    return false;
+}
+
 void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
     Camera::getInstance().rumble(0.12f);
+    const float pcx = player.x + player.w * 0.5f;
+    const unsigned int dashStart = b.qteStrike - BOSS_QTE_DASH_MS / 2;
+    const unsigned int dashEnd   = b.qteStrike + BOSS_QTE_DASH_MS / 2;
+
+    if(now < dashStart){
+        // telegraph: he crouches back, away from the side he is about to cross to
+        const float dir = (b.x + b.w * 0.5f < pcx) ? -1.0f : 1.0f;
+        const float t = MenuKit::clamp01(1.0f - (float)(dashStart - now) / (float)qteTelegraphMs(b.qteStep));
+        b.x = std::clamp(b.qteFromX + dir * 40.0f * t, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
+        b.stage = 0;
+    } else if(now <= dashEnd){
+        if(b.stage == 0){                                   // the dash starts: aim through the player to the far side
+            b.stage = 1;
+            b.qteFromX = b.x;
+            const bool fromLeft = (b.x + b.w * 0.5f) < pcx;
+            b.qteToX = std::clamp(fromLeft ? pcx + 110.0f : pcx - 110.0f - b.w, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
+            Camera::getInstance().addTrauma(0.35f);
+        }
+        const float t = MenuKit::clamp01((float)(now - dashStart) / (float)BOSS_QTE_DASH_MS);
+        b.x = b.qteFromX + (b.qteToX - b.qteFromX) * t;
+    } else if(b.stage == 1){
+        b.x = b.qteToX;
+        b.stage = 2;
+    }
+    b.baseX = b.x;
+
     if(now < b.qteStrike + BOSS_PARRY_POST_MS) return;
     const bool ok = m_slashTick > m_parryUsed && m_slashTick + 340 >= b.qteStrike && m_slashTick <= b.qteStrike + BOSS_PARRY_POST_MS;
+    b.qteFromX = b.x;
+    b.stage = 0;
     if(ok){
         m_parryUsed = m_slashTick;
-        m_parryEvents.push_back({ (m_playerRect.x + b.x + b.w * 0.5f) * 0.5f, b.y + b.h * 0.4f, true });
+        m_parryEvents.push_back({ pcx, player.y + player.h * 0.4f, true });
         Camera::getInstance().addTrauma(0.6f);
         b.qteStep++;
         if(b.qteStep >= BOSS_QTE_STEPS){
@@ -756,13 +924,13 @@ void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
             startDeath(b, now);
             return;
         }
-        b.qteStrike = now + 950;
+        b.qteStrike = now + qteTelegraphMs(b.qteStep) + BOSS_QTE_DASH_MS / 2;
     } else {
-        // missed: he connects, then tries again
+        // missed: the dash connects, then he tries the same dash again
         b.attackHitBox = { player.x - 12.0f, player.y - 12.0f, player.w + 24.0f, player.h + 24.0f };
         b.isAttackBoxActive = true;
         b.attackHasHit = false;
-        b.qteStrike = now + 1500;
+        b.qteStrike = now + 1100 + BOSS_QTE_DASH_MS / 2;
         Camera::getInstance().addTrauma(0.4f);
     }
 }
@@ -772,6 +940,7 @@ void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
 // ----------------------------------------------------------------------------------------------------
 void BossBuilder::beginFalseDeath(Boss& b, unsigned int now){
     setState(b, BossState::FALSE_DEATH, now);
+    b.stage = 0;
     b.hp = 0;
     b.attack = -1;
     endAttackCleanup(b, SDL_FRect{0, 0, 0, 0});
@@ -785,8 +954,27 @@ void BossBuilder::updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now)
     Camera::getInstance().rumble(0.3f);
     const unsigned int el = now - b.stateStart;
     if(el < 1400) b.winged = false;
-    else b.winged = true;
+    else {
+        b.winged = true;
+        if(b.stage == 0){                       // the god ray lifts him: he flees far UP, and the ghosts of the sinner children
+            b.stage = 1;                        // rise from the floor as pogo pads toward his perch
+            b.wpY[0] = b.y;
+            m_upper = true;
+            spawnClimbGhosts();
+        }
+        const float t = std::clamp((float)(el - 1400) / 1500.0f, 0.0f, 1.0f);
+        b.y = b.wpY[0] - t * t * (BOSS_PREACHER_UPPER_RISE + 200.0f);
+    }
     if(el >= 3200) startPhase3(b, wall, now);
+}
+
+void BossBuilder::spawnClimbGhosts(){
+    // each pad is ~280 px above the last (a bounce throws the player ~370 px up); the first is reachable from the floor
+    static const float dx[5] = { 600.0f, 960.0f, 640.0f, 1000.0f, 720.0f };
+    static const float up[5] = { 200.0f, 480.0f, 760.0f, 1040.0f, 1320.0f };
+    m_ghosts.clear();
+    for(int i = 0; i < 5; ++i)
+        m_ghosts.push_back({ m_arena.x + dx[i], m_lowerFloorY - up[i], 130.0f, 34.0f });
 }
 
 void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
@@ -798,18 +986,14 @@ void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
     b.combat = combatType::AERIAL;
     b.noPhysics = true;
     b.velocityY = 0.0f;
-    const float oldW = b.w;
     b.w = b.baseW * 2.4f;                       // wing span; hurtRect() is only the body in the middle
-    b.x -= (b.w - oldW) * 0.5f;
-    b.x = std::clamp(b.x, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
-    b.baseY = m_ceilY + 24.0f;
-    // the sinner children's ghosts: pogo pads that climb toward the perch
-    m_ghosts.clear();
-    const float ax = b.arena.x, fy = m_floorY;
-    m_ghosts.push_back({ ax + 520.0f,  fy - 190.0f, 120.0f, 34.0f });
-    m_ghosts.push_back({ ax + 820.0f,  fy - 320.0f, 120.0f, 34.0f });
-    m_ghosts.push_back({ ax + 1090.0f, fy - 420.0f, 120.0f, 34.0f });
+    // he hovers in the UPPER arena (same x range as the fight arena, BOSS_PREACHER_UPPER_RISE higher)
+    b.x = std::clamp((b.arenaL + b.arenaR) * 0.5f - b.w * 0.5f, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
+    b.baseY = m_arena.y - BOSS_PREACHER_UPPER_RISE + 190.0f;   // upper arena top + 190
+    b.y = b.baseY;
+    m_upper = true;
     playBossMusic(b, *def, BossPhase::PHASE_3);
+    showTitleCard(b, 2, false);
     setState(b, BossState::IDLE, now);
     b.nextAttackTime = now + 1800;
     Camera::getInstance().addTrauma(0.8f);
@@ -1003,7 +1187,7 @@ SDL_FRect BossBuilder::previewBox(const Boss& b, const BossAttackDef& a, const S
         case K::LEAP_SLAM:
         case K::AERIAL_DIVE:
             // landing marker on the player's current spot
-            return { player.x - 30.0f, std::min(player.y, wallBottomOf(wall) - player.h), player.w + 60.0f, player.h };
+            return { player.x - 30.0f, std::min(player.y, m_floorY - player.h), player.w + 60.0f, player.h };
         default: return {0, 0, 0, 0};
     }
 }
@@ -1355,7 +1539,7 @@ void BossBuilder::runAttack(Boss& b, const BossDef& def, const BossAttackDef& a,
         }
 
         case K::AERIAL_DIVE: {
-            const float floorY = wallBottomOf(wall);
+            const float floorY = m_floorY;
             if(!b.launched){
                 b.launched = true;
                 const float dx = pcx - bcx;
@@ -1517,7 +1701,7 @@ void BossBuilder::updatePart(Boss& b, BossPart& p, float dt, const SDL_FRect& pl
                 p.rect.x += 880.0f * dt;
                 p.hit = { p.rect.x - 50.0f, p.rect.y + 10.0f, p.rect.w + 50.0f, p.rect.h - 10.0f }; p.hitActive = !p.hasHit;
                 Camera::getInstance().rumble(0.2f);
-                if(p.rect.x >= p.anchorX - 330.0f){ p.state = 3; p.t0 = now; }
+                if(p.rect.x >= b.arenaR - p.rect.w - 60.0f){ p.state = 3; p.t0 = now; }
             } else {
                 if(held){ p.hitActive = false; break; }         // holding the player
                 const float dx = p.tx - p.rect.x, dy = p.ty - p.rect.y;
@@ -1630,7 +1814,7 @@ void BossBuilder::spawnRock(const Boss& b, float x, const SDL_FRect& wall){
     h.source = K::ROCK_RAIN;
     h.w = h.h = BOSS_ROCK_SIZE;
     h.x = x - h.w * 0.5f;
-    h.y = wall.y + TILE_SIZE * SCALE + 4.0f;                       // just under the ceiling
+    h.y = m_ceilY + 4.0f;                       // just under the ceiling
     h.gravity = BOSS_ROCK_GRAVITY;
     h.warn = BOSS_ROCK_WARN_SEC;
     h.life = 4.0f;
@@ -1694,7 +1878,7 @@ void BossBuilder::updateHazards(float dt, const SDL_FRect& wall, const std::vect
     if(m_hazards.empty()) return;
     const float wallT = TILE_SIZE * SCALE;
     float left = wall.x + wallT, right = wall.x + wall.w - wallT;
-    const float top = wall.y + wallT, bottom = wallBottomOf(wall);
+    const float top = m_ceilY, bottom = m_floorY;
     if(m_arenaValid){ left = std::max(left, m_arenaInnerL); right = std::min(right, m_arenaInnerR); }   // nothing leaves the arena
 
     for(size_t i = 0; i < m_hazards.size(); ){
@@ -1766,7 +1950,8 @@ void BossBuilder::hoverToward(Boss& b, float targetX, float targetY, float speed
     b.x += std::clamp(targetX - b.x, -step, step);
     b.y += std::clamp(targetY - b.y, -step, step);
     b.x = std::clamp(b.x, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
-    b.y = std::clamp(b.y, wall.y + wallT + 4.0f, std::max(wall.y + wallT + 5.0f, wallBottomOf(wall) - b.h - 4.0f));
+    b.y = std::clamp(b.y, m_ceilY + 4.0f, std::max(m_ceilY + 5.0f, m_floorY - b.h - 4.0f));
+    (void)wall; (void)wallT;
 }
 
 // same collision pass EnemiesBuilder uses (level walls, solid + one-way platforms, ground, blocks)
@@ -2091,11 +2276,7 @@ void BossBuilder::renderBoss(SDL_Renderer* r, const Boss& b, int camX, int camY)
 
     // ---- Brontos: body, necks, heads ----
     if(def->behavior == BossBehavior::BRONTOS){
-        SDL_FRect bodyR{ b.x - camX, b.y - camY, b.w, b.h };
-        SDL_SetRenderDrawColor(r, (Uint8)(cr * 0.6f), (Uint8)(cg * 0.6f), (Uint8)(cb * 0.6f), 230);   // body: not a target
-        SDL_RenderFillRect(r, &bodyR);
-        SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
-        SDL_RenderRect(r, &bodyR);
+        // no body is drawn: it is background art. Each head hangs from its own neck root.
         for(const auto& p : b.parts){
             const bool flash = now < p.hurtFlashEnd;
             const bool dead = p.state == 5;
@@ -2307,7 +2488,7 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
         if(b.state == BossState::QTE){
             const float left = (float)((int)b.qteStrike - (int)now);
             const float f = std::clamp(left / 1200.0f, 0.0f, 1.0f);
-            const float cx = b.x + b.w * 0.5f - camX, cy = b.y + b.h * 0.45f - camY;
+            const float cx = m_playerRect.x + m_playerRect.w * 0.5f - camX, cy = m_playerRect.y + m_playerRect.h * 0.5f - camY;
             const float rad = 50.0f + 190.0f * f;
             const int N = 40;
             SDL_SetRenderDrawColor(r, 255, 255, 255, 230);
@@ -2371,6 +2552,7 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
 // Boss health bar, screen space. The name is exposed through getHudInfo() so the HUD can draw it with its own font.
 // The tick at 50% marks where phase 2 starts.
 void BossBuilder::renderHud(SDL_Renderer* renderer) const {
+    renderTitleCard(renderer);
     const BossHudInfo info = getHudInfo();
     if(!info.active) return;
 

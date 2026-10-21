@@ -21,26 +21,14 @@
 #define LOG_TAG "LevelLoader"
 
 // highest level_N.txt that exists; TransitionState wraps back to level 0 after this one
-constexpr int LAST_LEVEL = 24;
+constexpr int LAST_LEVEL = 23;
 
-// Play order. Level numbers are just file names (Levels/level_<n>.txt); this table says which one comes next:
-// each biome level is followed by that biome's MINI boss level, then its MAIN boss level.
-//   4/5/6/7/8/9/10 = Moss, Stone, Wooden shaft, Plains, Woods, Mountain, Peak (normal levels)
-//   11/12 Moss mini+main, 13/14 Stone, 15/16 Shaft, 17/18 Plains, 19/20 Woods, 21/22 Mountain, 23/24 Peak
-constexpr int LEVEL_ORDER[] = {0, 1, 2, 3,
-                               4, 11, 12,
-                               5, 13, 14,
-                               6, 15, 16,
-                               7, 17, 18,
-                               8, 19, 20,
-                               9, 21, 22,
-                               10, 23, 24};
-// the level that follows `level` in LEVEL_ORDER (wraps to the first one; unknown numbers fall back to level+1)
+// Play order = plain numerical order (level_0, level_1, ... level_LAST_LEVEL). Boss levels are NOT interleaved:
+// 0-10 are the normal levels, 11-23 are the 13 boss test levels:
+//   11/12 Moss mini+main, 13/14 Stone, 15/16 Shaft, 17/18 Plains, 19/20 Woods, 21/22 Mountain, 23 Peak (the Preacher)
+// the level that follows `level` (wraps to level 0 after LAST_LEVEL)
 inline int nextLevelAfter(int level){
-    constexpr int N = (int)(sizeof(LEVEL_ORDER) / sizeof(LEVEL_ORDER[0]));
-    for(int i = 0; i < N; ++i)
-        if(LEVEL_ORDER[i] == level) return (i + 1 < N) ? LEVEL_ORDER[i + 1] : LEVEL_ORDER[0];
-    return level + 1;
+    return (level + 1 > LAST_LEVEL) ? 0 : level + 1;
 }
 
 class LevelLoader{
