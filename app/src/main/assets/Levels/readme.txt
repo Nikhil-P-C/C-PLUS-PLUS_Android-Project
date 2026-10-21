@@ -28,12 +28,13 @@ I x y w h SPEAKER line one|line two|line three
     button advances the text. The player is held still while a dialog is open.
     example:  I 300 560 64 208 OLD_MAN Welcome, traveler.|Mind the cave ahead.
 
-K x y BOSS_TYPE [phase1Music [phase2Music [gain]]]
+K x y BOSS_TYPE [phase1Music [phase2Music [phase3Music] [gain]]]
     boss (see level/Bosses.cpp for the 14 types). x y = top-left of its hitbox, it falls onto the floor.
     The fight starts when the player walks into the arena (A); until the boss dies the camera is pinned on the
     arena and the player cannot leave it. Boss music: phase 1 track from the start of the fight, phase 2 track when
     the boss roars at 50% hp, fade out on the kill, the level's own music (M / level_<n>.ogg) returns after ~3 s.
-    Default files: Sound/Music/Boss/<biome>_<mini|main>_phase<1|2>.ogg   (biome = moss stone shaft plains woods mountain peak)
+    Phase 3 exists only for the Preacher (falls back to phase 2, then 1).
+    Default files: Sound/Music/Boss/<biome>_<mini|main>_phase<1|2|3>.ogg   (biome = moss stone shaft plains woods mountain peak)
     A bare file name = Sound/Music/Boss/<name>; '-' = default for that phase. Missing phase 2 keeps phase 1 playing,
     missing phase 1 keeps the level music playing.
     example:  K 3385 360 PEAK_REX_EMPEROR rex_1.ogg rex_2.ogg 0.9

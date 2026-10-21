@@ -29,7 +29,7 @@
 // ----------------------------------------------------------------------------------------------------
 // tuning
 // ----------------------------------------------------------------------------------------------------
-const int   BOSS_MAX_ATTACKS            = 5;
+const int   BOSS_MAX_ATTACKS            = 12;
 const int   BOSS_MINI_KILL_SCORE        = 250;
 const int   BOSS_MAIN_KILL_SCORE        = 1000;
 const float BOSS_BEAM_DAMAGE_MUL        = 0.6f;    // the player's channelled beam is weaker against bosses
@@ -47,6 +47,12 @@ const unsigned int BOSS_BEAM_REARM_MS   = 600;     // BREATH_BEAM can hurt again
 const float BOSS_ARENA_ENTER_MARGIN     = 200.0f;  // the fight starts once the player is this far inside the arena
 const unsigned int BOSS_ARENA_UNLOCK_MS = 2200;    // the arena stays locked this long after the kill (death burst, score)
 const unsigned int BOSS_MUSIC_FADE_MS   = 1200;    // boss track fades out over this long on the kill
+const unsigned int BOSS_PARRY_PRE_MS    = 260;     // a slash this long BEFORE a parryable strike lands counts as a parry
+const unsigned int BOSS_PARRY_POST_MS   = 110;     // ...and this long after
+const unsigned int BOSS_GRAB_MS         = 1100;    // how long a grab holds the player before the final bite
+const int          BOSS_GRAB_BREAK_HITS = 2;       // hit the grabber this many times to break free
+const int          BOSS_QTE_STEPS       = 3;       // parries needed to finish the Ancient Sinner
+const float BOSS_BOUNCE_VELOCITY        = 1150.0f; // ghost pads (Preacher phase 3) throw the player up this hard
 
 // ----------------------------------------------------------------------------------------------------
 // enums
@@ -67,30 +73,34 @@ enum class BossTier { MINI = 0, MAIN };
 // Names double as the level-file tokens: "K x y MOSS_BROODMOTHER" (see bossTypeFromName)
 enum class BossType {
     // Moss cave
-    MOSS_BROODMOTHER,        // mini  - giant spider
-    MOSS_LUMINOUS_WYRM,      // main  - glow worm
+    MOSS_LUMINOUS_WYRM,      // mini  - burrows, pops its head out (the opening), spits acid both ways
+    MOSS_CAVE_SPIDER,        // main  - webs, wall/ceiling crawling, stomp, acid; phase 2 faster
     // Stone cave
-    STONE_RAT_KING,          // mini
-    STONE_THE_SINNER,        // main  - parent of the sinner's children
+    STONE_GIANT_RAT,         // mini  - faster than the player: dash, grab + bite
+    STONE_ANCIENT_SINNER,    // main  - spinosaur 3x player height; phase 2 = First Berserker; parry QTE finisher
     // Wooden shaft mine
-    SHAFT_FOREMAN_RAPTOR,    // mini
-    SHAFT_BAT_MATRIARCH,     // main  - AERIAL
+    SHAFT_WARDEN,            // mini  - slow fat raptor: slam / stomp / jump by where the player is
+    SHAFT_BRONTOS,           // main  - three necks, only the heads take damage; phase 2 = two attacks at once
     // Plains
-    PLAINS_ANKYLO_MATRIARCH, // mini
-    PLAINS_SKY_TYRANT,       // main  - AERIAL eagle
+    PLAINS_ANKYLOSAUR,       // mini  - slow armoured: club / stomp / jump by where the player is
+    PLAINS_SENTINEL_PARA,    // main  - fast parasaur: slashes, dash, beam, teleport pounce; PARRYABLE
     // Woods
-    WOODS_ALPHA_CAT,         // mini
-    WOODS_THEROPOD_KING,     // main
+    WOODS_THORN_MATRIARCH,   // mini  - rooted carnivorous plant: eruptions, spore clouds, vine lash
+    WOODS_TREEHORN_ELDER,    // main  - overgrown horned beast: charge, root eruptions, log rolls, seeds
     // Mountain
-    MOUNTAIN_SARCO_BRUTE,    // mini  - crocodylomorph
-    MOUNTAIN_TARBO_TYRANT,   // main
+    MOUNTAIN_CAT_QUEEN,      // mini  - sword claws, high pounce, reactive dodge-dash, bite
+    MOUNTAIN_BROTHER,        // main  - the preacher's brother: tail whip, flame breath, jump stomp; phase 2 faster + tankier
     // Peak
     PEAK_DASPLETO_WARLORD,   // mini
-    PEAK_REX_EMPEROR,        // main  - final boss
+    PEAK_THE_PREACHER,       // main  - final boss, 3 phases (see Bosses.cpp)
     NONE
 };
 
-enum class BossPhase { PHASE_1 = 0, PHASE_2 };
+// PHASE_3 only exists for the Preacher (after his false death)
+enum class BossPhase { PHASE_1 = 0, PHASE_2, PHASE_3 };
+
+// special per-boss logic that the generic attack table can't express
+enum class BossBehavior { NONE = 0, BRONTOS, PREACHER };
 
 enum class BossState {
     DORMANT,           // waiting for the player to walk into the trigger radius
@@ -100,6 +110,9 @@ enum class BossState {
     ATTACKING,         // hitbox / projectiles live
     RECOVER,           // opening: the boss takes extra damage
     PHASE_TRANSITION,  // roar into phase 2, invulnerable
+    QTE,               // Ancient Sinner finisher: parry his strikes (see BOSS_QTE_STEPS)
+    FALSE_DEATH,       // Preacher: "dies" at the end of phase 2
+    REVIVE,            // Preacher: god ray, winged rebirth, flees up (phase 3 starts after it)
     DEAD
 };
 
@@ -116,6 +129,18 @@ enum class BossAttackKind {
     AERIAL_DIVE,       // flier only: diagonal swoop onto the player
     TAIL_SWEEP,        // low box on BOTH sides - jump it
     SUMMON,            // calls `count` of the boss's minion enemy (needs the GameState hook)
+    SPIT_BOTH,         // `count` acid balls lobbed in arcs to BOTH sides
+    GRAB_BITE,         // box in front; on hit the player is held, hit the boss twice to break free or take the final bite
+    BEAM_DIAG,         // diagonal beam from the mouth through the player's position (phase 2 / berserk: thicker, tracks)
+    TELEPORT_POUNCE,   // vanish, marker on the player's spot, reappear above it and drop (count = repeats)
+    FLAMETHROWER,      // like BREATH_BEAM, low from the mouth, rearms faster
+    ERUPT,             // `count` ground columns with a floor marker (aux 1 = a line from the boss toward the player)
+    SPORE_CLOUD,       // `count` lingering gas clouds on the floor (damage over time while inside)
+    BURROW_AMBUSH,     // dive, travel under the floor, erupt under the player, head exposed (takes extra damage) + acid, dive
+    SURFACE_MOVE,      // spider: climb to the ceiling (aux 1) or a wall (aux 2)
+    DODGE_DASH,        // reactive: dash away from a player swing, i-frames, then an instant counter bite
+    ORB_SUMMON,        // `count` magical orbs appear in the air, hover, then fly at the player (speed)
+    SMITE,             // `count` full-height light columns with a warning
     NONE
 };
 
@@ -134,8 +159,19 @@ struct BossAttackDef {
     float          minGap;        // preferred horizontal gap to the player (px). 0 = no minimum
     float          maxGap;        // ...maximum. 0 = no maximum (ranged / anywhere)
     unsigned int   cooldownMs;    // before THIS attack can be picked again
-    unsigned int   phaseMask;     // bit0 = phase 1, bit1 = phase 2
+    unsigned int   phaseMask;     // bit0 = phase 1, bit1 = phase 2, bit2 = phase 3
+    unsigned int   cond = 0;      // BOSS_C_* bits: where the player / the boss itself must be for this move to be picked
+    bool           parry = false; // the player can parry it (slash inside the window right before it lands)
+    float          aux = 0.0f;    // kind specific (see the kinds above)
 };
+
+// BossAttackDef::cond
+const unsigned int BOSS_C_PLAYER_GROUND = 1;    // player standing on something
+const unsigned int BOSS_C_PLAYER_AIR    = 2;    // player in the air
+const unsigned int BOSS_C_ON_FLOOR      = 4;    // boss (spider) on the floor...
+const unsigned int BOSS_C_ON_CEILING    = 8;    // ...on the ceiling...
+const unsigned int BOSS_C_ON_WALL       = 16;   // ...on a wall. Any of these three set = boss must be on one of them
+const unsigned int BOSS_C_REACTIVE      = 32;   // never picked by the scheduler (DODGE_DASH)
 
 struct BossDef {
     BossType   type;
@@ -152,8 +188,15 @@ struct BossDef {
     unsigned int idleMs;          // gap between two attacks in phase 1
     float      phase2Threshold;   // fraction of max hp that starts phase 2
     float      musicGain;
-    int        attackCount;       // 4 (mini) or 5 (main)
+    int        attackCount;
     BossAttackDef attacks[BOSS_MAX_ATTACKS];
+    BossBehavior behavior = BossBehavior::NONE;
+    float      p2SpeedMul = 1.25f;      // phase 2 speed (BOSS_PHASE2_SPEED_MUL by default)
+    float      p2DamageMul = 1.0f;      // < 1 = tankier in phase 2 (Brother)
+    bool       finisherQte = false;     // hp 0 in phase 2 -> parry QTE, success kills (Ancient Sinner)
+    bool       revive = false;          // hp 0 in phase 2 -> false death + winged phase 3 (Preacher)
+    int        hpPhase3 = 0;            // hp of the phase 3 bar
+    float      chainP2 = 0.0f;          // phase 2: chance to start another attack with no pause ("more random")
 };
 
 const BossDef* getBossDef(BossType type);
@@ -172,6 +215,36 @@ struct BossHazard {
     float warn = 0;               // seconds still to wait: marker only, harmless and motionless
     bool  dieOnTerrain = true;    // projectiles/rocks vanish on ground/platform/block; waves only on blocks/walls
     bool  hugsFloor = false;      // ground wave
+    bool  persistent = false;     // spore cloud: not spent on contact, ticks damage instead
+    unsigned int nextHit = 0;
+    float hoverT = 0;             // orb: seconds it hangs in the air before it launches
+    float launchSpeed = 0;        // orb launch speed
+};
+
+// one head of the Brontos (the necks are drawn from the anchor to the head and are NOT damageable)
+struct BossPart {
+    SDL_FRect rect{0, 0, 120, 96};
+    float homeX = 0, homeY = 0, anchorX = 0, anchorY = 0;
+    int   hp = 0, maxHp = 0;
+    int   state = 0;              // 0 idle, 1 telegraph, 2 strike, 3 stuck, 4 retract, 5 dead
+    int   kind = 0;               // 0 slam, 1 sweep, 2 grab
+    unsigned int t0 = 0;
+    float tx = 0, ty = 0, dirX = 0;
+    SDL_FRect hit{0, 0, 0, 0};
+    bool  hitActive = false, hasHit = false;
+    unsigned int hurtFlashEnd = 0;
+    int   lastMeleeId = -1;
+    float beamAccum = 0.0f;
+    float swayPhase = 0.0f;
+};
+
+struct BossParryEvent { float x, y; bool big; };
+
+// what the boss logic needs to know about the player each frame (GameState fills it in)
+struct BossPlayerInfo {
+    bool slashStarted = false;    // a melee swing began this frame
+    bool attacking = false;       // a swing is in progress
+    bool grounded = true;
 };
 
 struct BossSummonRequest {
@@ -187,13 +260,14 @@ struct Boss {
     BossType type = BossType::NONE;
     float x = 0, y = 0, w = 200, h = 200;
     float baseX = 0, baseY = 0;
+    float baseW = 0, baseH = 0;       // the spider swaps w/h on walls; these keep the floor dimensions
     float arenaL = 0, arenaR = 0;     // walkable x range inside the arena (arena rect clipped to the level walls)
     bool  arenaReady = false;
     // arena rect (world space): the 'A' record sets it, else BossBuilder derives one screen-wide around the spawn
     bool      hasArena = false;
     SDL_FRect arena{0, 0, 0, 0};
     // music override from the 'K' line (empty = default Sound/Music/Boss/<biome>_<tier>_phase<n>.ogg)
-    std::string musicPhase1, musicPhase2;
+    std::string musicPhase1, musicPhase2, musicPhase3;
     float musicGain = -1.0f;          // < 0 = BossDef::musicGain
     combatType combat = combatType::GROUND;
 
@@ -208,11 +282,41 @@ struct Boss {
     // scheduling (SDL_GetTicks ms, see BossBuilder::shiftTimers)
     unsigned int stateStart = 0;
     unsigned int nextAttackTime = 0;
-    unsigned int attackReadyAt[BOSS_MAX_ATTACKS] = {0, 0, 0, 0, 0};
+    unsigned int attackReadyAt[BOSS_MAX_ATTACKS] = {};
     int attack = -1;              // index into def.attacks of the attack in progress
     int lastAttack = -1;
     int streak = 0;               // how many times in a row `lastAttack` was used
     int forcedAttack = -1;        // set when phase 2 starts: the first attack of phase 2 is always its signature move
+
+    // special state
+    enum class Surface { FLOOR, CEILING, WALL } surface = Surface::FLOOR;   // spider
+    bool hidden = false;          // burrowed / teleporting: not drawn, untargetable
+    bool untargetable = false;
+    bool noPhysics = false;       // gravity off (burrowed, on a wall/ceiling, teleporting)
+    bool exposed = false;         // Wyrm head out: takes extra damage
+    unsigned int iframesUntil = 0;
+    int   stage = 0;              // sub-state of the current special attack
+    unsigned int stageT = 0;
+    float markerX = 0;            // teleport / burrow landing marker (world x)
+    bool  markerOn = false;
+    float wpX[3] = {0,0,0}, wpY[3] = {0,0,0};
+    Surface wpSurf[3] = {Surface::FLOOR, Surface::FLOOR, Surface::FLOOR};
+    int   wpCount = 0, wpIdx = 0;
+    // diagonal beam
+    float beamX1 = 0, beamY1 = 0, beamX2 = 0, beamY2 = 0, beamThick = 40.0f;
+    bool  beamAim = false, beamOn = false;
+    // reactive dodge
+    bool  afterDodge = false;
+    // parry / stagger
+    unsigned int staggerUntil = 0;
+    // QTE (Ancient Sinner)
+    int   qteStep = 0;
+    unsigned int qteStrike = 0;
+    bool  qteDone = false;
+    // Brontos
+    std::vector<BossPart> parts;
+    // Preacher phase 3
+    bool  winged = false;
 
     // per-attack runtime (reset by beginAttack)
     bool  launched = false;
@@ -240,6 +344,11 @@ struct Boss {
     unsigned int deathTime = 0;
 
     bool isDead() const { return state == BossState::DEAD; }
+    // the part of the boss that can be damaged (Preacher phase 3: the body only, never the wings)
+    SDL_FRect hurtRect() const {
+        if(winged) return { x + w * 0.3f, y + h * 0.05f, w * 0.4f, h * 0.9f };
+        return { x, y, w, h };
+    }
 };
 
 // what a HUD needs to draw a boss bar
@@ -249,6 +358,7 @@ struct BossHudInfo {
     BossPhase phase = BossPhase::PHASE_1;
     BossTier tier = BossTier::MINI;
     bool active = false;
+    bool hasPhase2 = false;     // draw the 50% tick
 };
 
 class BossBuilder {
@@ -286,6 +396,15 @@ public:
 
     bool isFightActive() const { return m_activeIdx >= 0; }
 
+    // ---- player interaction (call every frame before update) ----
+    void setPlayerInfo(const BossPlayerInfo& info);
+    std::vector<BossParryEvent> consumeParryEvents(){ std::vector<BossParryEvent> o; o.swap(m_parryEvents); return o; }
+    // true while a boss/head holds the player: put the player at `pos` (top-left), zero his velocity
+    bool isPlayerGrabbed(SDL_FPoint& pos) const;
+    // Preacher phase 3: ghost pads the player can bounce on. Returns true (and the new upward speed) when
+    // the player (falling, feet crossing a pad's top) should be bounced.
+    bool checkBounce(const SDL_FRect& player, float velocityY, float& outVelocityY);
+
     // True from the moment the fight starts until BOSS_ARENA_UNLOCK_MS after the kill: GameState pins the camera
     // on getArena() and keeps the player inside it for exactly this long.
     bool isArenaLocked() const;
@@ -310,6 +429,28 @@ private:
     void beginPhaseTransition(Boss& b, unsigned int now);
     void setupArena(Boss& b, const SDL_FRect& wall);
     void playBossMusic(const Boss& b, const BossDef& def, BossPhase phase);
+    // --- specials ---
+    void updateBrontos(Boss& b, const BossDef& def, float dt, const SDL_FRect& player, const SDL_FRect& wall, unsigned int now);
+    void startPartAttack(Boss& b, BossPart& p, int kind, const SDL_FRect& player, unsigned int now);
+    void updatePart(Boss& b, BossPart& p, float dt, const SDL_FRect& player, const SDL_FRect& wall, unsigned int now);
+    void beginQte(Boss& b, unsigned int now);
+    void updateQte(Boss& b, const SDL_FRect& player, unsigned int now);
+    void beginFalseDeath(Boss& b, unsigned int now);
+    void updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now);
+    void startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now);
+    bool tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now);
+    void doParry(Boss& b, unsigned int now);
+    void setSurface(Boss& b, Boss::Surface s);
+    void buildSurfacePath(Boss& b, int target, const SDL_FRect& player, const SDL_FRect& wall);
+    void startGrab(int bossIdx, int part, unsigned int now);
+    void endGrab();
+    void spawnSpit(const Boss& b, int side, const BossAttackDef& a);
+    void spawnErupt(float cx, float width, float height, float warn, float lifeAfter);
+    void spawnWavesAt(float cx, float halfW, float feetY, float speed, float height, float life);
+    void spawnOrb(float x, float y, float launchSpeed, float hover);
+    void spawnSmite(float cx, const SDL_FRect& wall);
+    void spawnSpore(float cx);
+    void renderExtras(SDL_Renderer* r, int camX, int camY) const;
     void startDeath(Boss& b, unsigned int now);
     void setState(Boss& b, BossState s, unsigned int now);
     int  pickAttack(Boss& b, const BossDef& def, const SDL_FRect& player, unsigned int now);
@@ -339,13 +480,24 @@ private:
     void renderBoss(SDL_Renderer* r, const Boss& b, int camX, int camY) const;
     void renderAttackPlaceholders(SDL_Renderer* r, int camX, int camY) const;
 
-    float phaseSpeedMul(const Boss& b) const { return b.phase == BossPhase::PHASE_2 ? BOSS_PHASE2_SPEED_MUL : 1.0f; }
+    float phaseSpeedMul(const Boss& b) const;
+    void endAttackCleanup(Boss& b, const SDL_FRect& wall);
+    void aimBeam(Boss& b, const SDL_FRect& player, const BossAttackDef& a);
 
 private:
     std::vector<Boss> m_bosses;
     std::vector<Boss> m_template;   // the bosses exactly as the level defined them (resetFight restores from it)
     std::vector<BossHazard> m_hazards;
     std::vector<EnemyHitEvent> m_hitEvents;
+    std::vector<BossParryEvent> m_parryEvents;
+    std::vector<SDL_FRect> m_ghosts;             // Preacher phase 3 bounce pads
+    BossPlayerInfo m_info;
+    SDL_FRect m_playerRect{0, 0, 40, 85};
+    unsigned int m_slashTick = 0, m_parryUsed = 0;
+    struct Grab { bool active = false; int boss = -1; int part = -1; unsigned int start = 0; int struggle = 0; } m_grab;
+    bool m_pendingBite = false;
+    unsigned int m_pendingBiteUntil = 0;
+    float m_ceilY = 0.0f;
     std::vector<SDL_FPoint> m_deathEvents;
     std::vector<BossSummonRequest> m_summons;
     float m_floorY = 0.0f;          // bottom of the arena (set every update, used by the rock warning columns)

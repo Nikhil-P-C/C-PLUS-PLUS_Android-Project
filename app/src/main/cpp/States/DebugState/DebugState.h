@@ -15,7 +15,18 @@ public:
     void render(SDL_Renderer* renderer) override;
     void update(float dt) override;
     bool handleEvents(SDL_Event& event) override;
+    // the level-jump strip only works in the normal in-game overlay stack (TransitionState turns it on)
+    void setJumpEnabled(bool enabled){ m_jumpEnabled = enabled; }
 private:
+    void stepJump(int dir);
+    void doJump();
+    void renderJumpStrip(SDL_Renderer* renderer);
+    SDL_Renderer* m_renderer = nullptr;
+    bool m_jumpEnabled = false;
+    int  m_jumpLevel = -1;                    // level shown in the strip (-1 = current level)
+    SDL_Texture* m_jumpTexture = nullptr;
+    int  m_jumpTextureLevel = -2;
+    float m_jumpTexW = 0.0f, m_jumpTexH = 0.0f;
     GameState* m_gameState;
     std::vector<Platform> m_platforms;
     SDL_FRect m_walls;
@@ -33,4 +44,5 @@ private:
     int m_fps =0;
     int m_frames =0;
     int m_lastRenderedFrames=-1;
+    static constexpr float JUMP_X = 550.0f, JUMP_Y = 646.0f, JUMP_H = 58.0f;
 };

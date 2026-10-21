@@ -514,7 +514,7 @@ void LevelLoader::loadLevel(int level) {
         for(Boss& b : m_bosses){ b.hasArena = true; b.arena = m_bossArena; }
 }
 
-// K x y BOSS_TYPE [phase1Music [phase2Music [gain]]]
+// K x y BOSS_TYPE [phase1Music [phase2Music [phase3Music] [gain]]]  (phase 3 only exists for the Preacher)
 //   a boss. x y = top-left of its hitbox (it falls onto the floor). The fight starts when the player walks
 //   into the level's arena (see 'A'); the arena then locks (camera fixed, player can't leave) until the boss dies.
 //   Music for the fight: phase 1 / phase 2 track. A bare file name means Sound/Music/Boss/<name>; '-' = use
@@ -540,8 +540,17 @@ void LevelLoader::parseBoss(std::istringstream& ss) {
         return true;
     };
     if(readTrack(boss.musicPhase1) && readTrack(boss.musicPhase2)){
-        float gain = 1.0f;
-        if(ss >> gain) boss.musicGain = std::clamp(gain, 0.0f, 2.0f);
+        std::string tok;
+        if(ss >> tok){
+            char* end = nullptr;
+            const float g = std::strtof(tok.c_str(), &end);
+            if(end && *end == '\0'){ boss.musicGain = std::clamp(g, 0.0f, 2.0f); }      // K ... p1 p2 gain
+            else {                                                                         // K ... p1 p2 p3 [gain]
+                if(tok != "-"){ if(tok.find('/') == std::string::npos) tok = "Sound/Music/Boss/" + tok; boss.musicPhase3 = tok; }
+                float gain = 1.0f;
+                if(ss >> gain) boss.musicGain = std::clamp(gain, 0.0f, 2.0f);
+            }
+        }
     }
     m_bosses.push_back(boss);
 }

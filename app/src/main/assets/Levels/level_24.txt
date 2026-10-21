@@ -1,4 +1,4 @@
-# Level: 24 Peak - main boss: Rex Emperor
+# Level: 24 Peak - main boss: The Preacher
 # Approach (x 0..2400) -> boss arena (x 2400..4000, one screen: camera + player lock when the fight starts).
 # The exit flag (C) only appears once the boss is dead.
 S 109.00 540.00
@@ -12,8 +12,8 @@ P 1000.00 400.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
 P 1500.00 520.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
 P 1950.00 420.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
 P 2560.00 500.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
-P 3040.00 360.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
 P 3560.00 500.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
+P 3640.00 200.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
 
 F 420.00 470.00 BANANA
 F 900.00 350.00 APPLE
@@ -28,13 +28,13 @@ E 700.00 500.00 TYRANNOSAURUS_REX_CHILD 550.00 850.00 120.00
 E 1250.00 500.00 ALBERTOSAURUS 1100.00 1400.00 120.00
 E 1800.00 500.00 DASPELTOSAURUS 1650.00 1950.00 120.00
 
-I 2100.00 496.00 64.00 208.00 WARNING The summit. The last gate.|The Emperor does not forgive.|There is no retreat.
+I 2100.00 496.00 64.00 208.00 WARNING The summit. The last gate.|Gods only preacher.|There is no retreat.
 
 # the fight arena: camera + player are locked to this rectangle while the boss lives
 A 2400.00 0.00 1600.00 704.00
 
 # K x y BOSS_TYPE [phase1.ogg phase2.ogg [gain]]  (music files default to Sound/Music/Boss/<biome>_<tier>_phase<1|2>.ogg)
-K 3360.00 330.00 PEAK_REX_EMPEROR
+K 3410.00 370.00 PEAK_THE_PREACHER
 
 C 3640.00 376.00 256.00 256.00 NO_FLAG
 

@@ -584,8 +584,29 @@ void GameState::update(float dt){
     SDL_FRect playerRect{m_player.x,m_player.y,m_player.w,m_player.h};
     m_enemyBuilder.update(dt,playerRect,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
     flushEnemyDeathEffects();
+    {
+        BossPlayerInfo info;
+        info.slashStarted = (m_attackId != m_bossPrevAttackId);   // a new swing began (parry timing)
+        info.attacking = m_isAttacking;
+        info.grounded = m_isGrounded;
+        m_bossPrevAttackId = m_attackId;
+        m_bossBuilder.setPlayerInfo(info);
+    }
     m_bossBuilder.update(dt,playerRect,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
     flushBossEffects();
+    {   // held by a boss (rat bite / brontos head): the player is carried in its mouth until he breaks free
+        SDL_FPoint grab;
+        if(m_bossBuilder.isPlayerGrabbed(grab)){
+            m_player.x = grab.x; m_player.y = grab.y;
+            m_velocityX = 0.0f; m_velocityY = 0.0f;
+        }
+        // Preacher phase 3: the sinner children's ghosts are pogo pads
+        float bounceV = 0.0f;
+        if(m_bossBuilder.checkBounce(SDL_FRect{m_player.x, m_player.y, m_player.w, m_player.h}, m_velocityY, bounceV)){
+            startPogo();
+            m_velocityY = bounceV;
+        }
+    }
 
     // player's weapons vs enemies: m_playerHitBox (melee) was just computed above,
     // m_beamHitBox (beam) was computed earlier this frame inside handlePhysicAndInput->tryBeam
@@ -1226,6 +1247,7 @@ void GameState::updateDeath(float dt) {
     SDL_FRect farAway{-100000.0f, -100000.0f, m_player.w, m_player.h};
     m_enemyBuilder.update(dt, farAway, m_wallCollisionRect, m_grounds, m_platforms, m_blocks);
     flushEnemyDeathEffects();
+    m_bossBuilder.setPlayerInfo(BossPlayerInfo{false, false, true});
     m_bossBuilder.update(dt, m_deathPlayerRect, m_wallCollisionRect, m_grounds, m_platforms, m_blocks);   // keeps targeting where the player fell
     flushBossEffects();
 
@@ -1912,6 +1934,17 @@ void GameState::updateBossArena(float realDt) {
     cam.updateLock(realDt);
 }
 
+void GameState::debugJumpToLevel(int level) {
+    if(!GameData::getInstance().isDebugEnabled()) return;      // debug builds / debug option only
+    if(m_levelTransitioning) return;
+    m_levelTransitioning = true;
+    Engine::Get().popOverlayState();          // input overlay
+    Engine::Get().popOverlayState();          // HUD
+    Engine::Get().popOverlayState();          // DebugState (we are only called while it exists)
+    InputDispatcher::getInstance().inputLogClear();
+    Engine::Get().pushOverlayState(std::make_unique<TransitionState>(m_renderer, std::clamp(level, 0, LAST_LEVEL)));
+}
+
 void GameState::resetBossFight() {
     if(m_bosses.empty()) return;
     const bool wasActive = m_bossBuilder.resetFight();
@@ -1921,6 +1954,10 @@ void GameState::resetBossFight() {
 }
 
 void GameState::flushBossEffects() {
+    for(const BossParryEvent& e : m_bossBuilder.consumeParryEvents()){
+        m_particleSystem.emitBurst(e.x, e.y, e.big ? 36 : 22, 160.0f, 560.0f, 0.25f, 0.55f, 26.0f, 255, 255, 255);
+        requestHitStop(e.big ? 0.14f : 0.09f);
+    }
     for(const SDL_FPoint& p : m_bossBuilder.consumeDeathEvents())
         m_particleSystem.emitBurst(p.x, p.y, 40, 160.0f, 520.0f, 0.5f, 1.0f, 70.0f, 255, 240, 200);
 

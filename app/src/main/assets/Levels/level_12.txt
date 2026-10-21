@@ -1,4 +1,4 @@
-# Level: 12 Moss - main boss: Luminous Wyrm
+# Level: 12 Moss - main boss: Cave Spider
 # Approach (x 0..2400) -> boss arena (x 2400..4000, one screen: camera + player lock when the fight starts).
 # The exit flag (C) only appears once the boss is dead.
 S 109.00 540.00
@@ -29,13 +29,13 @@ E 700.00 500.00 SPIDER_CHILD 550.00 850.00 120.00
 E 1250.00 500.00 MOSS_GLOW_WORM 1100.00 1400.00 120.00
 E 1800.00 400.00 MOSS_BAT 1650.00 1950.00 90.00 AERIAL
 
-I 2100.00 496.00 64.00 208.00 WARNING The glow in the deep is not a lantern.|The ceiling over the cavern is loose.|The gate seals once you enter.
+I 2100.00 496.00 64.00 208.00 WARNING Webs cover the walls and ceiling.|It hunts from every surface.|The gate seals once you enter.
 
 # the fight arena: camera + player are locked to this rectangle while the boss lives
 A 2400.00 0.00 1600.00 704.00
 
 # K x y BOSS_TYPE [phase1.ogg phase2.ogg [gain]]  (music files default to Sound/Music/Boss/<biome>_<tier>_phase<1|2>.ogg)
-K 3370.00 420.00 MOSS_LUMINOUS_WYRM
+K 3385.00 490.00 MOSS_CAVE_SPIDER
 
 C 3640.00 376.00 256.00 256.00 NO_FLAG
 

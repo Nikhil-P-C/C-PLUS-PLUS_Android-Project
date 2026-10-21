@@ -201,6 +201,10 @@ public:
     }
     const EnemiesBuilder& getEnemyBuilder() const { return m_enemyBuilder; }
     const BossBuilder& getBossBuilder() const { return m_bossBuilder; }
+    int getLevel() const { return m_level; }
+    // DEBUG ONLY: leave this level for `level` right now (same overlay pop + transition as finishing the level).
+    // Only call it from the in-game overlay stack [HUD, input, DebugState] (see DebugState / TransitionState).
+    void debugJumpToLevel(int level);
     void triggerCheckpoint();
     bool tryHeal(unsigned int now);
     void tryBeam(float dt);
@@ -295,6 +299,7 @@ private:
     EnemiesBuilder m_enemyBuilder;
     std::vector<Boss> m_bosses;
     BossBuilder m_bossBuilder;
+    int       m_bossPrevAttackId = 0;         // detects "a new swing began" for the boss parry window
     bool      m_arenaLocked = false;          // camera pinned + player locked in (mirrors BossBuilder::isArenaLocked)
     SDL_FRect m_arenaRect{0.0f,0.0f,0.0f,0.0f};
     float     m_arenaGate = 0.0f;             // 0..1 fade of the arena edge walls

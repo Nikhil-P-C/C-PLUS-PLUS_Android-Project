@@ -6,9 +6,12 @@
 #include <string>
 #include "DebugState.h"
 #include "engine/Engine.h"
+#include "utils/InputUtils.h"
+#include "level/LevelLoader/LevelLoader.h"
 
 
 void DebugState::render(SDL_Renderer *renderer) {
+    renderJumpStrip(renderer);
     m_player =m_gameState->getPlayer();
 
     if (m_frames != m_lastRenderedFrames || !m_fpsTexture) {
@@ -168,13 +171,90 @@ void DebugState::update(float dt) {
     }
 }
 
-bool DebugState::handleEvents(SDL_Event &event) {
+// ---- DEBUG level jump: "<  LVL n  >  GO" at the bottom centre (touch / mouse), or [ ] to pick and J to go ----
+void DebugState::stepJump(int dir){
+    if(m_jumpLevel < 0) m_jumpLevel = m_gameState->getLevel();
+    int idx = 0;
+    constexpr int N = (int)(sizeof(LEVEL_ORDER) / sizeof(LEVEL_ORDER[0]));
+    for(int i = 0; i < N; ++i) if(LEVEL_ORDER[i] == m_jumpLevel){ idx = i; break; }
+    idx = (idx + dir + N) % N;                 // steps through the play order: ... 4, 11, 12, 5, 13, 14 ...
+    m_jumpLevel = LEVEL_ORDER[idx];
+}
 
+void DebugState::doJump(){
+    if(m_jumpLevel < 0) m_jumpLevel = m_gameState->getLevel();
+    m_gameState->debugJumpToLevel(m_jumpLevel);
+}
+
+void DebugState::renderJumpStrip(SDL_Renderer* renderer){
+    if(!m_jumpEnabled || !m_font) return;
+    if(m_jumpLevel < 0) m_jumpLevel = m_gameState->getLevel();
+    if(m_jumpTextureLevel != m_jumpLevel || !m_jumpTexture){
+        if(m_jumpTexture){ SDL_DestroyTexture(m_jumpTexture); m_jumpTexture = nullptr; }
+        const std::string text = "LVL " + std::to_string(m_jumpLevel);
+        SDL_Surface* s = TTF_RenderText_Solid(m_font, text.c_str(), text.length(), SDL_Color{255, 255, 255, 255});
+        if(s){
+            m_jumpTexture = SDL_CreateTextureFromSurface(renderer, s);
+            m_jumpTexW = (float)s->w; m_jumpTexH = (float)s->h;
+            SDL_DestroySurface(s);
+        }
+        m_jumpTextureLevel = m_jumpLevel;
+    }
+    SDL_BlendMode prev = SDL_BLENDMODE_NONE;
+    SDL_GetRenderDrawBlendMode(renderer, &prev);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    const SDL_FRect bg{JUMP_X, JUMP_Y, 500.0f, JUMP_H};
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 150);
+    SDL_RenderFillRect(renderer, &bg);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 220);
+    SDL_RenderRect(renderer, &bg);
+    const SDL_FRect leftB{JUMP_X, JUMP_Y, 56.0f, JUMP_H}, rightB{JUMP_X + 344.0f, JUMP_Y, 56.0f, JUMP_H}, goB{JUMP_X + 410.0f, JUMP_Y, 90.0f, JUMP_H};
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 220);
+    SDL_RenderRect(renderer, &leftB); SDL_RenderRect(renderer, &rightB);
+    SDL_SetRenderDrawColor(renderer, 60, 200, 90, 200);
+    SDL_RenderFillRect(renderer, &goB);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderRect(renderer, &goB);
+    // arrows (triangles drawn with lines) and a GO chevron
+    const float cy = JUMP_Y + JUMP_H * 0.5f;
+    for(int i = 0; i < 14; ++i){
+        SDL_RenderLine(renderer, leftB.x + 36.0f - (float)i * 0.0f, cy - (float)i, leftB.x + 20.0f, cy);
+        SDL_RenderLine(renderer, leftB.x + 36.0f, cy + (float)i, leftB.x + 20.0f, cy);
+        SDL_RenderLine(renderer, rightB.x + 20.0f, cy - (float)i, rightB.x + 36.0f, cy);
+        SDL_RenderLine(renderer, rightB.x + 20.0f, cy + (float)i, rightB.x + 36.0f, cy);
+    }
+    if(m_jumpTexture){
+        const SDL_FRect t{JUMP_X + 56.0f + (288.0f - m_jumpTexW) * 0.5f, cy - m_jumpTexH * 0.5f, m_jumpTexW, m_jumpTexH};
+        SDL_RenderTexture(renderer, m_jumpTexture, nullptr, &t);
+    }
+    // "GO" as two block letters
+    SDL_FRect g1{goB.x + 22.0f, cy - 12.0f, 16.0f, 24.0f}, g2{goB.x + 52.0f, cy - 12.0f, 16.0f, 24.0f};
+    SDL_RenderRect(renderer, &g1); SDL_RenderRect(renderer, &g2);
+    SDL_SetRenderDrawBlendMode(renderer, prev);
+}
+
+bool DebugState::handleEvents(SDL_Event &event) {
+    if(!m_jumpEnabled) return false;
+    if(event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat){
+        if(event.key.key == SDLK_LEFTBRACKET)  { stepJump(-1); return true; }
+        if(event.key.key == SDLK_RIGHTBRACKET) { stepJump(1);  return true; }
+        if(event.key.key == SDLK_J)            { doJump();     return true; }
+    }
+    if(InputUtils::IsPointerDown(event)){
+        float x, y;
+        InputUtils::GetPointerPosition(event, m_renderer, x, y);
+        if(y < JUMP_Y || y > JUMP_Y + JUMP_H || x < JUMP_X || x > JUMP_X + 500.0f) return false;
+        if(x < JUMP_X + 56.0f)              stepJump(-1);
+        else if(x > JUMP_X + 410.0f)        doJump();
+        else if(x > JUMP_X + 344.0f)        stepJump(1);
+        return true;                                           // taps on the strip never reach the game
+    }
     return false;
 }
 
 DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     this->Name = "DebugState";
+    m_renderer = renderer;
 
     LOGI("gameState ptr passed in debug:%p",gameState);
 
@@ -192,6 +272,7 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     if(!m_font)LOGE("failed to load font");
 }
 DebugState::~DebugState(){
+    if(m_jumpTexture) SDL_DestroyTexture(m_jumpTexture);
     SDL_CloseIO(m_fontFile);
     TTF_CloseFont(m_font);
     if(m_fpsTexture)

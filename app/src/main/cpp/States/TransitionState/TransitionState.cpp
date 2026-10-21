@@ -85,10 +85,6 @@ void TransitionState::update(float dt) {
 
         LOGI("overlayState:%d",Engine::Get().getOverlayStateCount());
         Engine::Get().pushOverlayState(std::make_unique<HUDOverlayState>(m_renderer));
-        if(GameData::getInstance().isDebugEnabled()){
-            if(m_gameState)
-                Engine::Get().pushOverlayState(std::make_unique<DebugState>(m_renderer,m_gameState));
-        }
         if (GameData::getInstance().getControlType() == BUTTONS)
             Engine::Get().pushOverlayState(std::make_unique<ButtonOverlay>(m_renderer));
         if (GameData::getInstance().getControlType() == SEP_JUMP_W_JOYSTICK)
@@ -97,6 +93,15 @@ void TransitionState::update(float dt) {
             Engine::Get().pushOverlayState(std::make_unique<KeyboardOverlay>(m_renderer));
         if (GameData::getInstance().getControlType() == GAMEPAD)
             Engine::Get().pushOverlayState(std::make_unique<GamepadOverlay>(m_renderer));
+
+        // Debug overlay goes on TOP of the input overlay: events are offered top-first and the touch overlays swallow
+        // every finger-down, so this is the only way the level-jump strip can receive taps on Android.
+        // (The stack is still HUD, input, debug = 3 overlays, so every pop-by-count stays correct.)
+        if(GameData::getInstance().isDebugEnabled() && m_gameState){
+            auto dbg = std::make_unique<DebugState>(m_renderer,m_gameState);
+            dbg->setJumpEnabled(true);
+            Engine::Get().pushOverlayState(std::move(dbg));
+        }
 
     }
 }
