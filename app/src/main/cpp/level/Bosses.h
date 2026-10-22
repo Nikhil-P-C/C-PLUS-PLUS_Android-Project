@@ -54,8 +54,10 @@ const unsigned int BOSS_PARRY_POST_MS   = 110;     // ...and this long after
 const unsigned int BOSS_GRAB_MS         = 1100;    // how long a grab holds the player before the final bite
 const int          BOSS_GRAB_BREAK_HITS = 2;       // hit the grabber this many times to break free
 const int          BOSS_QTE_STEPS       = 5;       // samurai dashes the player must parry to finish the Ancient Sinner
-const unsigned int BOSS_QTE_DASH_MS     = 150;     // length of one samurai dash (the parry lands in the middle of it)
+const unsigned int BOSS_QTE_TRAVEL_MS   = 170;     // the dash flies in from off-screen this long before it reaches the player (= the parry moment)
+const unsigned int BOSS_QTE_FOLLOW_MS   = 90;      // ...and carries on through the player this long after
 const float        BOSS_QTE_HOVER_ABOVE_FLOOR = 250.0f;   // the QTE keeps the player pushed up this high above the floor
+const float BOSS_MIN_ARENA_H           = 704.0f;  // arenas are never shorter than this (one full screen): QTE lift, tall bosses, jumps need the room
 const float BOSS_PREACHER_UPPER_RISE    = 1408.0f; // phase 3: the upper arena is the fight arena moved this far UP (level_23 has its ground there)
 const float BOSS_BOUNCE_VELOCITY        = 1150.0f; // ghost pads (Preacher phase 3) throw the player up this hard
 
@@ -168,6 +170,11 @@ struct BossAttackDef {
     bool           parry = false; // the player can parry it (slash inside the window right before it lands)
     float          aux = 0.0f;    // kind specific (see the kinds above)
 };
+
+// Every slash (claw swipe / bite snap) can be parried; other attacks only when their table entry says `parry`.
+inline bool bossAttackParryable(const BossAttackDef& a){
+    return a.parry || a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP;
+}
 
 // BossAttackDef::cond
 const unsigned int BOSS_C_PLAYER_GROUND = 1;    // player standing on something
@@ -327,6 +334,8 @@ struct Boss {
     unsigned int qteStrike = 0;
     bool  qteDone = false;
     float qteFromX = 0, qteToX = 0;   // current samurai dash (x of the hitbox)
+    float qteAimY = 0;                // height (centre) the dash flies along = the star glint's height
+    bool  qteFromLeft = true;         // the dash comes in from the left edge (else the right edge)
     // Brontos
     std::vector<BossPart> parts;
     // Preacher phase 3

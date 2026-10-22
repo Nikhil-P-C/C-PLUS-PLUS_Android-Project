@@ -600,6 +600,12 @@ void GameState::update(float dt){
             m_player.x = grab.x; m_player.y = grab.y;
             m_velocityX = 0.0f; m_velocityY = 0.0f;
         }
+        // Ancient Sinner finisher: the player is pushed up and held in the air for the dash QTE
+        float liftV = 0.0f;
+        if(m_bossBuilder.getQteLift(SDL_FRect{m_player.x, m_player.y, m_player.w, m_player.h}, liftV)){
+            m_velocityY = liftV;
+            m_isGrounded = false;
+        }
         // Preacher phase 3: the sinner children's ghosts are pogo pads
         float bounceV = 0.0f;
         if(m_bossBuilder.checkBounce(SDL_FRect{m_player.x, m_player.y, m_player.w, m_player.h}, m_velocityY, bounceV)){
@@ -1890,11 +1896,19 @@ void GameState::updateBossArena(float realDt) {
     SDL_FRect arena{0.0f,0.0f,0.0f,0.0f};
     const bool lock = m_bossBuilder.isArenaLocked() && m_bossBuilder.getArena(arena);
 
+    SDL_FRect followBounds = cameraBounds;
+    if(!m_bossBuilder.isUpperActive() && !m_bosses.empty() && m_bosses[0].hasArena){
+        // the level may be much taller than the arena (Preacher: the upper arena): outside the fight the camera never
+        // shows the empty space above the first arena
+        // (arenas can be much taller than the screen): the approach camera keeps the bottom screen of the level
+        const float top = std::max(cameraBounds.y, cameraBounds.y + cameraBounds.h - cam.getCamera().h);
+        followBounds = { cameraBounds.x, top, cameraBounds.w, cameraBounds.y + cameraBounds.h - top };
+    }
     if(!lock){
         if(m_arenaLocked){ m_arenaLocked = false; cam.unlock(); }
         m_arenaGate = std::max(0.0f, m_arenaGate - realDt * 2.0f);
         cam.lockCameraOn(m_player.x, m_player.y, m_player.h, m_player.w);
-        cam.cameraClamp(cameraBounds);
+        cam.cameraClamp(m_bossBuilder.isUpperActive() ? cameraBounds : followBounds);
         return;
     }
 
@@ -1924,11 +1938,29 @@ void GameState::updateBossArena(float realDt) {
         if(m_isDashing) endDash();
     }
 
+    m_arenaRect = arena;     // follows the arena when the Preacher fight moves up
+
+    // --- Preacher phase 3 climb: the camera follows the player up the ghost pads inside the tall column ---
+    SDL_FRect climb;
+    if(m_bossBuilder.getClimbBounds(climb)){
+        // same lock/glide mechanism as the arena camera, but the target follows the player UP the tall column
+        const float vw = cam.getCamera().w, vh = cam.getCamera().h;
+        float cx = std::clamp(climb.x + climb.w * 0.5f - vw * 0.5f, cameraBounds.x, std::max(cameraBounds.x, cameraBounds.x + cameraBounds.w - vw));
+        float cy = m_player.y + m_player.h * 0.5f - vh * 0.62f;      // player in the lower part: the next pad is visible above
+        cy = std::clamp(cy, climb.y, std::max(climb.y, climb.y + climb.h - vh));
+        cam.lockTo(cx, cy);
+        cam.updateLock(realDt * 2.0f);
+        return;
+    }
+
     // --- the camera stops following: it glides onto the arena and stays there ---
     const float viewW = cam.getCamera().w, viewH = cam.getCamera().h;
     float tx = arena.x + arena.w * 0.5f - viewW * 0.5f;
     float ty = arena.y + arena.h * 0.5f - viewH * 0.5f;
+    if(arena.h > viewH + 1.0f)       // arena taller than the screen: the camera follows the player up and down inside it
+        ty = m_player.y + m_player.h * 0.5f - viewH * 0.55f;
     tx = std::clamp(tx, cameraBounds.x, std::max(cameraBounds.x, cameraBounds.x + cameraBounds.w - viewW));
+    ty = std::max(ty, arena.y);                                  // never show the empty space above the arena
     ty = std::clamp(ty, cameraBounds.y, std::max(cameraBounds.y, cameraBounds.y + cameraBounds.h - viewH));
     cam.lockTo(tx, ty);
     cam.updateLock(realDt);

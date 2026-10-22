@@ -450,6 +450,11 @@ void BossBuilder::setupArena(Boss& b, const SDL_FRect& wall){
         a.y = wall.y;
         a.h = std::ceil(wall.h / wallT) * wallT;
     }
+    if(a.h < BOSS_MIN_ARENA_H){                                      // never a short arena: grow it upward from the floor
+        const float bottom = a.y + a.h;
+        a.h = BOSS_MIN_ARENA_H;
+        a.y = std::max(wall.y, bottom - a.h);
+    }
     if(a.w > viewW){ a.x += (a.w - viewW) * 0.5f; a.w = viewW; }     // must fit the fixed camera
 
     b.arena = a;
@@ -475,7 +480,7 @@ void BossBuilder::setupArena(Boss& b, const SDL_FRect& wall){
             p.anchorX = cx + ((float)i - 1.0f) * 190.0f;               // three neck roots behind the arena centre
             p.anchorY = floorY - 90.0f - (float)(i % 2) * 50.0f;
             p.homeX = b.arenaL + 170.0f + (float)i * 470.0f;
-            p.homeY = ceilY + 120.0f + (float)(i % 2) * 80.0f;
+            p.homeY = floorY - 456.0f + (float)(i % 2) * 80.0f;
             p.rect = { p.homeX, p.homeY, 190.0f, 150.0f };
             p.swayPhase = (float)i * 2.1f;
             b.parts.push_back(p);
@@ -714,7 +719,7 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
                 b.attackHitBox = previewBox(b, a, player, wall);
             }
             b.isAttackBoxActive = false;
-            if(a.parry && tryParry(b, a, player, b.stateStart + windup, now)) break;
+            if(bossAttackParryable(a) && tryParry(b, a, player, b.stateStart + windup, now)) break;
             if(elapsed >= windup){
                 setState(b, BossState::ATTACKING, now);
                 b.attackHasHit = false;
@@ -726,7 +731,7 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
         case BossState::ATTACKING: {
             const BossAttackDef& a = def->attacks[b.attack];
             runAttack(b, *def, a, dt, player, wall, blocks, now, elapsed);
-            if(a.parry && elapsed < BOSS_PARRY_POST_MS && tryParry(b, a, player, b.stateStart, now)) break;
+            if(bossAttackParryable(a) && elapsed < BOSS_PARRY_POST_MS && tryParry(b, a, player, b.stateStart, now)) break;
             if(b.endEarly || elapsed >= a.activeMs){
                 endAttackCleanup(b, wall);
                 b.attackReadyAt[b.attack] = now + a.cooldownMs;
@@ -845,15 +850,16 @@ void BossBuilder::doParry(Boss& b, unsigned int now){
 //  Ancient Sinner finisher: parry BOSS_QTE_STEPS strikes in a row (a miss costs a hit and repeats the step)
 // ----------------------------------------------------------------------------------------------------
 // ----------------------------------------------------------------------------------------------------
-//  Ancient Sinner finisher: a series of fast samurai dashes. Each dash is telegraphed (he crouches back), then he
-//  blinks THROUGH the player to the other side; a slash timed on the crossing parries it. BOSS_QTE_STEPS parries kill
-//  him. A miss lets the dash connect and the same dash is tried again. The player is pushed up and held in the air
-//  for the whole sequence (getQteLift), so the arena has to stay tall.
+//  Ancient Sinner finisher: a series of fast samurai dashes. Each one is announced by a STAR that shines at the edge
+//  of the screen, at the height the dash will fly along (the glint shows the direction and the position). Then he
+//  blinks in from far off camera, straight through the player. A slash timed on the crossing parries it.
+//  BOSS_QTE_STEPS parries kill him. A miss lets the dash connect and the same dash is tried again.
+//  The player is pushed up and held in the air for the whole sequence (getQteLift): the arena has to stay tall.
 // ----------------------------------------------------------------------------------------------------
 namespace {
-    // telegraph length before dash n: it gets faster and faster
+    // telegraph (star glint) length before dash n: it gets faster and faster
     inline unsigned int qteTelegraphMs(int step){
-        static const unsigned int t[] = { 1000, 850, 720, 620, 520, 480 };
+        static const unsigned int t[] = { 1100, 950, 800, 680, 580, 520 };
         return t[std::clamp(step, 0, 5)];
     }
 }
@@ -863,8 +869,9 @@ void BossBuilder::beginQte(Boss& b, unsigned int now){
     b.hp = 1;
     b.qteStep = 0;
     b.stage = 0;
-    b.qteFromX = b.x;
-    b.qteStrike = now + 1600 + BOSS_QTE_DASH_MS / 2;
+    b.qteFromLeft = (m_rng() & 1u) != 0u;
+    b.qteAimY = m_playerRect.y + m_playerRect.h * 0.5f;
+    b.qteStrike = now + 1700 + BOSS_QTE_TRAVEL_MS;
     m_hazards.clear();
     b.attack = -1;
     Camera::getInstance().addTrauma(0.8f);
@@ -883,56 +890,64 @@ bool BossBuilder::getQteLift(const SDL_FRect& player, float& outVelocityY) const
 
 void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
     Camera::getInstance().rumble(0.12f);
+    b.noPhysics = true;
+    b.untargetable = true;                       // the finisher is only won by parrying
     const float pcx = player.x + player.w * 0.5f;
-    const unsigned int dashStart = b.qteStrike - BOSS_QTE_DASH_MS / 2;
-    const unsigned int dashEnd   = b.qteStrike + BOSS_QTE_DASH_MS / 2;
+    const float pcy = player.y + player.h * 0.5f;
+    const SDL_FRect cam = Camera::getInstance().getCamera();
+    const unsigned int dashStart = b.qteStrike - BOSS_QTE_TRAVEL_MS;
+    const unsigned int dashEnd   = b.qteStrike + BOSS_QTE_FOLLOW_MS;
+    const float spawnX = b.qteFromLeft ? cam.x - b.w - 320.0f : cam.x + cam.w + 320.0f;     // far off camera
+    const float throughX = b.qteFromLeft ? pcx + 170.0f - b.w * 0.5f : pcx - 170.0f - b.w * 0.5f;   // where he ends up past the player
+    const float hitX = pcx - b.w * 0.5f;                                                      // centred on the player at the parry moment
+    b.isFacingRight = b.qteFromLeft;
 
     if(now < dashStart){
-        // telegraph: he crouches back, away from the side he is about to cross to
-        const float dir = (b.x + b.w * 0.5f < pcx) ? -1.0f : 1.0f;
-        const float t = MenuKit::clamp01(1.0f - (float)(dashStart - now) / (float)qteTelegraphMs(b.qteStep));
-        b.x = std::clamp(b.qteFromX + dir * 40.0f * t, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
+        // the star shines: he waits off camera. The aim follows the player until the very last moment, then locks.
+        if(now + 220 < dashStart) b.qteAimY = pcy;
+        b.x = spawnX;
         b.stage = 0;
+    } else if(now <= b.qteStrike){
+        const float t = MenuKit::clamp01((float)(now - dashStart) / (float)BOSS_QTE_TRAVEL_MS);
+        const float e = t * t;                                  // accelerates into the player
+        b.x = spawnX + (hitX - spawnX) * e;
+        if(b.stage == 0){ b.stage = 1; Camera::getInstance().addTrauma(0.3f); }
     } else if(now <= dashEnd){
-        if(b.stage == 0){                                   // the dash starts: aim through the player to the far side
-            b.stage = 1;
-            b.qteFromX = b.x;
-            const bool fromLeft = (b.x + b.w * 0.5f) < pcx;
-            b.qteToX = std::clamp(fromLeft ? pcx + 110.0f : pcx - 110.0f - b.w, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
-            Camera::getInstance().addTrauma(0.35f);
-        }
-        const float t = MenuKit::clamp01((float)(now - dashStart) / (float)BOSS_QTE_DASH_MS);
-        b.x = b.qteFromX + (b.qteToX - b.qteFromX) * t;
-    } else if(b.stage == 1){
-        b.x = b.qteToX;
-        b.stage = 2;
+        const float t = MenuKit::clamp01((float)(now - b.qteStrike) / (float)BOSS_QTE_FOLLOW_MS);
+        b.x = hitX + (throughX - hitX) * t;
+    } else {
+        b.x = throughX;
     }
+    b.y = b.qteAimY - b.h * 0.5f;
     b.baseX = b.x;
 
     if(now < b.qteStrike + BOSS_PARRY_POST_MS) return;
-    const bool ok = m_slashTick > m_parryUsed && m_slashTick + 340 >= b.qteStrike && m_slashTick <= b.qteStrike + BOSS_PARRY_POST_MS;
-    b.qteFromX = b.x;
+    const bool ok = m_slashTick > m_parryUsed && m_slashTick + BOSS_PARRY_PRE_MS + 60 >= b.qteStrike && m_slashTick <= b.qteStrike + BOSS_PARRY_POST_MS;
     b.stage = 0;
+    b.qteFromLeft = (m_rng() & 1u) != 0u;                       // the next dash can come from either side
     if(ok){
         m_parryUsed = m_slashTick;
-        m_parryEvents.push_back({ pcx, player.y + player.h * 0.4f, true });
+        m_parryEvents.push_back({ pcx, pcy, true });
         Camera::getInstance().addTrauma(0.6f);
         b.qteStep++;
         if(b.qteStep >= BOSS_QTE_STEPS){
             b.qteDone = true;
             b.hp = 0;
+            b.x = std::clamp(b.x, cam.x + 80.0f, cam.x + cam.w - b.w - 80.0f);    // he dies on screen
+            b.untargetable = false;
             startDeath(b, now);
             return;
         }
-        b.qteStrike = now + qteTelegraphMs(b.qteStep) + BOSS_QTE_DASH_MS / 2;
+        b.qteStrike = now + qteTelegraphMs(b.qteStep) + BOSS_QTE_TRAVEL_MS;
     } else {
         // missed: the dash connects, then he tries the same dash again
         b.attackHitBox = { player.x - 12.0f, player.y - 12.0f, player.w + 24.0f, player.h + 24.0f };
         b.isAttackBoxActive = true;
         b.attackHasHit = false;
-        b.qteStrike = now + 1100 + BOSS_QTE_DASH_MS / 2;
+        b.qteStrike = now + 1200 + BOSS_QTE_TRAVEL_MS;
         Camera::getInstance().addTrauma(0.4f);
     }
+    b.qteAimY = pcy;
 }
 
 // ----------------------------------------------------------------------------------------------------
@@ -970,7 +985,7 @@ void BossBuilder::updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now)
 
 void BossBuilder::spawnClimbGhosts(){
     // each pad is ~280 px above the last (a bounce throws the player ~370 px up); the first is reachable from the floor
-    static const float dx[5] = { 600.0f, 960.0f, 640.0f, 1000.0f, 720.0f };
+    static const float dx[5] = { 600.0f, 900.0f, 500.0f, 750.0f, 750.0f };   // the last two are inside the hole of the upper ground (level_23)
     static const float up[5] = { 200.0f, 480.0f, 760.0f, 1040.0f, 1320.0f };
     m_ghosts.clear();
     for(int i = 0; i < 5; ++i)
@@ -989,7 +1004,7 @@ void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
     b.w = b.baseW * 2.4f;                       // wing span; hurtRect() is only the body in the middle
     // he hovers in the UPPER arena (same x range as the fight arena, BOSS_PREACHER_UPPER_RISE higher)
     b.x = std::clamp((b.arenaL + b.arenaR) * 0.5f - b.w * 0.5f, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
-    b.baseY = m_arena.y - BOSS_PREACHER_UPPER_RISE + 190.0f;   // upper arena top + 190
+    b.baseY = (m_lowerFloorY - BOSS_PREACHER_UPPER_RISE) - 380.0f;   // hovers ~380 px above the upper floor
     b.y = b.baseY;
     m_upper = true;
     playBossMusic(b, *def, BossPhase::PHASE_3);
@@ -1368,7 +1383,7 @@ void BossBuilder::runAttack(Boss& b, const BossDef& def, const BossAttackDef& a,
                 b.markerX = std::clamp(b.markerX, b.arenaL + b.w * 0.5f, b.arenaR - b.w * 0.5f);
                 if(stageEl >= 820){
                     b.x = b.markerX - b.w * 0.5f;
-                    b.y = m_ceilY + 4.0f;
+                    b.y = std::max(m_ceilY + 4.0f, m_playerRect.y - 460.0f);     // reappears above the player (arenas can be very tall)
                     b.velocityY = 700.0f;
                     b.hidden = false; b.noPhysics = false; b.isGrounded = false;
                     b.isFacingRight = pcx >= b.markerX;
@@ -1516,7 +1531,8 @@ void BossBuilder::runAttack(Boss& b, const BossDef& def, const BossAttackDef& a,
             const float interval = (float)a.activeMs / (float)total;
             while(b.spawned < total && (float)elapsed >= (float)b.spawned * interval){
                 std::uniform_real_distribution<float> dx(b.arenaL + 80.0f, std::max(b.arenaL + 81.0f, b.arenaR - 80.0f));
-                std::uniform_real_distribution<float> dy(m_ceilY + 120.0f, std::max(m_ceilY + 121.0f, m_floorY - 220.0f));
+                const float orbTop = std::max(m_ceilY + 120.0f, m_floorY - 640.0f);      // within one screen above the floor
+                std::uniform_real_distribution<float> dy(orbTop, std::max(orbTop + 1.0f, m_floorY - 220.0f));
                 spawnOrb(dx(m_rng), dy(m_rng), sp, 1.2f + 0.12f * (float)b.spawned);
                 b.spawned++;
             }
@@ -1639,7 +1655,7 @@ void BossBuilder::startPartAttack(Boss& b, BossPart& p, int kind, const SDL_FRec
 
 void BossBuilder::updatePart(Boss& b, BossPart& p, float dt, const SDL_FRect& player, const SDL_FRect& wall, unsigned int now){
     (void)wall;
-    const float floorY = m_floorY, ceilY = m_ceilY;
+    const float floorY = m_floorY, ceilY = std::max(m_ceilY, m_floorY - 640.0f);   // heads work within one screen above the floor
     const float pcx = player.x + player.w * 0.5f, pcy = player.y + player.h * 0.5f;
     const int partIdx = (int)(&p - b.parts.data());
     const int myBoss = (int)(&b - m_bosses.data());
@@ -1814,7 +1830,7 @@ void BossBuilder::spawnRock(const Boss& b, float x, const SDL_FRect& wall){
     h.source = K::ROCK_RAIN;
     h.w = h.h = BOSS_ROCK_SIZE;
     h.x = x - h.w * 0.5f;
-    h.y = m_ceilY + 4.0f;                       // just under the ceiling
+    h.y = std::max(m_ceilY + 4.0f, m_floorY - 820.0f);   // just under the ceiling (tall arenas: ~one screen above the floor)
     h.gravity = BOSS_ROCK_GRAVITY;
     h.warn = BOSS_ROCK_WARN_SEC;
     h.life = 4.0f;
@@ -2470,7 +2486,7 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
             SDL_RenderFillRect(r, &m);
         }
         // parry cue: a white flash on the boss during the last moments before a parryable strike lands
-        if(b.state == BossState::TELEGRAPH && b.attack >= 0 && def->attacks[b.attack].parry){
+        if(b.state == BossState::TELEGRAPH && b.attack >= 0 && bossAttackParryable(def->attacks[b.attack])){
             const BossAttackDef& a = def->attacks[b.attack];
             const unsigned int windup = (unsigned int)(a.windupMs * (b.phase != BossPhase::PHASE_1 ? BOSS_PHASE2_WINDUP_MUL : 1.0f));
             const unsigned int impact = b.stateStart + windup;
@@ -2482,6 +2498,34 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
                 SDL_RenderFillRect(r, &bang);
                 SDL_FRect dot{ bang.x, bang.y + 36.0f, 12.0f, 12.0f };
                 SDL_RenderFillRect(r, &dot);
+            }
+        }
+        // QTE star glint: a star shines at the screen edge the dash will come from, at the height it will fly along
+        if(b.state == BossState::QTE){
+            const SDL_FRect camR = Camera::getInstance().getCamera();
+            const unsigned int dashStart = b.qteStrike - BOSS_QTE_TRAVEL_MS;
+            if(now < dashStart + 40){
+                const float left = (float)((int)dashStart - (int)now);
+                const float p = std::clamp(1.0f - left / 900.0f, 0.0f, 1.0f);          // the glint grows over the last 0.9 s
+                const float sx = b.qteFromLeft ? 46.0f : camR.w - 46.0f;
+                const float sy = b.qteAimY - (float)camY;
+                const float pulse = 0.75f + 0.25f * std::sin((float)now * 0.03f);
+                const float L = (16.0f + 70.0f * p) * pulse;
+                // the lane: a thin line across the screen that gets brighter as the dash nears
+                SDL_SetRenderDrawColor(r, 255, 245, 200, (Uint8)(30.0f + 150.0f * p * p));
+                SDL_RenderLine(r, 0.0f, sy, camR.w, sy);
+                // the star (4 long rays + 4 short diagonal rays), drawn thick by stacking offset lines
+                for(int o = -2; o <= 2; ++o){
+                    const Uint8 al = (Uint8)(255 - std::abs(o) * 55);
+                    SDL_SetRenderDrawColor(r, 255, 255, 235, al);
+                    SDL_RenderLine(r, sx - L, sy + (float)o, sx + L, sy + (float)o);
+                    SDL_RenderLine(r, sx + (float)o, sy - L * 0.8f, sx + (float)o, sy + L * 0.8f);
+                    SDL_RenderLine(r, sx - L * 0.45f + (float)o, sy - L * 0.45f, sx + L * 0.45f + (float)o, sy + L * 0.45f);
+                    SDL_RenderLine(r, sx - L * 0.45f + (float)o, sy + L * 0.45f, sx + L * 0.45f + (float)o, sy - L * 0.45f);
+                }
+                SDL_FRect core{ sx - 6.0f - 5.0f * p, sy - 6.0f - 5.0f * p, 12.0f + 10.0f * p, 12.0f + 10.0f * p };
+                SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
+                SDL_RenderFillRect(r, &core);
             }
         }
         // QTE ring: shrinks onto the boss; slash when it closes
@@ -2503,7 +2547,7 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
             }
             // progress pips
             for(int i = 0; i < BOSS_QTE_STEPS; ++i){
-                SDL_FRect pip{ cx - 40.0f + (float)i * 30.0f, b.y - camY - 28.0f, 22.0f, 12.0f };
+                SDL_FRect pip{ cx - 70.0f + (float)i * 30.0f, cy - 120.0f, 22.0f, 12.0f };   // above the player (the boss is off camera)
                 SDL_SetRenderDrawColor(r, i < b.qteStep ? 255 : 90, i < b.qteStep ? 255 : 90, i < b.qteStep ? 120 : 90, 230);
                 SDL_RenderFillRect(r, &pip);
             }

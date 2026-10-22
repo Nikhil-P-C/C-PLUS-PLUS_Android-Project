@@ -3,18 +3,16 @@
 # The exit flag (C) only appears once the boss is dead.
 S 109.00 540.00
 
+W 0.00 -320.00 4000.00 320.00 STONE_BRICK_WALL SOLID
 W 0.00 0.00 4000.00 320.00 STONE_BRICK_WALL SOLID
 W 0.00 320.00 4000.00 384.00 STONE_BRICK_WALL SOLID
 
-R 0.00 0.00 4000.00 656
-
+# arena height 1024 (the camera follows the player up and down inside the arena)
+R 0.00 -320.00 4000.00 976
 P 500.00 520.00 64.00 16.00 ONE_WAY STONE_PLATFORM
 P 1000.00 400.00 64.00 16.00 ONE_WAY STONE_PLATFORM
 P 1500.00 520.00 64.00 16.00 ONE_WAY STONE_PLATFORM
 P 1950.00 420.00 64.00 16.00 ONE_WAY STONE_PLATFORM
-P 2560.00 500.00 64.00 16.00 ONE_WAY STONE_PLATFORM
-P 3040.00 360.00 64.00 16.00 ONE_WAY STONE_PLATFORM
-P 3560.00 500.00 64.00 16.00 ONE_WAY STONE_PLATFORM
 
 F 420.00 470.00 BANANA
 F 900.00 350.00 APPLE
@@ -31,8 +29,7 @@ E 1250.00 500.00 CAVE_PREDATOR 1100.00 1400.00 120.00
 I 2100.00 496.00 64.00 208.00 WARNING Claw marks across the stone.|It is faster than you. Do not let it close in.|The gate seals once you enter.
 
 # the fight arena: camera + player are locked to this rectangle while the boss lives
-A 2400.00 0.00 1600.00 704.00
-
+A 2400.00 -320.00 1600.00 1024.00
 # K x y BOSS_TYPE [phase1.ogg phase2.ogg [gain]]  (music files default to Sound/Music/Boss/<biome>_<tier>_phase<1|2>.ogg)
 K 3415.00 510.00 STONE_GIANT_RAT
 
