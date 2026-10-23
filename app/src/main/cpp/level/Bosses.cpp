@@ -564,6 +564,13 @@ void BossBuilder::update(float dt, const SDL_FRect& player, const SDL_FRect& wal
         const float arenaTop = m_arenaValid ? m_arena.y - (m_upper && !m_upperReached ? BOSS_PREACHER_UPPER_RISE : 0.0f) : wall.y;
         m_ceilY = std::max(wall.y, arenaTop) + TILE_SIZE * SCALE;
     }
+    if(m_upper && !m_ghosts.empty()){                  // the sinner children keep flying up toward the Preacher
+        static const float dxw[6] = { 420.0f, 1020.0f, 640.0f, 1180.0f, 520.0f, 900.0f };
+        for(auto& g : m_ghosts){
+            g.y -= BOSS_CLIMB_CHILD_SPEED * dt;
+            if(g.y < m_ghostTop){ g.y += m_ghostCycle; g.x = m_arena.x + dxw[(m_ghostWraps++) % 6]; g.faceRight = !g.faceRight; }
+        }
+    }
     if(m_upper && !m_upperReached){                    // the player made it up to the ground of the upper arena
         const float feet = player.y + player.h;
         if(feet <= m_floorY + 6.0f && feet >= m_floorY - 40.0f && player.x + player.w > m_arena.x && player.x < m_arena.x + m_arena.w){
@@ -984,12 +991,17 @@ void BossBuilder::updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now)
 }
 
 void BossBuilder::spawnClimbGhosts(){
-    // each pad is ~280 px above the last (a bounce throws the player ~370 px up); the first is reachable from the floor
-    static const float dx[5] = { 600.0f, 900.0f, 500.0f, 750.0f, 750.0f };   // the last two are inside the hole of the upper ground (level_23)
-    static const float up[5] = { 200.0f, 480.0f, 760.0f, 1040.0f, 1320.0f };
+    // a stream of sinner children (broken wings) rising toward the Preacher's height, one every ~330 px, zig-zagging
+    static const float dx[6] = { 420.0f, 1020.0f, 640.0f, 1180.0f, 520.0f, 900.0f };
+    const float spacing = 330.0f;
+    const float bottom = m_lowerFloorY - 150.0f;                                    // the lowest one is within a jump of the floor
+    m_ghostTop = (m_lowerFloorY - BOSS_PREACHER_UPPER_RISE) - 560.0f;               // they fly past the upper platform, then restart
+    const int n = (int)std::ceil((bottom - m_ghostTop) / spacing);
+    m_ghostCycle = (float)n * spacing;
+    m_ghostWraps = 0;
     m_ghosts.clear();
-    for(int i = 0; i < 5; ++i)
-        m_ghosts.push_back({ m_arena.x + dx[i], m_lowerFloorY - up[i], 130.0f, 34.0f });
+    for(int i = 0; i < n; ++i)
+        m_ghosts.push_back({ m_arena.x + dx[i % 6], bottom - (float)i * spacing, 100.0f, 34.0f, (float)i * 1.7f, (i & 1) != 0 });
 }
 
 void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
@@ -1004,7 +1016,7 @@ void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
     b.w = b.baseW * 2.4f;                       // wing span; hurtRect() is only the body in the middle
     // he hovers in the UPPER arena (same x range as the fight arena, BOSS_PREACHER_UPPER_RISE higher)
     b.x = std::clamp((b.arenaL + b.arenaR) * 0.5f - b.w * 0.5f, b.arenaL, std::max(b.arenaL, b.arenaR - b.w));
-    b.baseY = (m_lowerFloorY - BOSS_PREACHER_UPPER_RISE) - 380.0f;   // hovers ~380 px above the upper floor
+    b.baseY = (m_lowerFloorY - BOSS_PREACHER_UPPER_RISE) - b.h - 140.0f;   // hovers CLOSE above the upper platform (feet ~140 px over it)
     b.y = b.baseY;
     m_upper = true;
     playBossMusic(b, *def, BossPhase::PHASE_3);
@@ -2500,32 +2512,79 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
                 SDL_RenderFillRect(r, &dot);
             }
         }
-        // QTE star glint: a star shines at the screen edge the dash will come from, at the height it will fly along
+        // QTE star glint: a big shine from the screen edge the dash will come from, at the height it will fly along
         if(b.state == BossState::QTE){
             const SDL_FRect camR = Camera::getInstance().getCamera();
             const unsigned int dashStart = b.qteStrike - BOSS_QTE_TRAVEL_MS;
             if(now < dashStart + 40){
+                const float W = camR.w, Hh = camR.h;
                 const float left = (float)((int)dashStart - (int)now);
-                const float p = std::clamp(1.0f - left / 900.0f, 0.0f, 1.0f);          // the glint grows over the last 0.9 s
-                const float sx = b.qteFromLeft ? 46.0f : camR.w - 46.0f;
+                const float p = std::clamp(1.0f - left / 800.0f, 0.0f, 1.0f);              // grows over the last 0.8 s
+                const float flick = 0.78f + 0.22f * std::sin((float)now * 0.045f);
+                const float k = (0.35f + 0.65f * p) * flick;
+                const float dir = b.qteFromLeft ? 1.0f : -1.0f;                           // +1: light travels left -> right
+                const float ex = b.qteFromLeft ? 0.0f : W;                                // the edge it comes from
                 const float sy = b.qteAimY - (float)camY;
-                const float pulse = 0.75f + 0.25f * std::sin((float)now * 0.03f);
-                const float L = (16.0f + 70.0f * p) * pulse;
-                // the lane: a thin line across the screen that gets brighter as the dash nears
-                SDL_SetRenderDrawColor(r, 255, 245, 200, (Uint8)(30.0f + 150.0f * p * p));
-                SDL_RenderLine(r, 0.0f, sy, camR.w, sy);
-                // the star (4 long rays + 4 short diagonal rays), drawn thick by stacking offset lines
-                for(int o = -2; o <= 2; ++o){
-                    const Uint8 al = (Uint8)(255 - std::abs(o) * 55);
-                    SDL_SetRenderDrawColor(r, 255, 255, 235, al);
-                    SDL_RenderLine(r, sx - L, sy + (float)o, sx + L, sy + (float)o);
-                    SDL_RenderLine(r, sx + (float)o, sy - L * 0.8f, sx + (float)o, sy + L * 0.8f);
-                    SDL_RenderLine(r, sx - L * 0.45f + (float)o, sy - L * 0.45f, sx + L * 0.45f + (float)o, sy + L * 0.45f);
-                    SDL_RenderLine(r, sx - L * 0.45f + (float)o, sy + L * 0.45f, sx + L * 0.45f + (float)o, sy - L * 0.45f);
+                SDL_BlendMode pb = SDL_BLENDMODE_NONE; SDL_GetRenderDrawBlendMode(r, &pb);
+                SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_ADD);
+                // gradient quad: vertices 0,1 carry alpha a0, vertices 2,3 carry a1 (colour warm white)
+                auto quad = [&](float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, float a0, float a1){
+                    SDL_FColor c0{1.0f, 0.96f, 0.82f, std::clamp(a0, 0.0f, 1.0f)}, c1{1.0f, 0.96f, 0.82f, std::clamp(a1, 0.0f, 1.0f)};
+                    SDL_Vertex v[4] = { {{x0, y0}, c0, {0, 0}}, {{x1, y1}, c0, {0, 0}}, {{x2, y2}, c1, {0, 0}}, {{x3, y3}, c1, {0, 0}} };
+                    const int idx[6] = { 0, 1, 2, 0, 2, 3 };
+                    SDL_RenderGeometry(r, nullptr, v, 4, idx, 6);
+                };
+                // 1) the whole screen edge it comes from lights up
+                quad(ex, 0, ex, Hh, ex + dir * W * 0.45f, Hh, ex + dir * W * 0.45f, 0, 0.30f * k, 0.0f);
+                // 2) the lane: a beam from the edge across the WHOLE screen at the dash height, thick at the edge, thin far away
+                const float th0 = 70.0f * (0.5f + p), th1 = 6.0f;
+                quad(ex, sy - th0, ex, sy + th0, ex + dir * W, sy + th1, ex + dir * W, sy - th1, 0.85f * k, 0.12f * k);
+                // 3) skewed shafts: slanted rays fanning from the star toward the screen, leaning the way he comes from
+                for(int sgn = -1; sgn <= 1; sgn += 2){
+                    const float lean = (float)sgn * 0.30f;                                  // slope of the shaft
+                    const float len = W * 0.95f;
+                    const float tx = ex + dir * len, ty = sy + lean * len;
+                    quad(ex, sy - 26.0f * (0.5f + p), ex, sy + 26.0f * (0.5f + p), tx, ty + 2.0f, tx, ty - 2.0f, 0.55f * k, 0.0f);
                 }
-                SDL_FRect core{ sx - 6.0f - 5.0f * p, sy - 6.0f - 5.0f * p, 12.0f + 10.0f * p, 12.0f + 10.0f * p };
-                SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
-                SDL_RenderFillRect(r, &core);
+                // 4) motion blur smear: several stretched, faded copies of the lane just above/below it
+                for(int i = 1; i <= 3; ++i){
+                    const float off = (float)i * 14.0f * (0.4f + p);
+                    quad(ex, sy - off - 6.0f, ex, sy - off + 6.0f, ex + dir * W * 0.7f, sy - off + 2.0f, ex + dir * W * 0.7f, sy - off - 2.0f, 0.22f * k, 0.0f);
+                    quad(ex, sy + off - 6.0f, ex, sy + off + 6.0f, ex + dir * W * 0.7f, sy + off + 2.0f, ex + dir * W * 0.7f, sy + off - 2.0f, 0.22f * k, 0.0f);
+                }
+                // 5) the star at the edge: a radial glow + 4 long flare rays (the horizontal one reaches far into the screen)
+                const float sx = ex + dir * 40.0f;
+                const float R = (90.0f + 170.0f * p) * flick;
+                {
+                    SDL_FColor cc{1.0f, 0.97f, 0.85f, std::clamp(0.95f * k, 0.0f, 1.0f)}, ce{1.0f, 0.9f, 0.6f, 0.0f};
+                    SDL_Vertex fan[26]; int fidx[24 * 3];
+                    fan[0] = {{sx, sy}, cc, {0, 0}};
+                    for(int i = 0; i < 25; ++i){
+                        const float ang = (float)i / 24.0f * 6.2831853f;
+                        fan[1 + i] = {{sx + std::cos(ang) * R, sy + std::sin(ang) * R}, ce, {0, 0}};
+                    }
+                    for(int i = 0; i < 24; ++i){ fidx[i*3] = 0; fidx[i*3+1] = 1 + i; fidx[i*3+2] = 2 + i; }
+                    SDL_RenderGeometry(r, nullptr, fan, 26, fidx, 72);
+                }
+                auto ray = [&](float ang, float len, float wid, float a){
+                    const float cx2 = std::cos(ang), sy2 = std::sin(ang);
+                    const float nx = -sy2, ny = cx2;
+                    SDL_FColor cm{1.0f, 0.98f, 0.9f, std::clamp(a, 0.0f, 1.0f)}, ct{1.0f, 0.95f, 0.8f, 0.0f};
+                    SDL_Vertex v[4] = { {{sx - cx2 * len, sy - sy2 * len}, ct, {0,0}}, {{sx + nx * wid, sy + ny * wid}, cm, {0,0}},
+                                        {{sx + cx2 * len, sy + sy2 * len}, ct, {0,0}}, {{sx - nx * wid, sy - ny * wid}, cm, {0,0}} };
+                    const int idx[6] = { 0, 1, 2, 0, 2, 3 };
+                    SDL_RenderGeometry(r, nullptr, v, 4, idx, 6);
+                };
+                ray(0.0f, 140.0f + 520.0f * p, 11.0f, 0.95f * k);                       // horizontal: the direction of the dash
+                ray(1.5707963f, 90.0f + 190.0f * p, 8.0f, 0.85f * k);
+                ray(0.7853982f, 60.0f + 120.0f * p, 6.0f, 0.65f * k);
+                ray(2.3561945f, 60.0f + 120.0f * p, 6.0f, 0.65f * k);
+                // 6) the last instant before the dash: the whole lane flashes
+                if(left < 140.0f){
+                    const float f = 1.0f - std::max(0.0f, left) / 140.0f;
+                    quad(0, sy - 34.0f, 0, sy + 34.0f, W, sy + 34.0f, W, sy - 34.0f, 0.55f * f, 0.55f * f);
+                }
+                SDL_SetRenderDrawBlendMode(r, pb);
             }
         }
         // QTE ring: shrinks onto the boss; slash when it closes
@@ -2578,17 +2637,34 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
         }
     }
 
-    // sinner children's ghosts (pogo pads)
-    for(const auto& g : m_ghosts){
-        const float bob = std::sin(now * 0.004f + g.x * 0.01f) * 6.0f;
-        SDL_FRect d{ g.x - camX, g.y - camY + bob, g.w, g.h };
-        SDL_SetRenderDrawColor(r, 170, 210, 255, 150);
-        SDL_RenderFillRect(r, &d);
-        SDL_SetRenderDrawColor(r, 255, 255, 255, 230);
-        SDL_RenderRect(r, &d);
-        SDL_FRect e1{ d.x + 28.0f, d.y + 8.0f, 12.0f, 12.0f }, e2{ d.x + 78.0f, d.y + 8.0f, 12.0f, 12.0f };
-        SDL_SetRenderDrawColor(r, 40, 60, 120, 255);
-        SDL_RenderFillRect(r, &e1); SDL_RenderFillRect(r, &e2);
+    // sinner children with broken wings, flying up toward the Preacher: the only way up (landing on one = pogo bounce)
+    {
+        const EnemyFrameInfo* ci = getEnemyFrameInfo(EnemyType::SINNERS_CHILD, EnemyAction::SEEK, AttackType::NONE);
+        SDL_Texture* ctex = ci ? Engine::Get().getAssetManager().getTexture(ci->texture) : nullptr;
+        for(const auto& g : m_ghosts){
+            const float bob = std::sin(now * 0.004f + g.phase) * 6.0f;
+            if(ctex && ci){
+                const int frames = std::max(1, ci->frameCount);
+                const int frame = (int)((now / (unsigned)std::max(1, ci->frameDelay)) + (unsigned)(g.phase * 3.0f)) % frames;
+                const float dw = (float)(ci->frameW * ENEMY_SPRITE_SCALE), dh = (float)(ci->frameH * ENEMY_SPRITE_SCALE);
+                SDL_FRect src{ (float)(ci->frameW * frame), 0.0f, (float)ci->frameW, (float)ci->frameH };
+                SDL_FRect dst{ g.x + g.w * 0.5f - dw * 0.5f - camX, g.y - camY + bob - dh * 0.24f, dw, dh };
+                // soft glow behind, so they read as spirits flying up
+                SDL_SetRenderDrawColor(r, 170, 210, 255, 55);
+                SDL_FRect glow{ dst.x + dw * 0.15f, dst.y + dh * 0.1f, dw * 0.7f, dh * 0.8f };
+                SDL_RenderFillRect(r, &glow);
+                SDL_SetTextureColorMod(ctex, 190, 215, 255);
+                SDL_SetTextureAlphaMod(ctex, 235);
+                const double tilt = std::sin(now * 0.006f + g.phase) * 7.0;       // fluttering on the broken wing
+                SDL_RenderTextureRotated(r, ctex, &src, &dst, tilt, nullptr, g.faceRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL);
+                SDL_SetTextureColorMod(ctex, 255, 255, 255);
+                SDL_SetTextureAlphaMod(ctex, 255);
+            } else {
+                SDL_FRect d{ g.x - camX, g.y - camY + bob, g.w, g.h };
+                SDL_SetRenderDrawColor(r, 170, 210, 255, 150);
+                SDL_RenderFillRect(r, &d);
+            }
+        }
     }
     SDL_SetRenderDrawBlendMode(r, prev);
 }

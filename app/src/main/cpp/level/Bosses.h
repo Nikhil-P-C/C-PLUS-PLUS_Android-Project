@@ -58,7 +58,8 @@ const unsigned int BOSS_QTE_TRAVEL_MS   = 170;     // the dash flies in from off
 const unsigned int BOSS_QTE_FOLLOW_MS   = 90;      // ...and carries on through the player this long after
 const float        BOSS_QTE_HOVER_ABOVE_FLOOR = 250.0f;   // the QTE keeps the player pushed up this high above the floor
 const float BOSS_MIN_ARENA_H           = 704.0f;  // arenas are never shorter than this (one full screen): QTE lift, tall bosses, jumps need the room
-const float BOSS_PREACHER_UPPER_RISE    = 1408.0f; // phase 3: the upper arena is the fight arena moved this far UP (level_23 has its ground there)
+const float BOSS_PREACHER_UPPER_RISE    = 3840.0f; // phase 3: the upper arena is the fight arena moved this far UP (level_23 has its ground there)
+const float BOSS_CLIMB_CHILD_SPEED      = 140.0f;  // px/s the sinner children fly upward
 const float BOSS_BOUNCE_VELOCITY        = 1150.0f; // ghost pads (Preacher phase 3) throw the player up this hard
 
 // ----------------------------------------------------------------------------------------------------
@@ -524,7 +525,13 @@ private:
     std::vector<BossHazard> m_hazards;
     std::vector<EnemyHitEvent> m_hitEvents;
     std::vector<BossParryEvent> m_parryEvents;
-    std::vector<SDL_FRect> m_ghosts;             // Preacher phase 3 bounce pads
+    // Preacher phase 3: sinner children with broken wings fly UP toward the Preacher. Landing on one (never a side
+    // collision, they don't hurt) is a pogo bounce; they are the only way up. They loop: when one passes the top it
+    // starts again from the bottom.
+    struct ClimbChild { float x, y, w, h; float phase; bool faceRight; };
+    std::vector<ClimbChild> m_ghosts;
+    float m_ghostCycle = 0.0f, m_ghostTop = 0.0f;
+    int   m_ghostWraps = 0;
     BossPlayerInfo m_info;
     SDL_FRect m_playerRect{0, 0, 40, 85};
     unsigned int m_slashTick = 0, m_parryUsed = 0;

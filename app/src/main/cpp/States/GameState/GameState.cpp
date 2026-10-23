@@ -889,7 +889,9 @@ void GameState::handleCollision() {
             float currentBottom = m_player.y + m_player.h;
             float platformTop = platform.y;
 
-            if (m_velocityY > 0 && previousBottom <= platformTop
+            // a dash pins m_velocityY to 0 (no gravity) and presses 1px into the floor each frame: without this the
+            // one-way platform never "caught" the player during / right after a dash and he fell through
+            if ((m_velocityY > 0 || m_isDashing) && previousBottom <= platformTop + (m_isDashing ? 2.0f : 0.0f)
                 && currentBottom >= platformTop
                 && gameMath::checkcollisionX(m_player.x, m_player.y, platform.x,
                                              platform.y,

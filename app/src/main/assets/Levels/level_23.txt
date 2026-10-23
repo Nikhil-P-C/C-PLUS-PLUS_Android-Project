@@ -4,8 +4,8 @@
 S 109.00 540.00
 
 # Arena 1024 tall (y -320..704). The wall rect reaches up to the top of the UPPER ARENA (phase 3): that arena is the first one moved
-# BOSS_PREACHER_UPPER_RISE = 1408 px up (y -1728..-704). The floor stays at y 640 (R y -1728 + 38 tiles * 64 - 64).
-R 0.00 -1728.00 4000.00 2384
+# BOSS_PREACHER_UPPER_RISE = 3840 px up (y -4160..-3136). The floor stays at y 640 (R y -4160 + 76 tiles * 64 - 64).
+R 0.00 -4160.00 4000.00 4816
 G 0.0 640.00 1000.00 48.00 PINK_GRASS_GROUND SOLID
 
 P 500.00 520.00 64.00 16.00 ONE_WAY GOLD_PLATFORM
@@ -22,11 +22,10 @@ F 2600.00 440.00 APPLE
 F 3100.00 300.00 ORANGE
 F 3600.00 440.00 STRAWBERRY
 
-# Ground of the UPPER arena (G sizes are in source px: the game multiplies w/h by SCALE = 4, so 160 x 12 = 640 x 48 in the world).
-# It has a HOLE at world x 3040..3320 on purpose: the last two ghost pads sit in that gap, so the pogo bounce goes up through it
-# (grounds are solid from below). The player then lands on the ground left or right of the hole.
-G 2400.00 -768.00 160.00 12.00 PINK_GRASS_GROUND SOLID
-G 3320.00 -768.00 170.00 12.00 PINK_GRASS_GROUND SOLID
+# Floor of the UPPER arena: ONE unbroken one-way platform across the whole arena (platform w/h are x4: 408 -> 1632 px, a little wider
+# than the arena so there is no gap anywhere). One-way: the player lands on it from below; the sinner children fly up past it.
+# Its top (y -3200) = floor 640 - BOSS_PREACHER_UPPER_RISE (3840).
+P 2368.00 -3200.00 408.00 16.00 ONE_WAY GOLD_PLATFORM
 
 E 700.00 500.00 TYRANNOSAURUS_REX_CHILD 550.00 850.00 120.00
 E 1250.00 500.00 ALBERTOSAURUS 1100.00 1400.00 120.00
@@ -39,8 +38,8 @@ A 2400.00 -320.00 1600.00 1024.00
 # K x y BOSS_TYPE [phase1.ogg phase2.ogg [gain]]  (music files default to Sound/Music/Boss/<biome>_<tier>_phase<1|2>.ogg)
 K 3410.00 370.00 PEAK_THE_PREACHER
 
-# the exit sits in the UPPER arena (376 - 1408), where the Preacher dies
-C 3640.00 -1032.00 256.00 256.00 NO_FLAG
+# the exit sits in the UPPER arena (376 - 3840), where the Preacher dies
+C 3640.00 -3464.00 256.00 256.00 NO_FLAG
 
 X 0.00 -100.00 1600.00 720.00 0.00 0.00 false GREENERY_SKY
 X 0.00 -101.76 1822.00 820.00 0.03 0.01 false GREENERY_MOUNTAINS
