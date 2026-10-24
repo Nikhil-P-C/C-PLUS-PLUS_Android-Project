@@ -85,6 +85,7 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     m_backgroundBuilder.render(m_renderer);
     m_ambientParticles.renderBack(m_renderer);
+    m_ambience.renderBack(m_renderer);
 
     for(const auto& tile : m_wallTiles)
     {
@@ -369,12 +370,14 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     m_foregroundBuilder.render(m_renderer);
     m_ambientParticles.renderFront(m_renderer);
+    m_ambience.renderFront(m_renderer);
     Engine::Get().getPostProcessor().endBloomGroup(m_renderer);
 
     // ambient darkness + player light + light objects, all described by the level file (D / L lines)
     m_lighting.render(m_renderer, (float)camX, (float)camY,
                       m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX,
                       m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY);
+    m_ambience.renderOverlay(m_renderer);   // lens flare, lightning flash, weather tint (after the darkness pass)
 
     renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
     m_interactableBuilder.renderDialog(renderer);   // screen-space dialog box, on top of the world
@@ -411,6 +414,16 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_FRect full{0.0f, 0.0f, Camera::getInstance().getCamera().w, Camera::getInstance().getCamera().h};
         SDL_RenderFillRect(renderer, &full);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+}
+
+// ambience simulation + the thunder clap that follows each lightning flash
+void GameState::updateAmbience(float dt){
+    m_ambience.update(dt);
+    float strength = 0.0f;
+    if(m_ambience.consumeThunder(strength)){
+        Camera::getInstance().addTrauma(0.10f + 0.20f * strength);   // low rumble
+        // sound hook: play a thunder clap here once the asset exists (strength 0.5..1 = gain/pitch)
     }
 }
 
@@ -792,6 +805,7 @@ void GameState::update(float dt){
 
     m_particleSystem.update(dt);
     m_ambientParticles.update(dt);
+    updateAmbience(dt);
     m_fruitBuilder.update(dt);
     m_trapBuilder.update(dt);
 
@@ -1261,6 +1275,7 @@ void GameState::updateDeath(float dt) {
 
     m_particleSystem.update(dt);
     m_ambientParticles.update(dt);
+    updateAmbience(dt);
     m_fruitBuilder.update(dt);
     m_trapBuilder.update(dt);
 
@@ -1879,6 +1894,8 @@ void GameState::setLevel(int level) {
     m_ambientParticles.init(m_renderer, AmbientParticles::themeFromBackground(m_backgroundElements));
     m_lighting.init(m_renderer);
     m_lighting.setLevel(m_levelLoader.getAmbient(), m_levelLoader.getLights());
+    m_ambience.init(m_renderer, AmbienceFx::biomeFromBackground(m_backgroundElements),
+                    m_levelLoader.getAmbient().darkness, m_levelLoader.getWeatherTokens());
     if(m_levelLoader.hasSpawn()){
         m_respawnX = m_levelLoader.getPlayer().x;
         m_respawnY = m_levelLoader.getPlayer().y;

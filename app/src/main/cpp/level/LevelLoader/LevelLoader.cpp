@@ -2,6 +2,7 @@
 // Created by LENOVO on 06-08-2026.
 //
 #include <algorithm>
+#include <cctype>
 #include "LevelLoader.h"
 #include "LevelTypeConverter.h"
 
@@ -76,6 +77,9 @@ void LevelLoader::parseLine(const std::string& line) {
             break;
         case 'L':
             parseLight(stream);
+            break;
+        case 'Z':
+            parseWeather(stream);
             break;
         case 'M':
             parseMusic(stream);
@@ -443,6 +447,15 @@ void LevelLoader::parseAmbient(std::istringstream& ss) {
     }
 }
 
+// Z TOKEN [TOKEN ...]   ambience/weather, e.g. "Z SNOW WIND", "Z AUTO RAIN", "Z STORM", "Z NONE"
+void LevelLoader::parseWeather(std::istringstream& ss) {
+    std::string tok;
+    while(ss >> tok){
+        for(auto& c : tok) c = (char)std::toupper((unsigned char)c);
+        m_weatherTokens.push_back(tok);
+    }
+}
+
 void LevelLoader::parseLight(std::istringstream& ss) {
     LightSource l;
     int r=255,g=200,b=120;
@@ -497,6 +510,7 @@ void LevelLoader::loadLevel(int level) {
     m_bosses.clear();
     m_hasBossArena = false;
     m_ambient = LevelAmbient{};
+    m_weatherTokens.clear();
     m_hasSpawn = false;
     std::string content = loadFromFile("Levels/level_"+std::to_string(level)+".txt");
 

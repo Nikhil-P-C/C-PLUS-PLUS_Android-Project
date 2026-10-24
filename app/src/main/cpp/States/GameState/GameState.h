@@ -14,6 +14,7 @@
 #include "level/GroundShapeBuilder.h"
 #include "ParticleSystem.h"
 #include "AmbientParticles.h"
+#include "AmbienceFx.h"
 #include "engine/Lighting.h"
 
 #include "level/Fruits.h"
@@ -189,6 +190,7 @@ public:
     void render(SDL_Renderer* renderer) override;
 
     void update(float dt) override;
+    void updateAmbience(float dt);   // AmbienceFx update + thunder rumble
 
     bool handleEvents(SDL_Event& event) override;
 
@@ -316,6 +318,7 @@ private:
     ParticleSystem m_particleSystem;
     ParticleSystem m_fxParticles;          // hit sparks/flashes: drawn AFTER enemies + player so they sit on top
     AmbientParticles m_ambientParticles;
+    AmbienceFx m_ambience;                 // biome ambience + weather (fireflies, flies, petals, wind, rain, snow, thunder, sun flare)
     Lighting m_lighting;                   // ambient darkness + player light + level light objects
     float m_walkTimer=0.0f;
 

@@ -85,6 +85,8 @@ public:
     const LevelAmbient& getAmbient(){
         return m_ambient;
     }
+    // 'Z' record: ambience/weather overrides (upper-case tokens, see AmbienceFx.h). Empty = biome defaults.
+    const std::vector<std::string>& getWeatherTokens() const { return m_weatherTokens; }
     // level music: from the level's 'M' record, else Sound/Music/level_<n>.ogg. Empty = silent level.
     const std::string& getMusicPath() const { return m_musicPath; }
     float getMusicGain() const { return m_musicGain; }
@@ -92,6 +94,8 @@ public:
     bool hasSpawn() const { return m_hasSpawn; }
 private:
     void parseAmbient(std::istringstream& ss);
+
+    void parseWeather(std::istringstream& ss);
 
     void parseMusic(std::istringstream& ss);
 
@@ -153,6 +157,7 @@ private:
     SDL_FRect m_wallCollisionRect;
     std::vector<LightSource> m_lights;
     LevelAmbient m_ambient;
+    std::vector<std::string> m_weatherTokens;   // 'Z' line
     bool m_hasSpawn = false;
     std::string m_musicPath;
     float m_musicGain = 1.0f;

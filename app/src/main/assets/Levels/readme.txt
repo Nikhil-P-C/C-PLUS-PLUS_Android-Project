@@ -15,6 +15,20 @@ L x y radius r g b intensity [flicker] [visible]
     light object in world pixels. r g b = 0..255, intensity 0..1, flicker 0..1 (torch wobble), visible 0/1 (glowing core)
     example:  L 600 430 420 255 170 90 1.0 0.35 1
 
+Z TOKEN [TOKEN ...]
+    ambience / weather for the level (optional). Without a Z line the biome decides (and the D darkness):
+      forest   : leaves + wind, flies by day, fireflies at dusk (D >= 0.20), sun flare on bright days (D <= 0.15)
+      meadows  : petals + wind, same flies / fireflies / sun flare rules
+      stone cave  : a few gnats          bright (blue) cave : blue glow-worm fireflies
+    TOKENS: FIREFLIES FLIES PETALS LEAVES WIND RAIN SNOW THUNDER SUNFLARE STORM (= RAIN THUNDER WIND) NONE AUTO
+    A Z line REPLACES the biome defaults. Put AUTO first to keep them, and prefix a token with - to remove it.
+    examples:  Z SNOW WIND              only snow + wind
+               Z AUTO RAIN              biome defaults + rain
+               Z AUTO -SUNFLARE         biome defaults, no lens flare
+               Z STORM                  rain + lightning + thunder rumble + strong wind
+               Z NONE                   nothing
+    (rain / snow always remove SUNFLARE and FLIES)
+
 E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]
     enemy that patrols the horizontal line pathStartX..pathEndX (x should be between them) at speed px/s.
     ground enemies fall onto the floor from y, AERIAL ones fly and hover at y. ENEMY_TYPE = any EnemyType name
