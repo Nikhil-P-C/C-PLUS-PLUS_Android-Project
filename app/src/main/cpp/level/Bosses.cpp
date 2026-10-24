@@ -565,10 +565,10 @@ void BossBuilder::update(float dt, const SDL_FRect& player, const SDL_FRect& wal
         m_ceilY = std::max(wall.y, arenaTop) + TILE_SIZE * SCALE;
     }
     if(m_upper && !m_ghosts.empty()){                  // the sinner children keep flying up toward the Preacher
-        static const float dxw[6] = { 420.0f, 1020.0f, 640.0f, 1180.0f, 520.0f, 900.0f };
         for(auto& g : m_ghosts){
             g.y -= BOSS_CLIMB_CHILD_SPEED * dt;
-            if(g.y < m_ghostTop){ g.y += m_ghostCycle; g.x = m_arena.x + dxw[(m_ghostWraps++) % 6]; g.faceRight = !g.faceRight; }
+            if(g.flash > 0.0f) g.flash = std::max(0.0f, g.flash - dt * 4.0f);
+            if(g.y < m_ghostTop){ g.y += m_ghostCycle; g.x = ghostScatterX(m_ghostWraps++ + 7, g.w); g.faceRight = !g.faceRight; }
         }
     }
     if(m_upper && !m_upperReached){                    // the player made it up to the ground of the upper arena
@@ -990,10 +990,20 @@ void BossBuilder::updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now)
     if(el >= 3200) startPhase3(b, wall, now);
 }
 
+// x for the index-th climb child: a golden-ratio sequence over the walkable width, so the children are scattered all
+// over the arena instead of zig-zagging in a fixed pattern (and the next one up is never a long way sideways).
+float BossBuilder::ghostScatterX(int index, float w) const {
+    float l = m_arenaInnerL, r = m_arenaInnerR;
+    if(r - l < w + 200.0f){ l = m_arena.x + 120.0f; r = m_arena.x + m_arena.w - 120.0f; }
+    const float t = std::fmod((float)index * 0.6180339887f, 1.0f);
+    return l + 40.0f + t * std::max(0.0f, (r - l) - w - 80.0f);
+}
+
 void BossBuilder::spawnClimbGhosts(){
-    // a stream of sinner children (broken wings) rising toward the Preacher's height, one every ~330 px, zig-zagging
-    static const float dx[6] = { 420.0f, 1020.0f, 640.0f, 1180.0f, 520.0f, 900.0f };
-    const float spacing = 330.0f;
+    // a dense stream of sinner children (broken wings) rising toward the Preacher's height, one every ~140 px and
+    // scattered across the whole arena width. A down-slash on one is a pogo (~160 px rise), so each is reachable
+    // from the previous one.
+    const float spacing = 140.0f;
     const float bottom = m_lowerFloorY - 150.0f;                                    // the lowest one is within a jump of the floor
     m_ghostTop = (m_lowerFloorY - BOSS_PREACHER_UPPER_RISE) - 560.0f;               // they fly past the upper platform, then restart
     const int n = (int)std::ceil((bottom - m_ghostTop) / spacing);
@@ -1001,7 +1011,7 @@ void BossBuilder::spawnClimbGhosts(){
     m_ghostWraps = 0;
     m_ghosts.clear();
     for(int i = 0; i < n; ++i)
-        m_ghosts.push_back({ m_arena.x + dx[i % 6], bottom - (float)i * spacing, 100.0f, 34.0f, (float)i * 1.7f, (i & 1) != 0 });
+        m_ghosts.push_back({ ghostScatterX(i, 100.0f), bottom - (float)i * spacing, 100.0f, 34.0f, (float)i * 1.7f, (i & 1) != 0, 0.0f });
 }
 
 void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
@@ -1026,12 +1036,15 @@ void BossBuilder::startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now){
     Camera::getInstance().addTrauma(0.8f);
 }
 
-bool BossBuilder::checkBounce(const SDL_FRect& player, float velocityY, float& outVelocityY){
-    if(m_ghosts.empty() || velocityY <= 0.0f) return false;
-    const float feet = player.y + player.h;
-    for(const auto& g : m_ghosts){
-        if(player.x + player.w > g.x && player.x < g.x + g.w && feet >= g.y - 6.0f && feet <= g.y + 34.0f){
-            outVelocityY = -BOSS_BOUNCE_VELOCITY;
+bool BossBuilder::checkGhostPogo(const SDL_FRect& slashBox, float& hitX, float& hitY){
+    if(m_ghosts.empty()) return false;
+    for(auto& g : m_ghosts){
+        // generous box around the child + its wings
+        const SDL_FRect box{ g.x - 20.0f, g.y - 30.0f, g.w + 40.0f, g.h + 50.0f };
+        if(SDL_HasRectIntersectionFloat(&slashBox, &box)){
+            g.flash = 1.0f;
+            hitX = g.x + g.w * 0.5f;
+            hitY = g.y;
             return true;
         }
     }
@@ -2637,10 +2650,11 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
         }
     }
 
-    // sinner children with broken wings, flying up toward the Preacher: the only way up (landing on one = pogo bounce)
+    // sinner children with broken wings, flying up toward the Preacher: the only way up (down-slash on one = pogo)
     {
         const EnemyFrameInfo* ci = getEnemyFrameInfo(EnemyType::SINNERS_CHILD, EnemyAction::SEEK, AttackType::NONE);
         SDL_Texture* ctex = ci ? Engine::Get().getAssetManager().getTexture(ci->texture) : nullptr;
+        SDL_Texture* wtex = Engine::Get().getAssetManager().getTexture(TextureType::PLAYER_DOUBLE_JUMP);   // the player's "broken wings"
         for(const auto& g : m_ghosts){
             const float bob = std::sin(now * 0.004f + g.phase) * 6.0f;
             if(ctex && ci){
@@ -2649,14 +2663,28 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
                 const float dw = (float)(ci->frameW * ENEMY_SPRITE_SCALE), dh = (float)(ci->frameH * ENEMY_SPRITE_SCALE);
                 SDL_FRect src{ (float)(ci->frameW * frame), 0.0f, (float)ci->frameW, (float)ci->frameH };
                 SDL_FRect dst{ g.x + g.w * 0.5f - dw * 0.5f - camX, g.y - camY + bob - dh * 0.24f, dw, dh };
+                const SDL_FlipMode flip = g.faceRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+                const double tilt = std::sin(now * 0.006f + g.phase) * 7.0;       // fluttering on the broken wing
+                const Uint8 lit = (Uint8)(190.0f + 65.0f * g.flash);              // flashes white when slashed
                 // soft glow behind, so they read as spirits flying up
-                SDL_SetRenderDrawColor(r, 170, 210, 255, 55);
+                SDL_SetRenderDrawColor(r, 170, 210, 255, (Uint8)(55.0f + 120.0f * g.flash));
                 SDL_FRect glow{ dst.x + dw * 0.15f, dst.y + dh * 0.1f, dw * 0.7f, dh * 0.8f };
                 SDL_RenderFillRect(r, &glow);
-                SDL_SetTextureColorMod(ctex, 190, 215, 255);
+                // broken wings (same sprite as the player's double jump), flapping behind the child
+                if(wtex){
+                    const int wf = (int)((now / 85u) + (unsigned)(g.phase * 2.0f)) % 6;
+                    const float ww = dw * 1.7f, wh = dw * 1.7f;
+                    SDL_FRect wsrc{ (float)(30 * wf), 0.0f, 30.0f, 30.0f };
+                    SDL_FRect wdst{ dst.x + dw * 0.5f - ww * 0.5f, dst.y + dh * 0.45f - wh * 0.5f, ww, wh };
+                    SDL_SetTextureColorMod(wtex, lit, (Uint8)(215 + 40 * g.flash), 255);
+                    SDL_SetTextureAlphaMod(wtex, 225);
+                    SDL_RenderTextureRotated(r, wtex, &wsrc, &wdst, tilt, nullptr, flip);
+                    SDL_SetTextureColorMod(wtex, 255, 255, 255);
+                    SDL_SetTextureAlphaMod(wtex, 255);
+                }
+                SDL_SetTextureColorMod(ctex, lit, (Uint8)(215 + 40 * g.flash), 255);
                 SDL_SetTextureAlphaMod(ctex, 235);
-                const double tilt = std::sin(now * 0.006f + g.phase) * 7.0;       // fluttering on the broken wing
-                SDL_RenderTextureRotated(r, ctex, &src, &dst, tilt, nullptr, g.faceRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL);
+                SDL_RenderTextureRotated(r, ctex, &src, &dst, tilt, nullptr, flip);
                 SDL_SetTextureColorMod(ctex, 255, 255, 255);
                 SDL_SetTextureAlphaMod(ctex, 255);
             } else {

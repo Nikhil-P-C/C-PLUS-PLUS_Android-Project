@@ -606,12 +606,6 @@ void GameState::update(float dt){
             m_velocityY = liftV;
             m_isGrounded = false;
         }
-        // Preacher phase 3: the sinner children's ghosts are pogo pads
-        float bounceV = 0.0f;
-        if(m_bossBuilder.checkBounce(SDL_FRect{m_player.x, m_player.y, m_player.w, m_player.h}, m_velocityY, bounceV)){
-            startPogo();
-            m_velocityY = bounceV;
-        }
     }
 
     // player's weapons vs enemies: m_playerHitBox (melee) was just computed above,
@@ -637,7 +631,9 @@ void GameState::update(float dt){
     // blocks and every other trap never bounce the player.) One bounce per swing.
     if(m_isAttacking && m_slashDir == SlashDir::DOWN && m_pogoId != m_attackId){
         float hitX = 0.0f, hitY = 0.0f;
-        if(m_trapBuilder.checkPogoTarget(m_playerHitBox, hitX, hitY)){
+        // hazard trap / rock head, or (Preacher phase 3) a sinner child with broken wings: both are pogo targets
+        if(m_trapBuilder.checkPogoTarget(m_playerHitBox, hitX, hitY) ||
+           m_bossBuilder.checkGhostPogo(m_playerHitBox, hitX, hitY)){
             startPogo();
             m_enemyHitId = m_attackId;       // counts as a landed hit: no extra wall clink for this swing
             const float facing = m_isPlayerfacingRight ? -1.0f : 1.0f;
@@ -889,9 +885,13 @@ void GameState::handleCollision() {
             float currentBottom = m_player.y + m_player.h;
             float platformTop = platform.y;
 
-            // a dash pins m_velocityY to 0 (no gravity) and presses 1px into the floor each frame: without this the
-            // one-way platform never "caught" the player during / right after a dash and he fell through
-            if ((m_velocityY > 0 || m_isDashing) && previousBottom <= platformTop + (m_isDashing ? 2.0f : 0.0f)
+            // A dash pins m_velocityY to 0 and (from the ground) presses the player 1px into the platform each
+            // frame. endDash() also runs on the last dash frame, so on that frame the player is 1px below the top
+            // with velocityY == 0 and isDashing already false. Requiring velocityY > 0 therefore missed the catch,
+            // and on the next frame previousBottom was below the top -> the player fell through.
+            // Fix: catch whenever the player is NOT moving upward (>= 0), with a small tolerance for the 1px press.
+            constexpr float ONE_WAY_TOLERANCE = 2.0f;
+            if (m_velocityY >= 0.0f && previousBottom <= platformTop + ONE_WAY_TOLERANCE
                 && currentBottom >= platformTop
                 && gameMath::checkcollisionX(m_player.x, m_player.y, platform.x,
                                              platform.y,
@@ -1950,6 +1950,10 @@ void GameState::updateBossArena(float realDt) {
         float cx = std::clamp(climb.x + climb.w * 0.5f - vw * 0.5f, cameraBounds.x, std::max(cameraBounds.x, cameraBounds.x + cameraBounds.w - vw));
         float cy = m_player.y + m_player.h * 0.5f - vh * 0.62f;      // player in the lower part: the next pad is visible above
         cy = std::clamp(cy, climb.y, std::max(climb.y, climb.y + climb.h - vh));
+        // once the player is above the upper platform the camera must not show anything beneath it
+        const float upperFloor = m_bossBuilder.getUpperFloorY();
+        if(m_player.y + m_player.h <= upperFloor + 6.0f)
+            cy = std::min(cy, upperFloor + TILE_SIZE * SCALE - vh);
         cam.lockTo(cx, cy);
         cam.updateLock(realDt * 2.0f);
         return;
@@ -1960,7 +1964,10 @@ void GameState::updateBossArena(float realDt) {
     float tx = arena.x + arena.w * 0.5f - viewW * 0.5f;
     float ty = arena.y + arena.h * 0.5f - viewH * 0.5f;
     if(arena.h > viewH + 1.0f)       // arena taller than the screen: the camera follows the player up and down inside it
+    {
         ty = m_player.y + m_player.h * 0.5f - viewH * 0.55f;
+        ty = std::min(ty, arena.y + arena.h - viewH);            // never show anything below the arena's floor / platform
+    }
     tx = std::clamp(tx, cameraBounds.x, std::max(cameraBounds.x, cameraBounds.x + cameraBounds.w - viewW));
     ty = std::max(ty, arena.y);                                  // never show the empty space above the arena
     ty = std::clamp(ty, cameraBounds.y, std::max(cameraBounds.y, cameraBounds.y + cameraBounds.h - viewH));

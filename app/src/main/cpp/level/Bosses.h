@@ -428,9 +428,12 @@ public:
     // Ancient Sinner QTE: the player is pushed upward and held in the air (arena must be tall enough for it).
     // Returns true while that applies; outVelocityY is the vertical speed to force on the player this frame.
     bool getQteLift(const SDL_FRect& player, float& outVelocityY) const;
-    // Preacher phase 3: ghost pads the player can bounce on. Returns true (and the new upward speed) when
-    // the player (falling, feet crossing a pad's top) should be bounced.
-    bool checkBounce(const SDL_FRect& player, float velocityY, float& outVelocityY);
+    // Preacher phase 3: the sinner children (broken wings) are pogo pads. A DOWN slash whose hitbox overlaps one
+    // is a pogo (GameState does the bounce). Returns true + the contact point; the child flashes.
+    bool checkGhostPogo(const SDL_FRect& slashBox, float& hitX, float& hitY);
+    // Preacher phase 3: y of the top of the upper platform (valid while isUpperActive()); the camera must never show
+    // anything below the platform once the player is above it.
+    float getUpperFloorY() const { return m_floorY; }
 
     // True from the moment the fight starts until BOSS_ARENA_UNLOCK_MS after the kill: GameState pins the camera
     // on getArena() and keeps the player inside it for exactly this long.
@@ -473,6 +476,7 @@ private:
     void updateRevive(Boss& b, const SDL_FRect& wall, unsigned int now);
     void startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now);
     void spawnClimbGhosts();
+    float ghostScatterX(int index, float w) const;   // scattered x for the index-th climb child
     bool tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now);
     void doParry(Boss& b, unsigned int now);
     void setSurface(Boss& b, Boss::Surface s);
@@ -528,7 +532,7 @@ private:
     // Preacher phase 3: sinner children with broken wings fly UP toward the Preacher. Landing on one (never a side
     // collision, they don't hurt) is a pogo bounce; they are the only way up. They loop: when one passes the top it
     // starts again from the bottom.
-    struct ClimbChild { float x, y, w, h; float phase; bool faceRight; };
+    struct ClimbChild { float x, y, w, h; float phase; bool faceRight; float flash = 0.0f; };
     std::vector<ClimbChild> m_ghosts;
     float m_ghostCycle = 0.0f, m_ghostTop = 0.0f;
     int   m_ghostWraps = 0;
