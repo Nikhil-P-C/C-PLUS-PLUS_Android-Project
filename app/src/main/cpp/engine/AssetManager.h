@@ -218,7 +218,25 @@ enum class SoundType{
     SFX_UI_OPEN,      // Options / Edit opened
     SFX_UI_QUIT,      // Quit pressed
     SFX_UI_INTRO,     // menu appears
+    // surfaces: which one is used comes from the level (Z ... STEPS= / weather / biome), see setFootstepSound()
+    SFX_FOOTSTEP_GRASS,
+    SFX_FOOTSTEP_LEAVES,
+    SFX_FOOTSTEP_SNOW,
+    SFX_FOOTSTEP_PUDDLE,
+    // environment one-shots (Sound/Ambient_Environment/oneshot)
+    SFX_THUNDER,      // thunder_close_01, after every lightning flash
+    SFX_WIND_GUST,    // wind_gust_01, when a gust starts
+    SFX_RAIN_SPLASH,  // rain_splash_01, random drops while it rains
+    SFX_WATER_RIPPLE, // water_ripple_01, random puddle ripples while it rains
     MUSIC_BACKGROUND,
+    COUNT
+};
+// Looping environment beds (Sound/Ambient_Environment/*_loop_01.ogg), streamed, one dedicated track each.
+enum class AmbientLoop{
+    RAIN = 0,       // rain_light_loop_01
+    WIND,           // wind_light_loop_01
+    FIREFLIES,      // fireflies_loop_01
+    EMBERS,         // embers_loop_01 (torches / fire close to the player)
     COUNT
 };
 class AssetManager{
@@ -241,6 +259,18 @@ public:
     // frame while the action is happening (footsteps, beam hum...): clips play back to back,
     // each for its full length, and never overlap or restart. Returns true if it started.
     bool playSoundIfIdle(SoundType type,float gain =1.0f);
+
+    // --- environment beds ------------------------------------------------------------------------------
+    // Sets the volume (0..1, before the SFX slider) of one looping bed. The first call with gain > 0 loads the
+    // file and starts it; a gain of 0 stops it again (nothing keeps streaming for silence). Call every frame
+    // with an already smoothed value, it only touches the mixer when the value changes.
+    void setAmbientLoop(AmbientLoop id,float gain);
+    void stopAmbientLoops();
+
+    // The sound the player's / enemies' footsteps use on the current level. Anything that is not a footstep
+    // sound, or whose file is missing, falls back to the concrete step.
+    void setFootstepSound(SoundType type);
+    SoundType getFootstepSound() const { return m_footstepSound; }
 
     // Looping music on one dedicated track (a new call replaces the previous music).
     void playMusic(SoundType);
@@ -301,6 +331,16 @@ private:
     // Tracks are owned by the mixer (freed by MIX_DestroyMixer) - never destroyed here.
     std::array<MIX_Track*,MAX_SFX_VOICES> m_sfxPool{nullptr};
     std::array<MIX_Track*,(unsigned int)SoundType::COUNT> m_idleTracks{nullptr}; // one per sound, for playSoundIfIdle
+    SoundType m_footstepSound = SoundType::SFX_FOOTSTEPS;
+
+    // environment beds: one streamed audio + one track each, created on first use
+    static constexpr int AMBIENT_LOOP_COUNT = (int)AmbientLoop::COUNT;
+    std::array<MIX_Audio*,AMBIENT_LOOP_COUNT> m_ambientAudio{nullptr};
+    std::array<MIX_Track*,AMBIENT_LOOP_COUNT> m_ambientTrack{nullptr};   // owned by the mixer
+    std::array<float,AMBIENT_LOOP_COUNT>      m_ambientGain{};
+    std::array<bool,AMBIENT_LOOP_COUNT>       m_ambientPlaying{};
+    std::array<bool,AMBIENT_LOOP_COUNT>       m_ambientFailed{};          // file missing: don't retry every frame
+
     MIX_Track* m_musicTrack =nullptr;
     MIX_Audio* m_musicFileAudio =nullptr;   // the streamed music file currently on m_musicTrack (owned here)
     std::string m_musicFilePath;

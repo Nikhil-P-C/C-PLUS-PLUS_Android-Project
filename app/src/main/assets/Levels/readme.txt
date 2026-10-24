@@ -15,19 +15,39 @@ L x y radius r g b intensity [flicker] [visible]
     light object in world pixels. r g b = 0..255, intensity 0..1, flicker 0..1 (torch wobble), visible 0/1 (glowing core)
     example:  L 600 430 420 255 170 90 1.0 0.35 1
 
-Z TOKEN [TOKEN ...]
-    ambience / weather for the level (optional). Without a Z line the biome decides (and the D darkness):
-      forest   : leaves + wind, flies by day, fireflies at dusk (D >= 0.20), sun flare on bright days (D <= 0.15)
-      meadows  : petals + wind, same flies / fireflies / sun flare rules
-      stone cave  : a few gnats          bright (blue) cave : blue glow-worm fireflies
-    TOKENS: FIREFLIES FLIES PETALS LEAVES WIND RAIN SNOW THUNDER SUNFLARE STORM (= RAIN THUNDER WIND) NONE AUTO
+Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
+    ambience / weather for the level. Without a Z line the biome decides (and the D darkness):
+      forest / meadows : leaves or petals + wind, fireflies from dusk on (D >= 0.12), sun + lens flare on bright days (D <= 0.15)
+      stone cave       : nothing extra (dust motes only)        bright (blue) cave : blue glow-worm fireflies
+      There are no daytime flies any more: the only insect is the firefly (FLIES is accepted and means FIREFLIES).
+    TOKENS: FIREFLIES PETALS LEAVES WIND RAIN SNOW THUNDER SUNFLARE STORM (= RAIN THUNDER WIND) NONE AUTO
     A Z line REPLACES the biome defaults. Put AUTO first to keep them, and prefix a token with - to remove it.
-    examples:  Z SNOW WIND              only snow + wind
-               Z AUTO RAIN              biome defaults + rain
-               Z AUTO -SUNFLARE         biome defaults, no lens flare
-               Z STORM                  rain + lightning + thunder rumble + strong wind
-               Z NONE                   nothing
-    (rain / snow always remove SUNFLARE and FLIES)
+    (rain / snow always remove SUNFLARE)
+    KEY=VALUE options (a flag name with a value switches it on with that strength, =0 switches it off):
+      RAIN=0.2..3      rain density          SNOW=0.2..3    snow density        SNOWSIZE=0.5..2.5  flake size
+      WIND=n           wind strength (1 = default, 3 = gale). WIND=-2 = strength 2 blowing LEFT. WINDDIR=-1|1 forces a side
+      GUST=0..3        gust strength + how often
+      ANGLE=-75..75    constant slant of rain/snow in degrees (+ leans right), added to what the wind does
+                       (rain falls at the angle the wind pushes it: slight breeze = slight slant, WIND=3 = extreme)
+      FOG=0..1         haze (default: a little in rain, more in snow and more still in a blizzard)
+      THUNDER=0.2..5   lightning frequency   FIREFLIES=0..3 / LEAVES=0..3 / PETALS=0..3   density
+      GLOW=r,g,b       firefly colour
+      SUNFLARE=0..2    lens flare strength   SUNCOLOR=r,g,b   sun colour
+      SUNPATH=x0,y0,x1,y1   where the sun is on screen (fractions 0..1) at the START and at the END of the level;
+                       it slides between them as the player travels, flare ghosts/halo/god rays move with it
+      DENSITY=0.25..1.5  scales every particle count    SOUND=0..2  ambience volume of this level (0 = silent)
+      STEPS=GRASS|LEAVES|SNOW|PUDDLE|CONCRETE   footstep surface (default: snow > rain=puddle > leaves > grass in forest/meadow > concrete)
+    sounds are automatic: rain / wind / firefly loops follow the weather, thunder + gust + drop splashes are one-shots,
+    embers crackle near L lights with flicker > 0 and burning FIRE traps.
+    examples:  Z SNOW WIND                  only snow + wind
+               Z AUTO RAIN                  biome defaults + rain
+               Z AUTO -SUNFLARE             biome defaults, no lens flare
+               Z STORM                      rain + lightning + thunder + strong wind
+               Z RAIN=1.5 WIND=-2.5 ANGLE=-20   heavy rain slanting hard to the left
+               Z SNOW=1.4 WIND=3 GUST=2 FOG=0.4   blizzard
+               Z AUTO SUNCOLOR=255,170,110 SUNPATH=0.2,0.3,0.8,0.12   sunset sun that crosses the sky
+               Z FIREFLIES=1.5 GLOW=120,220,255   dense blue fireflies
+               Z NONE                       nothing
 
 E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]
     enemy that patrols the horizontal line pathStartX..pathEndX (x should be between them) at speed px/s.

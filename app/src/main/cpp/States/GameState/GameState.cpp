@@ -417,13 +417,80 @@ void GameState::render(SDL_Renderer* renderer)  {
     }
 }
 
-// ambience simulation + the thunder clap that follows each lightning flash
+// Footstep surface of the level (Z ... STEPS=, else snow / rain / leaves / grass / concrete from the weather + biome)
+static SoundType footstepSoundFor(StepSurface surface){
+    switch(surface){
+        case StepSurface::GRASS:  return SoundType::SFX_FOOTSTEP_GRASS;
+        case StepSurface::LEAVES: return SoundType::SFX_FOOTSTEP_LEAVES;
+        case StepSurface::SNOW:   return SoundType::SFX_FOOTSTEP_SNOW;
+        case StepSurface::PUDDLE: return SoundType::SFX_FOOTSTEP_PUDDLE;
+        default:                  return SoundType::SFX_FOOTSTEPS;
+    }
+}
+
+// How loud each environment sound is before the SFX slider (tune them here)
+static constexpr float AMB_GAIN_RAIN      = 0.55f;
+static constexpr float AMB_GAIN_WIND      = 0.60f;
+static constexpr float AMB_GAIN_FIREFLIES = 0.50f;
+static constexpr float AMB_GAIN_EMBERS    = 0.55f;
+static constexpr float AMB_GAIN_THUNDER   = 0.90f;
+static constexpr float AMB_GAIN_GUST      = 0.70f;
+static constexpr float AMB_GAIN_DROPS     = 0.80f;
+
+// ambience simulation + everything the environment sounds like:
+//   loops   rain / wind / fireflies follow the weather, embers follow the nearest torch or fire
+//   shots   thunder after each lightning flash (panned to where the bolt was), a gust whoosh when a gust starts,
+//           random raindrop splashes and puddle ripples while it rains
 void GameState::updateAmbience(float dt){
     m_ambience.update(dt);
-    float strength = 0.0f;
-    if(m_ambience.consumeThunder(strength)){
+    AssetManager& assets = Engine::Get().getAssetManager();
+    const float scale = m_ambience.soundScale();
+
+    float strength = 0.0f, pan = 0.0f;
+    if(m_ambience.consumeThunder(strength, pan)){
         Camera::getInstance().addTrauma(0.10f + 0.20f * strength);   // low rumble
-        // sound hook: play a thunder clap here once the asset exists (strength 0.5..1 = gain/pitch)
+        assets.playSoundAt(0.0f, 0.0f, pan * 450.0f, -150.0f, SoundType::SFX_THUNDER, (0.55f + 0.45f * strength) * AMB_GAIN_THUNDER * scale);
+    }
+    float gustStrength = 0.0f, gustDir = 1.0f;
+    if(m_ambience.consumeGust(gustStrength, gustDir)){
+        assets.playSoundAt(0.0f, 0.0f, gustDir * 500.0f, 0.0f, SoundType::SFX_WIND_GUST, (0.35f + 0.65f * gustStrength) * AMB_GAIN_GUST * scale);
+    }
+    float dropGain = 0.0f, dropPan = 0.0f; bool ripple = false;
+    if(m_ambience.consumeDrop(dropGain, dropPan, ripple)){
+        assets.playSoundAt(0.0f, 0.0f, dropPan * 420.0f, -80.0f,
+                           ripple ? SoundType::SFX_WATER_RIPPLE : SoundType::SFX_RAIN_SPLASH, dropGain * AMB_GAIN_DROPS * scale);
+    }
+
+    // embers: crackle of the closest flickering light (torch) or burning FIRE trap, louder the closer the player is
+    float embers = 0.0f;
+    const float px = m_player.x + m_player.w * 0.5f, py = m_player.y + m_player.h * 0.5f;
+    for(const auto& l : m_levelLoader.getLights()){
+        if(l.flicker < 0.05f || l.intensity <= 0.0f) continue;     // steady lights (crystals, moon) don't crackle
+        const float reach = std::max(160.0f, l.radius * 0.85f);
+        const float dx = l.x - px, dy = l.y - py;
+        const float d = std::sqrt(dx*dx + dy*dy);
+        if(d >= reach) continue;
+        const float k = 1.0f - d / reach;
+        embers = std::max(embers, k * k * (0.35f + 0.65f * std::min(1.0f, l.intensity)));
+    }
+    for(const auto& t : m_traps){
+        if(t.type != TrapType::FIRE || t.status != TrapStatus::ON) continue;
+        const float dx = t.x + 16.0f - px, dy = t.y + 16.0f - py;
+        const float d = std::sqrt(dx*dx + dy*dy);
+        if(d >= 420.0f) continue;
+        const float k = 1.0f - d / 420.0f;
+        embers = std::max(embers, k * k * 0.85f);
+    }
+
+    // glide every bed to its target (about half a second), so weather swells in and out instead of popping
+    const AmbienceFx::SoundLevels lv = m_ambience.soundLevels();
+    const float target[4] = { lv.rain * AMB_GAIN_RAIN, lv.wind * AMB_GAIN_WIND, lv.fireflies * AMB_GAIN_FIREFLIES, embers * AMB_GAIN_EMBERS * scale };
+    const float rate[4]   = { 1.6f, 2.2f, 1.2f, 4.0f };
+    const AmbientLoop loop[4] = { AmbientLoop::RAIN, AmbientLoop::WIND, AmbientLoop::FIREFLIES, AmbientLoop::EMBERS };
+    for(int i = 0; i < 4; ++i){
+        m_ambientGain[i] += (target[i] - m_ambientGain[i]) * std::min(1.0f, dt * rate[i]);
+        if(target[i] <= 0.0f && m_ambientGain[i] < 0.01f) m_ambientGain[i] = 0.0f;   // finish the fade-out, then the stream stops
+        assets.setAmbientLoop(loop[i], m_ambientGain[i]);
     }
 }
 
@@ -1681,7 +1748,7 @@ void GameState::handlePhysicAndInput(float dt) {
     // every clip plays for its full length (no per-frame spam, no cut-offs).
     if((InputDispatcher::getInstance().movingLeft || InputDispatcher::getInstance().movingRight)
        && m_isGrounded && !inKnockback && !m_isDashing){
-        Engine::Get().getAssetManager().playSoundIfIdle(SoundType::SFX_FOOTSTEPS);
+        Engine::Get().getAssetManager().playSoundIfIdle(Engine::Get().getAssetManager().getFootstepSound());   // surface of this level
     }
 
     const bool jumpPressed = InputDispatcher::getInstance().consumeJumpPressed();
@@ -1894,8 +1961,14 @@ void GameState::setLevel(int level) {
     m_ambientParticles.init(m_renderer, AmbientParticles::themeFromBackground(m_backgroundElements));
     m_lighting.init(m_renderer);
     m_lighting.setLevel(m_levelLoader.getAmbient(), m_levelLoader.getLights());
-    m_ambience.init(m_renderer, AmbienceFx::biomeFromBackground(m_backgroundElements),
-                    m_levelLoader.getAmbient().darkness, m_levelLoader.getWeatherTokens());
+    {
+        const SDL_FRect world = m_levelLoader.getWallCollisionRect();   // the sun travels across the level's width
+        m_ambience.init(m_renderer, AmbienceFx::biomeFromBackground(m_backgroundElements),
+                        m_levelLoader.getAmbient().darkness, m_levelLoader.getWeatherTokens(), &world);
+    }
+    // what the ground sounds like on this level, and a clean start for the environment beds
+    Engine::Get().getAssetManager().setFootstepSound(footstepSoundFor(m_ambience.stepSurface()));
+    for(float& g : m_ambientGain) g = 0.0f;
     if(m_levelLoader.hasSpawn()){
         m_respawnX = m_levelLoader.getPlayer().x;
         m_respawnY = m_levelLoader.getPlayer().y;
