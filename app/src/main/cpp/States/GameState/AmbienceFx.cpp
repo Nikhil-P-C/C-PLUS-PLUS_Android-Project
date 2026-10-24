@@ -303,7 +303,6 @@ void AmbienceFx::parseOptions(const std::vector<std::string>& tokens) {
             else if (val == "GRASS")                                  m_opt.steps = StepSurface::GRASS;
             else if (val == "LEAVES" || val == "LEAF")                m_opt.steps = StepSurface::LEAVES;
             else if (val == "SNOW")                                   m_opt.steps = StepSurface::SNOW;
-            else if (val == "PUDDLE" || val == "WET" || val == "WATER") m_opt.steps = StepSurface::PUDDLE;
             else                                                      m_opt.steps = StepSurface::AUTO;
             continue;
         }
@@ -395,7 +394,6 @@ void AmbienceFx::init(SDL_Renderer* renderer, AmbienceBiome biome, float darknes
     m_nextGust = rnd(2.0f, 5.0f) / std::max(0.4f, m_opt.gust);
     m_nextStrike = rnd(2.5f, 6.0f) / m_opt.thunder;
     m_flashT = 99.0f; m_thunderDelay = -1.0f; m_thunderReady = false;
-    m_dropTimer = rnd(0.3f, 0.8f); m_dropReady = false;
     m_bolt.clear(); m_branches.clear();
 
     for (auto& d : m_dirt) {
@@ -768,7 +766,7 @@ void AmbienceFx::updateThunder(float dt) {
     if (m_nextStrike <= 0.0f) {
         m_flashT = 0.0f;
         makeBolt();
-        m_thunderDelay = rnd(0.35f, 1.5f);    // light first, sound after
+        m_thunderDelay = rnd(0.02f, 0.12f);   // the clap comes with the strike
         m_thunderStrength = rnd(0.5f, 1.0f);
         m_nextStrike = rnd(6.0f, 15.0f) / m_opt.thunder;
     }
@@ -776,19 +774,6 @@ void AmbienceFx::updateThunder(float dt) {
         m_thunderDelay -= dt;
         if (m_thunderDelay < 0.0f) { m_thunderReady = true; }
     }
-}
-
-// random drop splashes / puddle ripples while it rains (sound only, the streaks are the visuals)
-void AmbienceFx::updateDrops(float dt) {
-    if (!(m_mask & AMB_RAIN)) return;
-    m_dropTimer -= dt;
-    if (m_dropTimer > 0.0f || m_dropReady) return;
-    const float heavy = ((m_mask & AMB_THUNDER) != 0 || m_opt.rain > 1.4f) ? 1.7f : 1.0f;
-    m_dropTimer = rnd(0.22f, 0.75f) / (std::max(0.3f, m_opt.rain) * heavy);
-    m_dropReady = true;
-    m_dropRipple = rnd(0.0f, 1.0f) < 0.22f;
-    m_dropGain = m_dropRipple ? rnd(0.14f, 0.30f) : rnd(0.10f, 0.32f);
-    m_dropPan = rnd(-1.0f, 1.0f);
 }
 
 bool AmbienceFx::consumeThunder(float& strength) {
@@ -812,15 +797,6 @@ bool AmbienceFx::consumeGust(float& strength, float& dir) {
     return true;
 }
 
-bool AmbienceFx::consumeDrop(float& gain, float& pan, bool& ripple) {
-    if (!m_dropReady) return false;
-    m_dropReady = false;
-    gain = m_dropGain;
-    pan = m_dropPan;
-    ripple = m_dropRipple;
-    return true;
-}
-
 AmbienceFx::SoundLevels AmbienceFx::soundLevels() const {
     SoundLevels s;
     if (!m_ready) return s;
@@ -831,8 +807,7 @@ AmbienceFx::SoundLevels AmbienceFx::soundLevels() const {
     if (m_mask & AMB_WIND)                       s.wind = clamp01(0.12f + 0.85f * aw);          // swells with every gust
     else if (m_mask & (AMB_RAIN | AMB_SNOW))     s.wind = clamp01(0.06f + 0.55f * aw);          // weather always has some air in it
     if ((m_mask & AMB_SNOW) && (m_mask & AMB_WIND)) s.wind = clamp01(s.wind * 1.15f);           // blizzard howl
-    if (m_mask & AMB_FIREFLIES) s.fireflies = clamp01(m_fireNight * 0.55f * clampf(m_opt.fireflies, 0.4f, 1.4f));
-    s.rain *= m_opt.sound; s.wind *= m_opt.sound; s.fireflies *= m_opt.sound;
+    s.rain *= m_opt.sound; s.wind *= m_opt.sound;
     return s;
 }
 
@@ -840,7 +815,6 @@ AmbienceFx::SoundLevels AmbienceFx::soundLevels() const {
 StepSurface AmbienceFx::stepSurface() const {
     if (m_opt.steps != StepSurface::AUTO) return m_opt.steps;
     if (m_mask & AMB_SNOW)   return StepSurface::SNOW;
-    if (m_mask & AMB_RAIN)   return StepSurface::PUDDLE;
     if (m_mask & AMB_LEAVES) return StepSurface::LEAVES;
     if (m_biome == AmbienceBiome::FOREST || m_biome == AmbienceBiome::MEADOWS) return StepSurface::GRASS;
     return StepSurface::CONCRETE;
@@ -852,7 +826,6 @@ void AmbienceFx::update(float dt) {
     m_t += dt;
     updateWind(dt);
     updateThunder(dt);
-    updateDrops(dt);
 
     const View v = getView();
     auto dom = [&](bool front, float& w, float& h) {

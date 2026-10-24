@@ -119,7 +119,7 @@ public:
         Engine::Get().getAssetManager().setPitchRatio(1.0f);          // never leave the audio muffled/slowed
         Engine::Get().getAssetManager().setHearingDamage(0.0f);
         Engine::Get().getAssetManager().setHeartbeat(0.0f);
-        Engine::Get().getAssetManager().stopAmbientLoops();           // rain / wind / fireflies / embers belong to the level
+        Engine::Get().getAssetManager().stopAmbientLoops();           // rain / wind belong to the level
         LOGI("gamestate destructor:%p",this);
         if (m_font)            TTF_CloseFont(m_font);
         if (m_playerNameTextue)SDL_DestroyTexture(m_playerNameTextue);
@@ -319,7 +319,7 @@ private:
     ParticleSystem m_particleSystem;
     ParticleSystem m_fxParticles;          // hit sparks/flashes: drawn AFTER enemies + player so they sit on top
     AmbientParticles m_ambientParticles;
-    float m_ambientGain[4] = {0.0f,0.0f,0.0f,0.0f};   // current volume of the rain / wind / fireflies / embers beds
+    float m_ambientGain[2] = {0.0f,0.0f};   // current volume of the rain / wind beds
     AmbienceFx m_ambience;                 // biome ambience + weather (fireflies, flies, petals, wind, rain, snow, thunder, sun flare)
     Lighting m_lighting;                   // ambient darkness + player light + level light objects
     float m_walkTimer=0.0f;

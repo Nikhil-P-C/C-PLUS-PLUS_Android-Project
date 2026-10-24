@@ -37,8 +37,8 @@ Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
                        it slides between them as the player travels, flare ghosts/halo/god rays move with it
       DENSITY=0.25..1.5  scales every particle count    SOUND=0..2  ambience volume of this level (0 = silent)
       STEPS=GRASS|LEAVES|SNOW|PUDDLE|CONCRETE   footstep surface (default: snow > rain=puddle > leaves > grass in forest/meadow > concrete)
-    sounds are automatic: rain / wind / firefly loops follow the weather, thunder + gust + drop splashes are one-shots,
-    embers crackle near L lights with flicker > 0 and burning FIRE traps.
+    sounds are automatic: rain loop (rain_light_loop) + wind loop follow the weather, a gust whoosh when a gust starts,
+    thunder plays on every lightning strike.
     examples:  Z SNOW WIND                  only snow + wind
                Z AUTO RAIN                  biome defaults + rain
                Z AUTO -SUNFLARE             biome defaults, no lens flare

@@ -222,21 +222,16 @@ enum class SoundType{
     SFX_FOOTSTEP_GRASS,
     SFX_FOOTSTEP_LEAVES,
     SFX_FOOTSTEP_SNOW,
-    SFX_FOOTSTEP_PUDDLE,
     // environment one-shots (Sound/Ambient_Environment/oneshot)
-    SFX_THUNDER,      // thunder_close_01, after every lightning flash
+    SFX_THUNDER,      // thunder_close_01, on every lightning strike
     SFX_WIND_GUST,    // wind_gust_01, when a gust starts
-    SFX_RAIN_SPLASH,  // rain_splash_01, random drops while it rains
-    SFX_WATER_RIPPLE, // water_ripple_01, random puddle ripples while it rains
     MUSIC_BACKGROUND,
     COUNT
 };
-// Looping environment beds (Sound/Ambient_Environment/*_loop_01.ogg), streamed, one dedicated track each.
+// Looping environment beds (rain + wind, Sound/Ambient_Environment/*_loop_01.ogg), streamed, one dedicated track each.
 enum class AmbientLoop{
     RAIN = 0,       // rain_light_loop_01
     WIND,           // wind_light_loop_01
-    FIREFLIES,      // fireflies_loop_01
-    EMBERS,         // embers_loop_01 (torches / fire close to the player)
     COUNT
 };
 class AssetManager{

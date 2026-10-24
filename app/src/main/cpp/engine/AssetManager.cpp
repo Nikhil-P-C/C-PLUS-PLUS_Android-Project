@@ -158,8 +158,6 @@ bool AssetManager::playSoundIfIdle(SoundType type,float gain) {
 static const char* const AMBIENT_LOOP_FILES[(int)AmbientLoop::COUNT] = {
         "Sound/Ambient_Environment/rain_light_loop_01.ogg",
         "Sound/Ambient_Environment/wind_light_loop_01.ogg",
-        "Sound/Ambient_Environment/fireflies_loop_01.ogg",
-        "Sound/Ambient_Environment/embers_loop_01.ogg",
 };
 
 void AssetManager::setAmbientLoop(AmbientLoop id,float gain) {
@@ -224,7 +222,6 @@ void AssetManager::setFootstepSound(SoundType type) {
         case SoundType::SFX_FOOTSTEP_GRASS:
         case SoundType::SFX_FOOTSTEP_LEAVES:
         case SoundType::SFX_FOOTSTEP_SNOW:
-        case SoundType::SFX_FOOTSTEP_PUDDLE:
             break;
         default:
             type = SoundType::SFX_FOOTSTEPS;
@@ -500,11 +497,8 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadSound(SoundType::SFX_FOOTSTEP_GRASS,  "Sound/footstep/footsteps_grass_01.wav");
     loadSound(SoundType::SFX_FOOTSTEP_LEAVES, "Sound/footstep/footsteps_leaves_01.wav");
     loadSound(SoundType::SFX_FOOTSTEP_SNOW,   "Sound/footstep/footsteps_snow_01.wav");
-    loadSound(SoundType::SFX_FOOTSTEP_PUDDLE, "Sound/footstep/footsteps_puddle_01.wav");
     loadSound(SoundType::SFX_THUNDER,      "Sound/Ambient_Environment/oneshot/thunder_close_01.wav");
     loadSound(SoundType::SFX_WIND_GUST,    "Sound/Ambient_Environment/oneshot/wind_gust_01.wav");
-    loadSound(SoundType::SFX_RAIN_SPLASH,  "Sound/Ambient_Environment/oneshot/rain_splash_01.wav");
-    loadSound(SoundType::SFX_WATER_RIPPLE, "Sound/Ambient_Environment/oneshot/water_ripple_01.wav");
 
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);

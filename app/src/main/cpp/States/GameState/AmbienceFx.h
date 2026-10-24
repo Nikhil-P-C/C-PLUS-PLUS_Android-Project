@@ -27,7 +27,7 @@
 //     Z SNOW=1.4 WIND=3 GUST=2 FOG=0.4   blizzard
 //     Z NONE                             nothing
 //
-// Sound: this class only DECIDES (soundLevels(), consumeThunder(), consumeGust(), consumeDrop()); GameState
+// Sound: this class only DECIDES (soundLevels(), consumeThunder(), consumeGust()); GameState
 // plays the actual clips through AssetManager.
 //
 // Cost: everything is batched per texture into SDL_RenderGeometry calls (a handful of draws per layer),
@@ -69,7 +69,6 @@ enum class StepSurface {
     GRASS,
     LEAVES,
     SNOW,
-    PUDDLE,
 };
 
 class AmbienceFx {
@@ -97,13 +96,12 @@ public:
         uint8_t sunRGB[3]  = {255, 222, 165};    // SUNCOLOR=r,g,b
         bool    hasGlow    = false;
         uint8_t glowRGB[3] = {200, 255, 90};     // GLOW=r,g,b  firefly colour
-        StepSurface steps = StepSurface::AUTO;   // STEPS=GRASS|LEAVES|SNOW|PUDDLE|CONCRETE|AUTO
+        StepSurface steps = StepSurface::AUTO;   // STEPS=GRASS|LEAVES|SNOW|CONCRETE|AUTO
     };
 
     struct SoundLevels {            // 0..1 loop volumes, already scaled by SOUND=
         float rain = 0.0f;
         float wind = 0.0f;
-        float fireflies = 0.0f;
     };
 
     AmbienceFx() = default;
@@ -131,9 +129,7 @@ public:
     bool consumeThunder(float& strength, float& pan);
     // true once at the start of every wind gust. strength 0.3..1, dir -1 / +1 = blowing left / right.
     bool consumeGust(float& strength, float& dir);
-    // true every now and then while it rains: one drop splash (or a ripple) to play. gain 0..1, pan -1..1.
-    bool consumeDrop(float& gain, float& pan, bool& ripple);
-    // target volumes of the looping beds (rain / wind / fireflies)
+    // target volumes of the looping beds (rain / wind)
     SoundLevels soundLevels() const;
     float soundScale() const { return m_opt.sound; }
     // footstep surface for this level (resolved: never AUTO)
@@ -181,7 +177,6 @@ private:
     void buildStreaks();
     void updateWind(float dt);
     void updateThunder(float dt);
-    void updateDrops(float dt);
     void makeBolt();
     void renderLayer(SDL_Renderer* renderer, bool front);
     // screen position + current brightness of a firefly (shared by the layer pass and the overlay glow)
@@ -237,11 +232,6 @@ private:
     std::vector<SDL_FPoint> m_bolt;
     std::vector<std::vector<SDL_FPoint>> m_branches;
 
-    // rain drop sounds
-    float m_dropTimer = 0.5f;
-    bool  m_dropReady = false;
-    float m_dropGain = 0.0f, m_dropPan = 0.0f;
-    bool  m_dropRipple = false;
 
     // lens dirt: fixed blobs on the "lens" that light up when the sun is near them
     struct Dirt { float x, y, r, a; };   // x,y in 0..1 of the screen

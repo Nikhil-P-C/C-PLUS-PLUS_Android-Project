@@ -310,7 +310,7 @@ void EnemiesBuilder::updateFootsteps(Enemy& enemy, float prevX, const SDL_FRect&
     if(dx*dx + dy*dy > ENEMY_FOOTSTEP_HEAR_RANGE * ENEMY_FOOTSTEP_HEAR_RANGE) return;   // too far to hear
 
     AssetManager& assets = Engine::Get().getAssetManager();
-    const SoundType stepSound = assets.getFootstepSound();   // grass / leaves / snow / puddle / concrete, set per level
+    const SoundType stepSound = assets.getFootstepSound();   // grass / leaves / snow / concrete, set per level
     assets.playSoundAt(listenerX,listenerY,srcX,srcY,stepSound,ENEMY_FOOTSTEP_GAIN);
 
     // next step only after this clip has finished, so each enemy's steps follow one another
