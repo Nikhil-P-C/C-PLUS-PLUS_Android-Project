@@ -92,7 +92,13 @@ public:
         float sound     = 1.0f;   // SOUND=     scales the ambience sounds   0 .. 2 (0 = silent level)
         // SUNPATH=x0,y0,x1,y1  where the sun is on screen at the START and at the END of the level
         // (fractions of the screen: 0.9,0.16 = top right). It slides between them as the camera travels.
+        // SUNPOS=x,y puts it at one fixed spot (SUNPATH=x,y does the same); SUNPRESET=SUNSET|NOON|... picks a ready-made one.
+        // Fractions may leave 0..1 (a sun half below the horizon: y=1.0, just out of frame: x=-0.05).
         float sunPath[4] = {0.92f, 0.17f, 0.30f, 0.08f};
+        float sunDrift     = 0.04f;              // SUNDRIFT=  how far the sun follows the camera's vertical travel (0 = nailed to the sky)
+        float sunSize      = 1.0f;               // SUNSIZE=   scales the sun's glow / core / starburst   0.4 .. 3
+        bool  sunForced    = false;              // the level placed the sun itself -> flare on, and darkness dims it less
+        bool  hasSunColor  = false;              // (a SUNCOLOR= wins over a preset's colour whatever the order)
         uint8_t sunRGB[3]  = {255, 222, 165};    // SUNCOLOR=r,g,b
         bool    hasGlow    = false;
         uint8_t glowRGB[3] = {200, 255, 90};     // GLOW=r,g,b  firefly colour

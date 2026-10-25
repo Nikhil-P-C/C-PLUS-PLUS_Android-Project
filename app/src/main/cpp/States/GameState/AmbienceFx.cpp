@@ -180,6 +180,12 @@ namespace {
         return 0;
     }
 
+    // KEY= tokens that place / style the sun: giving one means "I want a sun here", so they also switch the flare on
+    bool isSunPlacement(const std::string& k) {
+        return k == "SUNPOS" || k == "SUNPOSITION" || k == "SUNPATH" || k == "SUNPRESET" || k == "SUNAT" || k == "TIMEOFDAY" ||
+               k == "SUNSIZE" || k == "SUNCOLOR" || k == "SUNCOLOUR" || k == "SUNDRIFT";
+    }
+
     bool parseFloat(const std::string& s, float& out) {
         if (s.empty()) return false;
         char* end = nullptr;
@@ -271,7 +277,9 @@ uint32_t AmbienceFx::resolve(AmbienceBiome biome, float darkness, const std::vec
         // KEY=VALUE: a flag name switches that effect on (value 0 switches it off), the rest are plain options
         const size_t eq = t.find('=');
         if (eq != std::string::npos) {
-            const uint32_t f = flagFor(t.substr(0, eq));
+            const std::string key = t.substr(0, eq);
+            if (isSunPlacement(key)) m |= AMB_SUNFLARE;
+            const uint32_t f = flagFor(key);
             if (f) {
                 float v = 1.0f;
                 if (parseFloat(t.substr(eq + 1), v) && std::fabs(v) < 0.0001f) m &= ~f; else m |= f;
@@ -306,12 +314,46 @@ void AmbienceFx::parseOptions(const std::vector<std::string>& tokens) {
             else                                                      m_opt.steps = StepSurface::AUTO;
             continue;
         }
-        if (key == "SUNPATH") {
-            if (parseList(val, list, 4) == 4) for (int i = 0; i < 4; ++i) m_opt.sunPath[i] = list[i];
+        if (isSunPlacement(key)) m_opt.sunForced = true;
+        if (key == "SUNPATH" || key == "SUNPOS" || key == "SUNPOSITION") {
+            // 4 numbers = start x,y and end x,y (the sun slides while the player travels); 2 numbers = a fixed spot
+            const int n = parseList(val, list, 4);
+            if (n == 4) for (int i = 0; i < 4; ++i) m_opt.sunPath[i] = clampf(list[i], -1.0f, 2.0f);
+            else if (n == 2) {
+                m_opt.sunPath[0] = m_opt.sunPath[2] = clampf(list[0], -1.0f, 2.0f);
+                m_opt.sunPath[1] = m_opt.sunPath[3] = clampf(list[1], -1.0f, 2.0f);
+            }
+            continue;
+        }
+        if (key == "SUNPRESET" || key == "SUNAT" || key == "TIMEOFDAY") {
+            // ready-made sun placements (fixed spot unless noted); SUNCOLOR= still overrides the colour
+            struct Preset { const char* name; float x0, y0, x1, y1; uint8_t r, g, b; };
+            static const Preset presets[] = {
+                    {"NOON",      0.50f, 0.10f, 0.50f, 0.10f, 255, 238, 200},   // high, centre
+                    {"MIDDAY",    0.50f, 0.10f, 0.50f, 0.10f, 255, 238, 200},
+                    {"MORNING",   0.22f, 0.24f, 0.22f, 0.24f, 255, 226, 170},
+                    {"AFTERNOON", 0.78f, 0.24f, 0.78f, 0.24f, 255, 222, 165},
+                    {"DAWN",      0.14f, 0.80f, 0.14f, 0.80f, 255, 170, 120},   // low on the left, warm
+                    {"SUNRISE",   0.14f, 0.80f, 0.14f, 0.80f, 255, 170, 120},
+                    {"SUNSET",    0.50f, 0.84f, 0.50f, 0.84f, 255, 140,  80},   // low, bottom centre, orange
+                    {"DUSK",      0.86f, 0.80f, 0.86f, 0.80f, 255, 120,  90},
+                    {"TRAVEL",    0.92f, 0.17f, 0.30f, 0.08f, 255, 222, 165},   // the default: top right -> top left across the level
+            };
+            std::string up = val;
+            for (auto& c : up) c = (char)std::toupper((unsigned char)c);
+            for (const auto& pr : presets) {
+                if (up != pr.name) continue;
+                m_opt.sunPath[0] = pr.x0; m_opt.sunPath[1] = pr.y0; m_opt.sunPath[2] = pr.x1; m_opt.sunPath[3] = pr.y1;
+                if (!m_opt.hasSunColor) { m_opt.sunRGB[0] = pr.r; m_opt.sunRGB[1] = pr.g; m_opt.sunRGB[2] = pr.b; }
+                break;
+            }
             continue;
         }
         if (key == "SUNCOLOR" || key == "SUNCOLOUR") {
-            if (parseList(val, list, 3) == 3) for (int i = 0; i < 3; ++i) m_opt.sunRGB[i] = (uint8_t)clampf(list[i], 0.0f, 255.0f);
+            if (parseList(val, list, 3) == 3) {
+                for (int i = 0; i < 3; ++i) m_opt.sunRGB[i] = (uint8_t)clampf(list[i], 0.0f, 255.0f);
+                m_opt.hasSunColor = true;
+            }
             continue;
         }
         if (key == "GLOW" || key == "FIREFLYCOLOR" || key == "FIREFLYCOLOUR") {
@@ -339,6 +381,8 @@ void AmbienceFx::parseOptions(const std::vector<std::string>& tokens) {
         else if (key == "LEAVES" || key == "LEAF") m_opt.leaves = clampf(f, 0.0f, 3.0f);
         else if (key == "PETALS" || key == "PETAL") m_opt.petals = clampf(f, 0.0f, 3.0f);
         else if (key == "SUNFLARE" || key == "FLARE" || key == "SUN" || key == "LENSFLARE") m_opt.flare = clampf(f, 0.0f, 2.0f);
+        else if (key == "SUNDRIFT")  m_opt.sunDrift  = clampf(f, -0.5f, 0.5f);
+        else if (key == "SUNSIZE")   m_opt.sunSize   = clampf(f, 0.4f, 3.0f);
         else if (key == "DENSITY")   m_opt.density   = clampf(f, 0.25f, 1.5f);
         else if (key == "SOUND" || key == "VOLUME") m_opt.sound = clampf(f, 0.0f, 2.0f);
     }
@@ -1052,14 +1096,15 @@ void AmbienceFx::renderFront(SDL_Renderer* renderer) {
 // SUNPATH gives its screen position at the start and at the end of the level, the camera decides where it is
 // in between. It fades out when it leaves the screen and its strength follows the level's darkness.
 bool AmbienceFx::sunState(const View& v, float& sx, float& sy, float& vis, float& center) const {
-    float vis0 = clamp01(1.0f - m_darkness * 1.5f) * m_opt.flare;
+    // a level that places the sun itself (SUNPOS / SUNPATH / SUNPRESET ...) wants to SEE it, so darkness dims it far less
+    float vis0 = clamp01(1.0f - m_darkness * (m_opt.sunForced ? 0.6f : 1.5f)) * m_opt.flare;
     if (vis0 < 0.02f) return false;
 
     float prog = 0.5f;
     const float span = m_worldW - v.w;
     if (span > 1.0f) prog = clamp01((v.camX - m_worldX) / span);
     sx = lerp(m_opt.sunPath[0], m_opt.sunPath[2], prog) * v.w;
-    sy = lerp(m_opt.sunPath[1], m_opt.sunPath[3], prog) * v.h - (v.camY - m_worldY) * 0.04f;   // climbing / diving moves it a little
+    sy = lerp(m_opt.sunPath[1], m_opt.sunPath[3], prog) * v.h - (v.camY - m_worldY) * m_opt.sunDrift;   // climbing / diving moves it a little (SUNDRIFT=, 0 = fixed)
 
     // fade when it is off screen (a sun just outside the frame still throws a flare, 30% of a screen away it is gone)
     const float ox = std::max(0.0f, std::fabs(sx - v.w * 0.5f) - v.w * 0.5f) / (v.w * 0.30f);
@@ -1084,8 +1129,9 @@ void AmbienceFx::renderSunBack(SDL_Renderer* r, const View& v) {
 
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_ADD);
     SDL_SetTextureBlendMode(m_glow, SDL_BLENDMODE_ADD);
-    g_batch.quad(sx, sy, 440.0f, 440.0f, 0.0f, col(R, G, B, 0.24f * vis));
-    g_batch.quad(sx, sy, 150.0f, 150.0f, 0.0f, col(255, 244, 220, 0.50f * vis));
+    const float ss = m_opt.sunSize;
+    g_batch.quad(sx, sy, 440.0f * ss, 440.0f * ss, 0.0f, col(R, G, B, 0.24f * vis));
+    g_batch.quad(sx, sy, 150.0f * ss, 150.0f * ss, 0.0f, col(255, 244, 220, 0.50f * vis));
     g_batch.flush(r, m_glow);
     SDL_SetTextureBlendMode(m_glow, SDL_BLENDMODE_BLEND);
 
@@ -1136,9 +1182,10 @@ void AmbienceFx::renderLensFlare(SDL_Renderer* r, const View& v) {
 
     // 1. veil over the whole view (light scattering in the lens) + lens dirt that lights up near the sun
     g_batch.quad(sx, sy, v.w * 1.25f, v.w * 1.25f, 0.0f, tone(255, 220, 160, 0.085f * vis * nearK));
-    g_batch.quad(sx, sy, 300.0f, 300.0f, 0.0f, tone(255, 228, 180, 0.22f * vis * nearK));
-    g_batch.quad(sx, sy, 100.0f, 100.0f, 0.0f, col(255, 248, 232, 0.62f * vis));
-    g_batch.quad(sx, sy, 34.0f, 34.0f, 0.0f, col(255, 255, 255, 0.85f * vis));
+    const float ss = m_opt.sunSize;
+    g_batch.quad(sx, sy, 300.0f * ss, 300.0f * ss, 0.0f, tone(255, 228, 180, 0.22f * vis * nearK));
+    g_batch.quad(sx, sy, 100.0f * ss, 100.0f * ss, 0.0f, col(255, 248, 232, 0.62f * vis));
+    g_batch.quad(sx, sy, 34.0f * ss, 34.0f * ss, 0.0f, col(255, 255, 255, 0.85f * vis));
     // anamorphic streak: a long cool line and a short warm one
     g_batch.quad(sx, sy, 640.0f, 11.0f, 0.0f, tone(140, 185, 255, 0.28f * vis));
     g_batch.quad(sx, sy, 430.0f, 5.0f, 0.0f, tone(255, 238, 205, 0.34f * vis));
@@ -1154,8 +1201,8 @@ void AmbienceFx::renderLensFlare(SDL_Renderer* r, const View& v) {
 
     // 2. starburst: two crossed spike sets that turn as the sun slides
     const float pulseK = 0.9f + 0.1f * std::sin(m_t * 0.9f);
-    g_batch.quad(sx, sy, 340.0f * pulseK, 340.0f * pulseK, sx * 0.0009f, tone(255, 240, 210, 0.42f * vis * nearK));
-    g_batch.quad(sx, sy, 230.0f * pulseK, 230.0f * pulseK, sx * 0.0009f + 0.5236f, tone(255, 225, 190, 0.26f * vis * nearK));
+    g_batch.quad(sx, sy, 340.0f * pulseK * ss, 340.0f * pulseK * ss, sx * 0.0009f, tone(255, 240, 210, 0.42f * vis * nearK));
+    g_batch.quad(sx, sy, 230.0f * pulseK * ss, 230.0f * pulseK * ss, sx * 0.0009f + 0.5236f, tone(255, 225, 190, 0.26f * vis * nearK));
     g_batch.flush(r, m_star);
 
     // 3. rainbow halo around the sun (it breathes a little)

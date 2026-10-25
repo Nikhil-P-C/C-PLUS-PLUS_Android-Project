@@ -33,8 +33,15 @@ Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
       THUNDER=0.2..5   lightning frequency   FIREFLIES=0..3 / LEAVES=0..3 / PETALS=0..3   density
       GLOW=r,g,b       firefly colour
       SUNFLARE=0..2    lens flare strength   SUNCOLOR=r,g,b   sun colour
-      SUNPATH=x0,y0,x1,y1   where the sun is on screen (fractions 0..1) at the START and at the END of the level;
-                       it slides between them as the player travels, flare ghosts/halo/god rays move with it
+      SUNPOS=x,y       a FIXED sun position on screen, as fractions of the screen (0,0 = top left, 1,1 = bottom right):
+                         0.5,0.1 noon, top centre      0.5,0.85 sunset, near the bottom centre      0.9,0.12 top right corner
+                       values may leave 0..1 (y=1.0 sun half below the bottom edge, x=-0.05 just outside the left edge)
+      SUNPATH=x0,y0,x1,y1   a MOVING sun: where it is at the START and at the END of the level; it slides between them
+                       as the player travels, flare ghosts/halo/god rays move with it (SUNPATH=x,y with 2 numbers = SUNPOS)
+      SUNPRESET=NOON|MORNING|AFTERNOON|DAWN|SUNSET|DUSK|TRAVEL   ready-made position + colour (SUNCOLOR= overrides the colour)
+      SUNSIZE=0.4..3   size of the sun's glow / core / starburst (a low big sunset sun: SUNSIZE=1.6)
+      SUNDRIFT=-0.5..0.5   how much the sun follows the camera's vertical travel (default 0.04, 0 = nailed to the sky)
+      note: the flare fades with the level's darkness (D line), so a sunset level should not be too dark (D <= 0.3)
       DENSITY=0.25..1.5  scales every particle count    SOUND=0..2  ambience volume of this level (0 = silent)
       STEPS=GRASS|LEAVES|SNOW|PUDDLE|CONCRETE   footstep surface (default: snow > rain=puddle > leaves > grass in forest/meadow > concrete)
     sounds are automatic: rain loop (rain_light_loop) + wind loop follow the weather, a gust whoosh when a gust starts,
@@ -46,6 +53,8 @@ Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
                Z RAIN=1.5 WIND=-2.5 ANGLE=-20   heavy rain slanting hard to the left
                Z SNOW=1.4 WIND=3 GUST=2 FOG=0.4   blizzard
                Z AUTO SUNCOLOR=255,170,110 SUNPATH=0.2,0.3,0.8,0.12   sunset sun that crosses the sky
+               Z AUTO SUNPRESET=SUNSET SUNSIZE=1.5   big orange sun low at the bottom centre, fixed
+               Z AUTO SUNPOS=0.5,0.1 SUNDRIFT=0   noon sun, top centre, never moves
                Z FIREFLIES=1.5 GLOW=120,220,255   dense blue fireflies
                Z NONE                       nothing
 
