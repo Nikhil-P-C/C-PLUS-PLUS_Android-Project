@@ -362,6 +362,11 @@ void BossBuilder::renderTitleCard(SDL_Renderer* renderer) const {
     if(!m_cardFont) m_cardFont = std::make_unique<MenuFont>(38);
     if(!m_cardFont->ok()) return;
 
+    using MenuKit::Rgb;
+    using MenuKit::mix;
+    using MenuKit::smooth;
+    const MenuTheme& th = MenuTheme::get();
+
     const bool challenge = m_card.rank == BossRank::CHALLENGE;
     const std::string tag = challenge ? "CHALLENGE" : "THREAT";
     const int mainSize = m_card.nameCard ? 92 : 64;
@@ -369,34 +374,75 @@ void BossBuilder::renderTitleCard(SDL_Renderer* renderer) const {
     if(mainKey != m_cardMainKey){ m_cardMain.set(renderer, *m_cardFont, m_card.main.c_str(), mainSize); m_cardMainKey = mainKey; }
     if(tag != m_cardTagKey){ m_cardTag.set(renderer, *m_cardFont, tag.c_str(), 40); m_cardTagKey = tag; }
 
-    const float fadeIn = MenuKit::clamp01((float)el / 300.0f);
-    const float fadeOut = MenuKit::clamp01((float)(m_card.dur - el) / 500.0f);
-    const float a = std::min(fadeIn, fadeOut);
-    // slow "push-in" so the card breathes
-    const float scale = 1.0f + 0.04f * ((float)el / (float)m_card.dur);
+    const float t = (float)el / 1000.0f;
+    const float fadeIn = MenuKit::clamp01((float)el / 450.0f);
+    const float fadeOut = MenuKit::clamp01((float)(m_card.dur - el) / 600.0f);
+    const float a = smooth(std::min(fadeIn, fadeOut));
+    const float grow = smooth(MenuKit::clamp01((float)el / 700.0f));   // ornaments open outward from the centre
+    const float scale = 1.0f + 0.03f * ((float)el / (float)m_card.dur);   // slow push-in so the card breathes
+    const float pulse = th.pulse();
 
     const float sw = Camera::getInstance().getCamera().w, sh = Camera::getInstance().getCamera().h;
-    const float cy = sh * 0.40f;
-    const MenuKit::Rgb tagCol = challenge ? MenuKit::Rgb{0.95f, 0.18f, 0.15f} : MenuKit::Rgb{0.95f, 0.70f, 0.22f};
+    const float cx = sw * 0.5f, cy = sh * 0.40f;
+    const float bandH = m_card.nameCard ? 230.0f : 170.0f;
+    const float top = cy - bandH * 0.5f, bot = cy + bandH * 0.5f;
+
+    // the menu palette, tinted toward the rank colour so THREAT / CHALLENGE still read at a glance
+    const Rgb rankCol = challenge ? Rgb{0.95f, 0.18f, 0.15f} : Rgb{0.95f, 0.70f, 0.22f};
+    const Rgb coreCol = mix(th.core(), rankCol, 0.55f);
+    const Rgb lineCol = mix(th.accent(), rankCol, 0.35f);
+    const Rgb titleCol = mix(Rgb{1.0f, 0.97f, 0.92f}, th.accent(), 0.20f);
 
     SDL_BlendMode prev = SDL_BLENDMODE_NONE;
     SDL_GetRenderDrawBlendMode(renderer, &prev);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    const float bandH = m_card.nameCard ? 230.0f : 170.0f;
-    SDL_FRect band{0.0f, cy - bandH * 0.5f, sw, bandH};
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, (Uint8)(165.0f * a));
-    SDL_RenderFillRect(renderer, &band);
-    SDL_SetRenderDrawColor(renderer, (Uint8)(tagCol.r * 255), (Uint8)(tagCol.g * 255), (Uint8)(tagCol.b * 255), (Uint8)(200.0f * a));
-    SDL_FRect l1{sw * 0.5f - 360.0f * a, band.y, 720.0f * a, 2.0f}, l2{sw * 0.5f - 360.0f * a, band.y + bandH - 2.0f, 720.0f * a, 2.0f};
-    SDL_RenderFillRect(renderer, &l1);
-    SDL_RenderFillRect(renderer, &l2);
-
     MenuPainter p(renderer);
-    p.label(m_cardTag, sw * 0.5f, cy - bandH * 0.30f, 1.0f, tagCol, a);
-    p.label(m_cardMain, sw * 0.5f, cy + 6.0f, scale, MenuKit::Rgb{1.0f, 0.95f, 0.88f}, a);
+
+    // 1) soft black so the text reads over any arena, then the core light breathing behind it (no hard band)
+    p.shade(cx, cy, sw * 0.95f, bandH + 260.0f, 0.78f * a);
+    p.shade(cx, cy, 1250.0f, bandH + 90.0f, 0.55f * a);
+    p.glow(cx, cy, 1150.0f, bandH + 220.0f, coreCol, (0.20f + 0.12f * pulse) * a);
+    p.glow(cx, cy, 520.0f, bandH * 0.9f, coreCol, (0.14f + 0.10f * pulse) * a);
+
+    // 2) motes drifting upward through the card (stateless: each one is a function of time + index)
+    for(int i = 0; i < 22; ++i){
+        const float seed = (float)i * 12.9898f;
+        const float r1 = std::fmod(std::sin(seed) * 43758.5453f, 1.0f); const float u1 = r1 < 0 ? r1 + 1.0f : r1;
+        const float r2 = std::fmod(std::sin(seed * 1.7f + 3.1f) * 24634.6345f, 1.0f); const float u2 = r2 < 0 ? r2 + 1.0f : r2;
+        const float speed = 22.0f + 38.0f * u2;
+        const float life = std::fmod(t * speed / (bandH + 120.0f) + u1 * 3.0f, 1.0f);
+        const float mx = cx + (u1 - 0.5f) * 1000.0f + std::sin(t * 0.9f + seed) * 14.0f;
+        const float my = bot + 60.0f - life * (bandH + 120.0f);
+        const float fa = std::sin(life * 3.14159f) * a;
+        p.glow(mx, my, 30.0f, 30.0f, th.mote(), 0.55f * fa);
+        p.diamond(mx, my, 1.8f + 1.6f * u2, th.mote(), 0.85f * fa);
+    }
+
+    // 3) frame: fading lines top and bottom opening from the middle, a diamond on each
+    const float lineHalf = 380.0f * grow;
+    p.fadeLine(cx - lineHalf - 90.0f, cx, top, lineCol, 0.0f, 0.85f * a);
+    p.fadeLine(cx, cx + lineHalf + 90.0f, top, lineCol, 0.85f * a, 0.0f);
+    p.fadeLine(cx - lineHalf - 50.0f, cx, bot, lineCol, 0.0f, 0.55f * a);
+    p.fadeLine(cx, cx + lineHalf + 50.0f, bot, lineCol, 0.55f * a, 0.0f);
+    p.diamond(cx, top, 6.0f, lineCol, a);
+    p.diamond(cx, bot, 5.0f, lineCol, 0.8f * a);
+
+    // 4) THREAT / CHALLENGE, flanked like a main-menu title
+    const float tagY = cy - bandH * 0.30f;
+    p.flank(m_cardTag, cx, tagY, 1.0f, 1.0f, a);
+    p.label(m_cardTag, cx, tagY, 1.0f, rankCol, a);
+
+    // 5) the name (or phase name), with the heartbeat lifting its glow
+    p.glow(cx, cy + 6.0f, m_cardMain.w * scale + 300.0f, m_cardMain.h * scale + 120.0f, coreCol, (0.16f + 0.14f * pulse) * a);
+    p.label(m_cardMain, cx, cy + 6.0f, scale, titleCol, a);
+
+    // 6) sub-title under a short fading rule
     if(!m_card.sub.empty()){
         if(m_card.sub != m_cardSubKey){ m_cardSub.set(renderer, *m_cardFont, m_card.sub.c_str(), 36); m_cardSubKey = m_card.sub; }
-        p.label(m_cardSub, sw * 0.5f, cy + bandH * 0.32f, 1.0f, MenuKit::Rgb{0.8f, 0.78f, 0.74f}, a * 0.9f);
+        const float subY = cy + bandH * 0.32f;
+        p.fadeLine(cx - 260.0f * grow, cx, subY - 34.0f, th.accent(), 0.0f, 0.35f * a);
+        p.fadeLine(cx, cx + 260.0f * grow, subY - 34.0f, th.accent(), 0.35f * a, 0.0f);
+        p.label(m_cardSub, cx, subY, 1.0f, mix(Rgb{0.85f, 0.83f, 0.80f}, th.accent(), 0.25f), a * 0.9f);
     }
     SDL_SetRenderDrawBlendMode(renderer, prev);
 }
@@ -558,6 +604,7 @@ void BossBuilder::update(float dt, const SDL_FRect& player, const SDL_FRect& wal
                          const std::vector<LevelGround>& grounds, const std::vector<Platform>& platforms,
                          const std::vector<Block>& blocks){
     const unsigned int now = SDL_GetTicks();
+    if(m_card.on && now - m_card.start < m_card.dur) MenuTheme::get().update(dt);   // in game nothing else ticks the menu colour cycle + heartbeat
     m_lowerFloorY = wallBottomOf(wall);
     m_floorY = m_upper ? m_lowerFloorY - BOSS_PREACHER_UPPER_RISE : m_lowerFloorY;   // floor / ceiling of the arena being fought in
     {
