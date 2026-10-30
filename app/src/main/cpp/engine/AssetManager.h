@@ -103,6 +103,24 @@ enum class TextureType{
     FG_GREENERY_NEAR_OBJECT,
     FG_MEADOW_NEAR_FLOWERS,
     FG_CAVE_NEAR_OBJECT,
+    // snowy terrain (Background/Snowy_terrain)
+    BG_SNOWY_SKY,
+    BG_SNOWY_MOUNTAIN,
+    BG_SNOWY_FAR_RIDGE1,
+    BG_SNOWY_FAR_RIDGE2,
+    BG_SNOWY_FAR_RIDGE3,
+    BG_SNOWY_FAR_OBJECT1,
+    BG_SNOWY_FAR_OBJECT2,
+    BG_SNOWY_FAR_OBJECT3,
+    BG_SNOWY_FAR_OBJECT4,
+    // sunflower field (Background/Sunflower_Field + ForeGround/Sunflower_Field)
+    BG_SUNFLOWER_SKY,
+    BG_SUNFLOWER_CLOUDS,
+    BG_SUNFLOWER_FAR_RIDGE,
+    BG_SUNFLOWER_FAR_OBJECT1,
+    BG_SUNFLOWER_FAR_OBJECT2,
+    BG_SUNFLOWER_FAR_OBJECT3,
+    FG_SUNFLOWER_NEAR_OBJECT,
 
     ATTACK_PLAYER_SLASH,
     ATTACK_PLAYER_BEAM,
@@ -225,6 +243,7 @@ enum class SoundType{
     // environment one-shots (Sound/Ambient_Environment/oneshot)
     SFX_THUNDER,      // thunder_close_01, on every lightning strike
     SFX_WIND_GUST,    // wind_gust_01, when a gust starts
+    SFX_RAIN_SPLASH,  // rain_splash_01 (loaded, not triggered anywhere yet)
     MUSIC_BACKGROUND,
     COUNT
 };

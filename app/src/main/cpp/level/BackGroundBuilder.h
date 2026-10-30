@@ -24,11 +24,28 @@ enum class BackGroundType{
     CAVE_FAR_LIGHT1,
     CAVE_FAR_LIGHT2,
     CAVE_FAR_LIGHT3,
+
+    SNOWY_SKY,
+    SNOWY_MOUNTAIN,
+    SNOWY_FAR_RIDGE1,
+    SNOWY_FAR_RIDGE2,
+    SNOWY_FAR_RIDGE3,
+    SNOWY_FAR_OBJECT1,
+    SNOWY_FAR_OBJECT2,
+    SNOWY_FAR_OBJECT3,
+    SNOWY_FAR_OBJECT4,
+
+    SUNFLOWER_SKY,
+    SUNFLOWER_CLOUDS,
+    SUNFLOWER_FAR_RIDGE,
+    SUNFLOWER_FAR_OBJECT1,
+    SUNFLOWER_FAR_OBJECT2,
+    SUNFLOWER_FAR_OBJECT3,
     NONE
 };
 struct BackGroundElement{
     BackGroundElement(float x,float y,float w,float h,float parallaxFactorX,float parallaxFactorY,bool isAnimated,BackGroundType type):
-    parallaxFloatX(parallaxFactorX),parallaxFloatY(parallaxFactorY),isAnimated(isAnimated),type(type){
+            parallaxFloatX(parallaxFactorX),parallaxFloatY(parallaxFactorY),isAnimated(isAnimated),type(type){
         rect.x = x;
         rect.y = y;
         rect.w = w;

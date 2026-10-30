@@ -12,6 +12,7 @@ enum class ForeGroundType{
     GREENERY_NEAR_GRASS,
     MEADOWS_NEAR_FLOWERS,
     CAVE_NEAR_OBJECT,
+    SUNFLOWER_NEAR_OBJECT,
     NONE
 };
 struct ForeGroundElement{

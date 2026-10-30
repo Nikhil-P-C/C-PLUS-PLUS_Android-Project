@@ -16,6 +16,10 @@ namespace {
                 return TextureType::FG_MEADOW_NEAR_FLOWERS;
             case ForeGroundType::CAVE_NEAR_OBJECT:
                 return TextureType::FG_CAVE_NEAR_OBJECT;
+            case ForeGroundType::SUNFLOWER_NEAR_OBJECT:
+                return TextureType::FG_SUNFLOWER_NEAR_OBJECT;
+            case ForeGroundType::NONE:
+                break;
         }
         return TextureType::COUNT;
     }
@@ -42,7 +46,9 @@ void ForeGroundBuilder::update(float dt) {
 
 void ForeGroundBuilder::init(std::vector<ForeGroundElement>& elements) {
 
-    m_elements = elements;
+//    m_elements = elements;
+
+
 
 
 

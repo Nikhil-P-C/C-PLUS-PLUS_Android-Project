@@ -41,7 +41,8 @@ public:
     // Derives the theme from the level's background layers:
     //   any CAVE_FAR_LIGHT*  -> BRIGHT_CAVE
     //   any other CAVE_*     -> STONE_CAVE
-    //   everything else      -> GREENERY (greenery + meadows)
+    //   any SNOWY_*          -> NONE (AmbienceFx does the snow)
+    //   everything else      -> GREENERY (greenery + meadows + sunflower)
     static AmbientTheme themeFromBackground(const std::vector<BackGroundElement>& elements);
 
 private:

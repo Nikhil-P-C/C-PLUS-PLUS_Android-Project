@@ -215,7 +215,7 @@ void AmbientParticles::update(float dt) {
 
     // Slow shared gust so the whole field leans one way, then the other (nearer motes lean more).
     m_wind = (m_theme == AmbientTheme::MENU) ? 0.0f
-           : std::sin(m_time * 0.23f) * 14.0f + std::sin(m_time * 0.61f + 1.3f) * 6.0f;
+                                             : std::sin(m_time * 0.23f) * 14.0f + std::sin(m_time * 0.61f + 1.3f) * 6.0f;
 
     auto step = [&](std::vector<Mote>& layer, float margin) {
         const float domW = viewW + margin * 2, domH = viewH + margin * 2;
@@ -275,7 +275,7 @@ void AmbientParticles::renderFront(SDL_Renderer* renderer) {
 }
 
 AmbientTheme AmbientParticles::themeFromBackground(const std::vector<BackGroundElement>& elements) {
-    bool cave = false, caveLight = false;
+    bool cave = false, caveLight = false, snowy = false;
     for (const auto& e : elements) {
         switch (e.type) {
             case BackGroundType::CAVE_FAR_LIGHT1:
@@ -289,10 +289,21 @@ AmbientTheme AmbientParticles::themeFromBackground(const std::vector<BackGroundE
             case BackGroundType::CAVE_FAR_OBJECT4:
             case BackGroundType::CAVE_FAR_OBJECT5:
                 cave = true; break;
+            case BackGroundType::SNOWY_SKY:
+            case BackGroundType::SNOWY_MOUNTAIN:
+            case BackGroundType::SNOWY_FAR_RIDGE1:
+            case BackGroundType::SNOWY_FAR_RIDGE2:
+            case BackGroundType::SNOWY_FAR_RIDGE3:
+            case BackGroundType::SNOWY_FAR_OBJECT1:
+            case BackGroundType::SNOWY_FAR_OBJECT2:
+            case BackGroundType::SNOWY_FAR_OBJECT3:
+            case BackGroundType::SNOWY_FAR_OBJECT4:
+                snowy = true; break;
             default: break;
         }
     }
     if (caveLight) return AmbientTheme::BRIGHT_CAVE;
     if (cave)      return AmbientTheme::STONE_CAVE;
+    if (snowy)     return AmbientTheme::NONE;   // no green pollen over snow; the snowfall comes from AmbienceFx
     return AmbientTheme::GREENERY;
 }

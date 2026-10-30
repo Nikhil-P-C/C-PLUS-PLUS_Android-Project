@@ -39,6 +39,38 @@ namespace {
                 return TextureType::BG_CAVE_FAR_OBJECT4;
             case BackGroundType::CAVE_FAR_OBJECT5:
                 return TextureType::BG_CAVE_FAR_OBJECT5;
+            case BackGroundType::SNOWY_SKY:
+                return TextureType::BG_SNOWY_SKY;
+            case BackGroundType::SNOWY_MOUNTAIN:
+                return TextureType::BG_SNOWY_MOUNTAIN;
+            case BackGroundType::SNOWY_FAR_RIDGE1:
+                return TextureType::BG_SNOWY_FAR_RIDGE1;
+            case BackGroundType::SNOWY_FAR_RIDGE2:
+                return TextureType::BG_SNOWY_FAR_RIDGE2;
+            case BackGroundType::SNOWY_FAR_RIDGE3:
+                return TextureType::BG_SNOWY_FAR_RIDGE3;
+            case BackGroundType::SNOWY_FAR_OBJECT1:
+                return TextureType::BG_SNOWY_FAR_OBJECT1;
+            case BackGroundType::SNOWY_FAR_OBJECT2:
+                return TextureType::BG_SNOWY_FAR_OBJECT2;
+            case BackGroundType::SNOWY_FAR_OBJECT3:
+                return TextureType::BG_SNOWY_FAR_OBJECT3;
+            case BackGroundType::SNOWY_FAR_OBJECT4:
+                return TextureType::BG_SNOWY_FAR_OBJECT4;
+            case BackGroundType::SUNFLOWER_SKY:
+                return TextureType::BG_SUNFLOWER_SKY;
+            case BackGroundType::SUNFLOWER_CLOUDS:
+                return TextureType::BG_SUNFLOWER_CLOUDS;
+            case BackGroundType::SUNFLOWER_FAR_RIDGE:
+                return TextureType::BG_SUNFLOWER_FAR_RIDGE;
+            case BackGroundType::SUNFLOWER_FAR_OBJECT1:
+                return TextureType::BG_SUNFLOWER_FAR_OBJECT1;
+            case BackGroundType::SUNFLOWER_FAR_OBJECT2:
+                return TextureType::BG_SUNFLOWER_FAR_OBJECT2;
+            case BackGroundType::SUNFLOWER_FAR_OBJECT3:
+                return TextureType::BG_SUNFLOWER_FAR_OBJECT3;
+            case BackGroundType::NONE:
+                break;
         }
         return TextureType::COUNT;
     }
@@ -78,9 +110,11 @@ void BackGroundBuilder::update(float dt) {
 
 void BackGroundBuilder::init(std::vector<BackGroundElement>& elements) {
     //comment this when creating objects here
-    m_elements = elements;
+//    m_elements = elements;
 
     //test view here by creating elements directly if perfect then put the same in level file
+
+
 
 }
 

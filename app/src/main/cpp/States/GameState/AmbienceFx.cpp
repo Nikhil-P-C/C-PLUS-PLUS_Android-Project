@@ -214,7 +214,7 @@ namespace {
 // biome + defaults
 // ---------------------------------------------------------------------------------------------
 AmbienceBiome AmbienceFx::biomeFromBackground(const std::vector<BackGroundElement>& elements) {
-    bool cave = false, caveLight = false, meadows = false;
+    bool cave = false, caveLight = false, meadows = false, snowy = false;
     for (const auto& e : elements) {
         switch (e.type) {
             case BackGroundType::CAVE_FAR_LIGHT1:
@@ -232,11 +232,28 @@ AmbienceBiome AmbienceFx::biomeFromBackground(const std::vector<BackGroundElemen
             case BackGroundType::MEADOWS_CLOUD:
             case BackGroundType::MEADOWS_FAR_PLAIN:
             case BackGroundType::MEADOWS_FLOWER_FIELD:
+            case BackGroundType::SUNFLOWER_SKY:
+            case BackGroundType::SUNFLOWER_CLOUDS:
+            case BackGroundType::SUNFLOWER_FAR_RIDGE:
+            case BackGroundType::SUNFLOWER_FAR_OBJECT1:
+            case BackGroundType::SUNFLOWER_FAR_OBJECT2:
+            case BackGroundType::SUNFLOWER_FAR_OBJECT3:
                 meadows = true; break;
+            case BackGroundType::SNOWY_SKY:
+            case BackGroundType::SNOWY_MOUNTAIN:
+            case BackGroundType::SNOWY_FAR_RIDGE1:
+            case BackGroundType::SNOWY_FAR_RIDGE2:
+            case BackGroundType::SNOWY_FAR_RIDGE3:
+            case BackGroundType::SNOWY_FAR_OBJECT1:
+            case BackGroundType::SNOWY_FAR_OBJECT2:
+            case BackGroundType::SNOWY_FAR_OBJECT3:
+            case BackGroundType::SNOWY_FAR_OBJECT4:
+                snowy = true; break;
             default: break;
         }
     }
     if (caveLight) return AmbienceBiome::BRIGHT_CAVE;
+    if (snowy && !cave) return AmbienceBiome::SNOWY;
     if (cave)      return AmbienceBiome::STONE_CAVE;
     if (meadows)   return AmbienceBiome::MEADOWS;
     return AmbienceBiome::FOREST;
@@ -257,6 +274,7 @@ uint32_t AmbienceFx::defaultsFor(AmbienceBiome biome, float darkness) {
         }
         case AmbienceBiome::STONE_CAVE:  return AMB_NONE;        // the dust motes already cover a stone cave
         case AmbienceBiome::BRIGHT_CAVE: return AMB_FIREFLIES;   // blue glow-worms
+        case AmbienceBiome::SNOWY:       return AMB_SNOW | AMB_WIND;
     }
     return AMB_NONE;
 }

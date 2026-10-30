@@ -60,6 +60,7 @@ enum class AmbienceBiome {
     MEADOWS,
     STONE_CAVE,
     BRIGHT_CAVE,
+    SNOWY,          // snowy terrain: snow + wind by default, snow steps
 };
 
 // What the ground sounds like under the feet (STEPS= option, AUTO picks it from the weather + biome)

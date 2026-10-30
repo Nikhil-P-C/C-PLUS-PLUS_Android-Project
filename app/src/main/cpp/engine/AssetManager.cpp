@@ -466,6 +466,22 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadTexture(TextureType::BG_CAVE_FAR_OBJECT4,"Background/Cave/far_object4.png");
     loadTexture(TextureType::BG_CAVE_FAR_OBJECT5,"Background/Cave/far_object5.png");
     loadTexture(TextureType::FG_CAVE_NEAR_OBJECT,"ForeGround/Cave/near_object.png");
+    loadTexture(TextureType::BG_SNOWY_SKY,"Background/Snowy_terrain/Snowy_Sky.png");
+    loadTexture(TextureType::BG_SNOWY_MOUNTAIN,"Background/Snowy_terrain/Snowy_Mountain.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_RIDGE3,"Background/Snowy_terrain/Snowy_FarRidge3.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_RIDGE2,"Background/Snowy_terrain/Snowy_FarRidge2.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_RIDGE1,"Background/Snowy_terrain/Snowy_FarRidge1.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_OBJECT4,"Background/Snowy_terrain/Snowy_FarObject4.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_OBJECT3,"Background/Snowy_terrain/Snowy_FarObject3.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_OBJECT2,"Background/Snowy_terrain/Snowy_FarObject2.png");
+    loadTexture(TextureType::BG_SNOWY_FAR_OBJECT1,"Background/Snowy_terrain/Snowy_FarObject1.png");
+    loadTexture(TextureType::BG_SUNFLOWER_SKY,"Background/Sunflower_Field/Sunflower_Sky.png");
+    loadTexture(TextureType::BG_SUNFLOWER_CLOUDS,"Background/Sunflower_Field/Sunflower_Clouds.png");
+    loadTexture(TextureType::BG_SUNFLOWER_FAR_OBJECT3,"Background/Sunflower_Field/Sunflower_FarObject3.png");
+    loadTexture(TextureType::BG_SUNFLOWER_FAR_OBJECT2,"Background/Sunflower_Field/Sunflower_FarObject2.png");
+    loadTexture(TextureType::BG_SUNFLOWER_FAR_OBJECT1,"Background/Sunflower_Field/Sunflower_FarObjects1.png");
+    loadTexture(TextureType::BG_SUNFLOWER_FAR_RIDGE,"Background/Sunflower_Field/Sunflower_FarRidge.png");
+    loadTexture(TextureType::FG_SUNFLOWER_NEAR_OBJECT,"ForeGround/Sunflower_Field/Sunflower_NearObject.png");
 
     loadTexture(TextureType::PLAYER_DOUBLE_JUMP, "Skill/broken_wings.png");
     loadTexture(TextureType::ATTACK_PLAYER_SLASH,"Attacks/slash.png");

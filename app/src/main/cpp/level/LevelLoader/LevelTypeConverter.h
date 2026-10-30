@@ -113,7 +113,22 @@ namespace {
                 {"CAVE_FAR_OBJECT3",BackGroundType::CAVE_FAR_OBJECT3},
                 {"CAVE_FAR_OBJECT4",BackGroundType::CAVE_FAR_OBJECT4},
                 {"CAVE_FAR_LIGHT3",BackGroundType::CAVE_FAR_LIGHT3},
-                {"CAVE_FAR_OBJECT5",BackGroundType::CAVE_FAR_OBJECT5}
+                {"CAVE_FAR_OBJECT5",BackGroundType::CAVE_FAR_OBJECT5},
+                {"SNOWY_SKY",BackGroundType::SNOWY_SKY},
+                {"SNOWY_MOUNTAIN",BackGroundType::SNOWY_MOUNTAIN},
+                {"SNOWY_FAR_RIDGE1",BackGroundType::SNOWY_FAR_RIDGE1},
+                {"SNOWY_FAR_RIDGE2",BackGroundType::SNOWY_FAR_RIDGE2},
+                {"SNOWY_FAR_RIDGE3",BackGroundType::SNOWY_FAR_RIDGE3},
+                {"SNOWY_FAR_OBJECT1",BackGroundType::SNOWY_FAR_OBJECT1},
+                {"SNOWY_FAR_OBJECT2",BackGroundType::SNOWY_FAR_OBJECT2},
+                {"SNOWY_FAR_OBJECT3",BackGroundType::SNOWY_FAR_OBJECT3},
+                {"SNOWY_FAR_OBJECT4",BackGroundType::SNOWY_FAR_OBJECT4},
+                {"SUNFLOWER_SKY",BackGroundType::SUNFLOWER_SKY},
+                {"SUNFLOWER_CLOUDS",BackGroundType::SUNFLOWER_CLOUDS},
+                {"SUNFLOWER_FAR_RIDGE",BackGroundType::SUNFLOWER_FAR_RIDGE},
+                {"SUNFLOWER_FAR_OBJECT1",BackGroundType::SUNFLOWER_FAR_OBJECT1},
+                {"SUNFLOWER_FAR_OBJECT2",BackGroundType::SUNFLOWER_FAR_OBJECT2},
+                {"SUNFLOWER_FAR_OBJECT3",BackGroundType::SUNFLOWER_FAR_OBJECT3}
 
 
         };
@@ -130,7 +145,8 @@ namespace {
                 {"GREENERY_NEAR_OBJECT",ForeGroundType::GREENERY_NEAR_OBJECT},
                 {"GREENERY_NEAR_GRASS",ForeGroundType::GREENERY_NEAR_GRASS},
                 {"MEADOWS_NEAR_FLOWERS",ForeGroundType::MEADOWS_NEAR_FLOWERS},
-                {"CAVE_NEAR_OBJECT",ForeGroundType::CAVE_NEAR_OBJECT}
+                {"CAVE_NEAR_OBJECT",ForeGroundType::CAVE_NEAR_OBJECT},
+                {"SUNFLOWER_NEAR_OBJECT",ForeGroundType::SUNFLOWER_NEAR_OBJECT}
 
 
 
