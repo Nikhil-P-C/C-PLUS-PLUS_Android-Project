@@ -378,6 +378,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                       m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX,
                       m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY);
     m_ambience.renderOverlay(m_renderer);   // lens flare, lightning flash, weather tint (after the darkness pass)
+    m_rooms.render(m_renderer, (float)camX, (float)camY);   // rooms the player has not entered yet stay black (caves / buildings)
 
     renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
     m_interactableBuilder.renderDialog(renderer);   // screen-space dialog box, on top of the world
@@ -438,6 +439,7 @@ static constexpr float AMB_GAIN_GUST      = 0.70f;
 //   shots   thunder on each lightning strike (panned to where the bolt was), a gust whoosh when a gust starts
 void GameState::updateAmbience(float dt){
     m_ambience.update(dt);
+    m_rooms.update(dt, m_player.x + m_player.w * 0.5f, m_player.y + m_player.h * 0.5f);
     AssetManager& assets = Engine::Get().getAssetManager();
     const float scale = m_ambience.soundScale();
 
@@ -1935,6 +1937,8 @@ void GameState::setLevel(int level) {
         m_ambience.init(m_renderer, AmbienceFx::biomeFromBackground(m_backgroundElements),
                         m_levelLoader.getAmbient().darkness, m_levelLoader.getWeatherTokens(), &world);
     }
+    // rooms hidden behind darkness (only caves / closed buildings, open areas ignore the H lines)
+    m_rooms.init(m_levelLoader.getDarkRooms(), AmbienceFx::biomeFromBackground(m_backgroundElements));
     // what the ground sounds like on this level, and a clean start for the environment beds
     Engine::Get().getAssetManager().setFootstepSound(footstepSoundFor(m_ambience.stepSurface()));
     for(float& g : m_ambientGain) g = 0.0f;

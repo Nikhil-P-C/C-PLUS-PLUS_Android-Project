@@ -10,6 +10,10 @@
 //       intensity 0..1 (how much darkness it removes + how bright its glow is), flicker 0..1
 //       (torch/fire wobble, default 0), visible 0/1 (draw a small glowing core at the source, default 1).
 //
+//   H <x> <y> <w> <h> [fadeSeconds] [KEEP] [FORCE] [OPACITY=0..1] [SOFT=px]
+//       A dark room (caves / closed buildings): hidden behind solid darkness until the player walks in,
+//       then the darkness fades. See States/GameState/RoomDarkness.h.
+//
 #pragma once
 #include <cstdint>
 
@@ -20,6 +24,15 @@ struct LightSource {
     float intensity = 1.0f;
     float flicker   = 0.0f;
     bool  visible   = true;
+};
+
+struct DarkRoom {
+    float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f;   // world pixels
+    float fade    = 0.6f;     // seconds to melt the darkness when the player enters
+    float opacity = 1.0f;     // 1 = nothing visible from outside
+    float soft    = 120.0f;   // px: half-width of the grey gradient between the dark room and the lit area
+    bool  keep    = false;    // stay revealed after the first visit
+    bool  force   = false;    // also in open-air biomes
 };
 
 struct LevelAmbient {

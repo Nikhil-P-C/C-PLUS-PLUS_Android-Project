@@ -3,6 +3,7 @@
 //
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include "LevelLoader.h"
 #include "LevelTypeConverter.h"
 
@@ -80,6 +81,9 @@ void LevelLoader::parseLine(const std::string& line) {
             break;
         case 'Z':
             parseWeather(stream);
+            break;
+        case 'H':
+            parseDarkRoom(stream);
             break;
         case 'M':
             parseMusic(stream);
@@ -456,6 +460,39 @@ void LevelLoader::parseWeather(std::istringstream& ss) {
     }
 }
 
+// H x y w h [fadeSeconds] [KEEP] [FORCE] [OPACITY=n] [SOFT=px]
+//   a room that stays black until the player walks into it (see RoomDarkness.h)
+void LevelLoader::parseDarkRoom(std::istringstream& ss) {
+    DarkRoom r;
+    ss>>r.x>>r.y>>r.w>>r.h;
+    if(ss.fail() || r.w <= 0.0f || r.h <= 0.0f){
+        LOGE("Malformed room (H) line: needs x y w h");
+        return;
+    }
+    std::string tok;
+    while(ss>>tok){
+        for(auto& c : tok) c = (char)std::toupper((unsigned char)c);
+        if(tok == "KEEP")       { r.keep = true; continue; }
+        if(tok == "FORCE")      { r.force = true; continue; }
+        if(tok.rfind("OPACITY=", 0) == 0){
+            char* end = nullptr;
+            const float o = std::strtof(tok.c_str() + 8, &end);
+            if(end != tok.c_str() + 8) r.opacity = std::clamp(o, 0.0f, 1.0f);
+            continue;
+        }
+        if(tok.rfind("SOFT=", 0) == 0){
+            char* end = nullptr;
+            const float sft = std::strtof(tok.c_str() + 5, &end);
+            if(end != tok.c_str() + 5) r.soft = std::clamp(sft, 0.0f, 400.0f);
+            continue;
+        }
+        char* end = nullptr;
+        const float f = std::strtof(tok.c_str(), &end);
+        if(end != tok.c_str() && *end == '\0') r.fade = std::clamp(f, 0.05f, 10.0f);
+    }
+    m_darkRooms.push_back(r);
+}
+
 void LevelLoader::parseLight(std::istringstream& ss) {
     LightSource l;
     int r=255,g=200,b=120;
@@ -505,6 +542,7 @@ void LevelLoader::loadLevel(int level) {
     m_musicGain = 1.0f;
     m_musicExplicit = false;
     m_lights.clear();
+    m_darkRooms.clear();
     m_enemies.clear();
     m_interactables.clear();
     m_bosses.clear();

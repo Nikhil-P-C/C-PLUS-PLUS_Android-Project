@@ -78,6 +78,7 @@ set(MYAPP_SOURCES
         States/GameState/ParticleSystem.cpp
         States/GameState/AmbientParticles.cpp
         States/GameState/AmbienceFx.cpp
+        States/GameState/RoomDarkness.cpp
         States/MenuState/TitleScreenState.cpp
         States/MenuState/MenuState.cpp
         States/MenuState/MenuState.cpp

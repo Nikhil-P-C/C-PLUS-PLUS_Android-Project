@@ -15,6 +15,7 @@
 #include "ParticleSystem.h"
 #include "AmbientParticles.h"
 #include "AmbienceFx.h"
+#include "RoomDarkness.h"
 #include "engine/Lighting.h"
 
 #include "level/Fruits.h"
@@ -321,6 +322,7 @@ private:
     AmbientParticles m_ambientParticles;
     float m_ambientGain[2] = {0.0f,0.0f};   // current volume of the rain / wind beds
     AmbienceFx m_ambience;                 // biome ambience + weather (fireflies, flies, petals, wind, rain, snow, thunder, sun flare)
+    RoomDarkness m_rooms;                  // cave / building rooms hidden behind darkness until the player walks in
     Lighting m_lighting;                   // ambient darkness + player light + level light objects
     float m_walkTimer=0.0f;
 

@@ -65,6 +65,17 @@ namespace {
             }
             tri6(b);
         }
+        // untextured quad, any four corners (in order around the shape), one colour per corner (aurora curtains)
+        void quad4(float x0, float y0, SDL_FColor c0, float x1, float y1, SDL_FColor c1,
+                   float x2, float y2, SDL_FColor c2, float x3, float y3, SDL_FColor c3) {
+            const SDL_FPoint uv{0, 0};
+            int b = (int)v.size();
+            v.push_back(SDL_Vertex{SDL_FPoint{x0, y0}, c0, uv});
+            v.push_back(SDL_Vertex{SDL_FPoint{x1, y1}, c1, uv});
+            v.push_back(SDL_Vertex{SDL_FPoint{x2, y2}, c2, uv});
+            v.push_back(SDL_Vertex{SDL_FPoint{x3, y3}, c3, uv});
+            tri6(b);
+        }
         // untextured line with a colour at each end (alpha fades along it)
         void line(float x0, float y0, float x1, float y1, float w, SDL_FColor c0, SDL_FColor c1) {
             const float dx = x1 - x0, dy = y1 - y0;
@@ -176,6 +187,7 @@ namespace {
         if (n == "SNOW")                        return AMB_SNOW;
         if (n == "THUNDER" || n == "LIGHTNING") return AMB_THUNDER;
         if (n == "STORM")                       return AMB_STORM;
+        if (n == "AURORA" || n == "AURORAS" || n == "BOREALIS" || n == "AURORABOREALIS" || n == "NORTHERNLIGHTS") return AMB_AURORA;
         if (n == "SUNFLARE" || n == "SUN" || n == "LENSFLARE" || n == "FLARE") return AMB_SUNFLARE;
         return 0;
     }
@@ -288,9 +300,10 @@ uint32_t AmbienceFx::resolve(AmbienceBiome biome, float darkness, const std::vec
     for (const auto& t : tokens) if (t == "AUTO" || (!t.empty() && t[0] == '-')) useDefaults = true;
 
     uint32_t m = useDefaults ? defaults : 0u;
+    bool auroraTouched = false;   // the level said something about AURORA (on, off, or NONE) -> no automatic aurora
     for (const auto& t : tokens) {
         if (t.empty() || t == "AUTO") continue;
-        if (t == "NONE") { m = 0; continue; }
+        if (t == "NONE") { m = 0; auroraTouched = true; continue; }
 
         // KEY=VALUE: a flag name switches that effect on (value 0 switches it off), the rest are plain options
         const size_t eq = t.find('=');
@@ -298,6 +311,7 @@ uint32_t AmbienceFx::resolve(AmbienceBiome biome, float darkness, const std::vec
             const std::string key = t.substr(0, eq);
             if (isSunPlacement(key)) m |= AMB_SUNFLARE;
             const uint32_t f = flagFor(key);
+            if (f == AMB_AURORA) auroraTouched = true;
             if (f) {
                 float v = 1.0f;
                 if (parseFloat(t.substr(eq + 1), v) && std::fabs(v) < 0.0001f) m &= ~f; else m |= f;
@@ -306,10 +320,14 @@ uint32_t AmbienceFx::resolve(AmbienceBiome biome, float darkness, const std::vec
         }
         const bool remove = (t[0] == '-');
         const uint32_t f = flagFor(remove ? t.substr(1) : t);
+        if (f == AMB_AURORA) auroraTouched = true;
         if (remove) m &= ~f; else m |= f;
     }
     // no sun through rain/snow clouds
     if (m & (AMB_RAIN | AMB_SNOW)) m &= ~AMB_SUNFLARE;
+    // cold + dark = northern lights, unless the level decided otherwise. Rain / thunder clouds hide them.
+    if (!auroraTouched && (m & AMB_SNOW) && darkness >= 0.25f) m |= AMB_AURORA;
+    if (m & (AMB_RAIN | AMB_THUNDER)) m &= ~AMB_AURORA;
     return m;
 }
 
@@ -381,6 +399,13 @@ void AmbienceFx::parseOptions(const std::vector<std::string>& tokens) {
             }
             continue;
         }
+        if (key == "AURORACOLOR" || key == "AURORACOLOUR") {
+            if (parseList(val, list, 3) == 3) {
+                for (int i = 0; i < 3; ++i) m_opt.auroraRGB[i] = (uint8_t)clampf(list[i], 0.0f, 255.0f);
+                m_opt.hasAuroraColor = true;
+            }
+            continue;
+        }
         if (!parseFloat(val, f)) continue;
 
         if      (key == "RAIN")      m_opt.rain      = clampf(f, 0.2f, 3.0f);
@@ -399,6 +424,8 @@ void AmbienceFx::parseOptions(const std::vector<std::string>& tokens) {
         else if (key == "LEAVES" || key == "LEAF") m_opt.leaves = clampf(f, 0.0f, 3.0f);
         else if (key == "PETALS" || key == "PETAL") m_opt.petals = clampf(f, 0.0f, 3.0f);
         else if (key == "SUNFLARE" || key == "FLARE" || key == "SUN" || key == "LENSFLARE") m_opt.flare = clampf(f, 0.0f, 2.0f);
+        else if (key == "AURORA" || key == "AURORAS" || key == "NORTHERNLIGHTS" || key == "BOREALIS") m_opt.aurora = clampf(f, 0.0f, 2.0f);
+        else if (key == "AURORAY" || key == "AURORAHEIGHT") m_opt.auroraY = clampf(f, 0.10f, 0.80f);
         else if (key == "SUNDRIFT")  m_opt.sunDrift  = clampf(f, -0.5f, 0.5f);
         else if (key == "SUNSIZE")   m_opt.sunSize   = clampf(f, 0.4f, 3.0f);
         else if (key == "DENSITY")   m_opt.density   = clampf(f, 0.25f, 1.5f);
@@ -434,6 +461,11 @@ void AmbienceFx::init(SDL_Renderer* renderer, AmbienceBiome biome, float darknes
     m_darkness = darkness;
     parseOptions(tokens);
     m_mask = resolve(biome, darkness, tokens);
+    m_auroraForced = false;
+    for (const auto& t : tokens) {
+        const std::string key = t.substr(0, t.find('='));
+        if (!key.empty() && key[0] != '-' && flagFor(key) == AMB_AURORA) m_auroraForced = true;
+    }
     m_ready = false;
     m_t = 0.0f;
     if (world) { m_worldX = world->x; m_worldY = world->y; m_worldW = world->w; }
@@ -1074,6 +1106,9 @@ void AmbienceFx::renderLayer(SDL_Renderer* renderer, bool front) {
 void AmbienceFx::renderBack(SDL_Renderer* renderer) {
     if (!m_ready) return;
 
+    // northern lights: the farthest thing in the sky, so it goes first
+    if (m_mask & AMB_AURORA) renderAurora(renderer, getView());
+
     // lightning bolt: far behind everything (drawn first), glow + white core
     if ((m_mask & AMB_THUNDER) && !m_bolt.empty() && m_flashT < 0.30f) {
         const float f = flashAt(m_flashT);
@@ -1105,6 +1140,97 @@ void AmbienceFx::renderBack(SDL_Renderer* renderer) {
 void AmbienceFx::renderFront(SDL_Renderer* renderer) {
     if (!m_ready) return;
     renderLayer(renderer, true);
+}
+
+// ---------------------------------------------------------------------------------------------
+// the northern lights
+// ---------------------------------------------------------------------------------------------
+// Cold clear nights only: strength follows the level's darkness (a forced AURORA still shows a little on a
+// brighter level), fog / blizzard haze hides it, and it fades in over the first seconds of the level.
+float AmbienceFx::auroraVisibility() const {
+    const float night = smoothstep(0.05f, 0.40f, m_darkness);
+    const float base = m_auroraForced ? std::max(night, 0.45f) : night;
+    const float clear = 1.0f - 0.85f * clamp01(fogAmount() * 1.6f);
+    const float fadeIn = smoothstep(0.0f, 4.0f, m_t);
+    return base * clear * fadeIn * m_opt.aurora;
+}
+
+// Three layers of curtains, each a ribbon of vertical strips (one node every ~34 px). Every node samples a few
+// slow sine waves at its WORLD position, so the shape stays put as the camera scrolls (just a little parallax,
+// it is far away) and ripples with time:
+//   bottom edge  wobbles up and down                 height   breathes + vertical "rays" (bright / dark columns)
+//   shear        leans the top of the curtain         patch    fades whole stretches of the curtain in and out
+// Colour: bright green at the lower edge, fading up into violet. Additive, no textures, three quads per strip.
+void AmbienceFx::renderAurora(SDL_Renderer* r, const View& v) {
+    const float vis = auroraVisibility();
+    if (vis < 0.02f) return;
+    const float boost = 1.0f + m_darkness * 1.2f;   // the darkness pass comes after this layer and dims it
+    const float stripW = clampf(34.0f / std::sqrt(std::max(0.25f, m_density * m_opt.density)), 24.0f, 64.0f);
+    const int n = (int)std::ceil(v.w / stripW) + 3;
+
+    const float R = m_opt.auroraRGB[0], G = m_opt.auroraRGB[1], B = m_opt.auroraRGB[2];
+    // top tint: violet for the default green, almost the same colour when the level picked its own
+    const float k = m_opt.hasAuroraColor ? 0.15f : 0.55f;
+    const float tr = lerp(R, 150.0f, k), tg = lerp(G, 80.0f, k), tb = lerp(B, 255.0f, k);
+    // lower edge runs a little whiter, like the hot rim of a real curtain
+    const float rr = lerp(R, 255.0f, 0.22f), rg = lerp(G, 255.0f, 0.22f), rb = lerp(B, 255.0f, 0.22f);
+
+    struct Node { float x, yb, hgt, shear, a; };
+    static std::vector<Node> nodes;
+    nodes.resize((size_t)n + 1);
+
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_ADD);
+    const float camY = (v.camY - m_worldY) * 0.03f;
+
+    for (int b = 0; b < 3; ++b) {
+        const float par = 0.025f + 0.02f * b;
+        const float camShift = v.camX * par;
+        const float off = std::fmod(camShift, stripW);
+        const float seed = b * 2.17f;
+        const float bandAmp = b == 0 ? 1.0f : (b == 1 ? 0.72f : 0.50f);
+        const float baseY = v.h * (m_opt.auroraY + (b - 1) * 0.07f) - camY;
+
+        for (int i = 0; i <= n; ++i) {
+            Node& nd = nodes[(size_t)i];
+            nd.x = i * stripW - off - stripW;
+            const float u = nd.x + camShift + seed * 500.0f;
+            const float sway = std::sin(u * 0.0042f + m_t * 0.23f + seed) * 26.0f +
+                               std::sin(u * 0.0113f - m_t * 0.37f + seed * 1.7f) * 12.0f;
+            const float patch = smoothstep(-0.35f, 0.55f, std::sin(u * 0.0021f + m_t * 0.09f + seed * 1.3f));
+            const float ray = 0.72f + 0.28f * std::sin(u * 0.047f + m_t * 0.80f + seed * 3.1f) * std::sin(u * 0.019f - m_t * 0.50f);
+            nd.yb = baseY + sway;
+            nd.hgt = v.h * (0.30f + 0.10f * std::sin(u * 0.0057f + m_t * 0.17f + seed)) * (0.55f + 0.45f * ray);
+            nd.shear = std::sin(u * 0.0031f + m_t * 0.20f + seed * 0.7f) * 34.0f;
+            nd.a = patch * ray * bandAmp * vis * boost;
+        }
+
+        for (int i = 0; i < n; ++i) {
+            const Node& a = nodes[(size_t)i];
+            const Node& c = nodes[(size_t)i + 1];
+            if (a.a < 0.01f && c.a < 0.01f) continue;
+
+            const float aEdge0 = 0.46f * a.a, aEdge1 = 0.46f * c.a;     // bright lower edge
+            const float aMid0  = 0.24f * a.a, aMid1  = 0.24f * c.a;     // a quarter of the way up
+            const SDL_FColor e0 = col((uint8_t)rr, (uint8_t)rg, (uint8_t)rb, aEdge0), e1 = col((uint8_t)rr, (uint8_t)rg, (uint8_t)rb, aEdge1);
+            const SDL_FColor m0 = col((uint8_t)R, (uint8_t)G, (uint8_t)B, aMid0),     m1 = col((uint8_t)R, (uint8_t)G, (uint8_t)B, aMid1);
+            const SDL_FColor t0 = col((uint8_t)tr, (uint8_t)tg, (uint8_t)tb, 0.0f),   t1 = t0;
+            const SDL_FColor f0 = col((uint8_t)R, (uint8_t)G, (uint8_t)B, 0.0f),      f1 = f0;
+
+            const float ym0 = a.yb - a.hgt * 0.26f, ym1 = c.yb - c.hgt * 0.26f;
+            const float yt0 = a.yb - a.hgt,         yt1 = c.yb - c.hgt;
+
+            // soft fringe just under the edge
+            const SDL_FColor fe0 = col((uint8_t)rr, (uint8_t)rg, (uint8_t)rb, aEdge0 * 0.6f);
+            const SDL_FColor fe1 = col((uint8_t)rr, (uint8_t)rg, (uint8_t)rb, aEdge1 * 0.6f);
+            g_batch.quad4(a.x, a.yb + 14.0f, f0,  c.x, c.yb + 14.0f, f1,  c.x, c.yb, fe1,  a.x, a.yb, fe0);
+            // lower body, edge -> mid (shear leans the curtain a little here, fully at the top)
+            g_batch.quad4(a.x, a.yb, e0,  c.x, c.yb, e1,  c.x + c.shear * 0.3f, ym1, m1,  a.x + a.shear * 0.3f, ym0, m0);
+            // upper body, mid -> nothing
+            g_batch.quad4(a.x + a.shear * 0.3f, ym0, m0,  c.x + c.shear * 0.3f, ym1, m1,  c.x + c.shear, yt1, t1,  a.x + a.shear, yt0, t0);
+        }
+        g_batch.flush(r, nullptr);
+    }
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1294,6 +1420,19 @@ void AmbienceFx::renderOverlay(SDL_Renderer* renderer) {
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         g_batch.rectGrad(0.0f, 0.0f, v.w, v.h, col(fr, fg, fb, fog * 0.45f), col(fr, fg, fb, fog));
         g_batch.flush(renderer, nullptr);
+    }
+
+    // aurora light: a faint green wash from the top of the screen, added after the darkness pass so the
+    // night does not swallow it (the curtains themselves are drawn behind the terrain in renderBack)
+    if (m_mask & AMB_AURORA) {
+        const float vis = auroraVisibility();
+        if (vis > 0.02f) {
+            const float breathe = 0.85f + 0.15f * std::sin(m_t * 0.45f) * std::sin(m_t * 0.17f + 1.0f);
+            const uint8_t R = m_opt.auroraRGB[0], G = m_opt.auroraRGB[1], B = m_opt.auroraRGB[2];
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+            g_batch.rectGrad(0.0f, 0.0f, v.w, v.h * 0.72f, col(R, G, B, 0.055f * vis * breathe), col(R, G, B, 0.0f));
+            g_batch.flush(renderer, nullptr);
+        }
     }
 
     // front fireflies light themselves again after the darkness pass, so they glow through dark levels

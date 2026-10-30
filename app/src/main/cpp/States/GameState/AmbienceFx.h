@@ -9,6 +9,8 @@
 //   RAIN       streaks that fall at an angle: the slant follows the wind (+ an optional fixed ANGLE)
 //   SNOW       soft volumetric flakes (tiny dots, fluffy flakes, big out-of-focus bokeh) blown by the wind
 //   THUNDER    lightning bolt behind the terrain + screen flash + delayed thunder clap
+//   AURORA     green northern lights: shimmering curtains high in the sky, behind the terrain, plus a faint
+//              green glow on the scene. Automatic on cold (SNOW) levels at night, or ask for it with 'Z AURORA'
 //   SUNFLARE   a sun that travels across the sky as the player progresses through the level, god rays
 //              behind the terrain and a lens flare (ghosts, halo, starburst, streak, lens dirt) in front
 //
@@ -25,6 +27,9 @@
 //     Z STORM                            rain + thunder + strong wind
 //     Z RAIN=1.5 WIND=-2 ANGLE=-25       heavy rain, strong wind blowing LEFT, extra slant
 //     Z SNOW=1.4 WIND=3 GUST=2 FOG=0.4   blizzard
+//     Z SNOW AURORA                      snow + northern lights (even on a brighter level)
+//     Z SNOW AURORA=1.4 AURORACOLOR=90,255,200   stronger, teal-green aurora
+//     Z AUTO -AURORA                     keep the cold-night default but without the aurora
 //     Z NONE                             nothing
 //
 // Sound: this class only DECIDES (soundLevels(), consumeThunder(), consumeGust()); GameState
@@ -52,6 +57,7 @@ enum AmbienceFlag : uint32_t {
     AMB_SNOW      = 1u << 6,
     AMB_THUNDER   = 1u << 7,
     AMB_SUNFLARE  = 1u << 8,
+    AMB_AURORA    = 1u << 9,
     AMB_STORM     = AMB_RAIN | AMB_THUNDER | AMB_WIND,   // token only (Z STORM)
 };
 
@@ -103,6 +109,10 @@ public:
         uint8_t sunRGB[3]  = {255, 222, 165};    // SUNCOLOR=r,g,b
         bool    hasGlow    = false;
         uint8_t glowRGB[3] = {200, 255, 90};     // GLOW=r,g,b  firefly colour
+        float aurora    = 1.0f;   // AURORA=    brightness                   0 .. 2
+        float auroraY   = 0.34f;  // AURORAY=   height of the curtains' bright lower edge (fraction of the screen, 0 = top)
+        bool  hasAuroraColor = false;
+        uint8_t auroraRGB[3] = {70, 255, 150};   // AURORACOLOR=r,g,b  main colour (default: green, fading to violet at the top)
         StepSurface steps = StepSurface::AUTO;   // STEPS=GRASS|LEAVES|SNOW|CONCRETE|AUTO
     };
 
@@ -192,6 +202,9 @@ private:
     bool sunState(const View& v, float& sx, float& sy, float& vis, float& center) const;
     void renderSunBack(SDL_Renderer* renderer, const View& v);
     void renderLensFlare(SDL_Renderer* renderer, const View& v);
+    // northern lights: curtains in the sky (behind the terrain) + a faint green wash over the scene (overlay)
+    void renderAurora(SDL_Renderer* renderer, const View& v);
+    float auroraVisibility() const;   // 0..~2: night + clear air, fades in when the level starts
     float fogAmount() const;
 
     uint32_t m_mask = 0;
@@ -201,6 +214,7 @@ private:
     float m_density = 1.0f;
     float m_t = 0.0f;
     bool  m_ready = false;
+    bool  m_auroraForced = false;     // the level asked for AURORA itself (shows even on a brighter level)
     float m_fireNight = 0.0f;         // 0..1 how dark enough it is for fireflies to shine (caves = 1)
     float m_worldX = 0.0f, m_worldY = 0.0f, m_worldW = 0.0f;   // level bounds, for the sun's travel
 

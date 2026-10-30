@@ -41,6 +41,11 @@ X 0.00 -360.00 2560.00 1152.00 0.50 0.50 false CAVE_FAR_OBJECT5
 Y 0.00 -850.00 2400 1692 1.10 1.10 false CAVE_NEAR_OBJECT
 Y 2400 -850.00 2400 1692 1.10 1.10 false CAVE_NEAR_OBJECT
 
+# demo rooms (stone cave): each chamber stays black until you walk into it. Delete these H lines to turn it off.
+H 0 -768 1000 1536
+H 1000 -768 1000 1536
+H 2000 -768 1200 1536
+
 D 0.60 100 250
 L 400 520 440 140 190 255 1.0 0.35 1
 L 1150 420 440 255 170 90 1.0 0.1 1

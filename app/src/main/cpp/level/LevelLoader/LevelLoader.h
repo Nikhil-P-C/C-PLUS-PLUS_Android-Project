@@ -85,6 +85,8 @@ public:
     const LevelAmbient& getAmbient(){
         return m_ambient;
     }
+    // 'H' records: rooms hidden behind darkness until the player enters (caves / closed buildings)
+    const std::vector<DarkRoom>& getDarkRooms() const { return m_darkRooms; }
     // 'Z' record: ambience/weather overrides (upper-case tokens, see AmbienceFx.h). Empty = biome defaults.
     const std::vector<std::string>& getWeatherTokens() const { return m_weatherTokens; }
     // level music: from the level's 'M' record, else Sound/Music/level_<n>.ogg. Empty = silent level.
@@ -96,6 +98,8 @@ private:
     void parseAmbient(std::istringstream& ss);
 
     void parseWeather(std::istringstream& ss);
+
+    void parseDarkRoom(std::istringstream& ss);
 
     void parseMusic(std::istringstream& ss);
 
@@ -156,6 +160,7 @@ private:
     CheckPoint m_checkPoint;
     SDL_FRect m_wallCollisionRect;
     std::vector<LightSource> m_lights;
+    std::vector<DarkRoom> m_darkRooms;
     LevelAmbient m_ambient;
     std::vector<std::string> m_weatherTokens;   // 'Z' line
     bool m_hasSpawn = false;

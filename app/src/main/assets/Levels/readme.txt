@@ -19,10 +19,11 @@ Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
     ambience / weather for the level. Without a Z line the biome decides (and the D darkness):
       forest / meadows : leaves or petals + wind, fireflies from dusk on (D >= 0.12), sun + lens flare on bright days (D <= 0.15)
       stone cave       : nothing extra (dust motes only)        bright (blue) cave : blue glow-worm fireflies
+      cold night       : any level with SNOW and D >= 0.25 gets the northern lights (AURORA) on its own
       There are no daytime flies any more: the only insect is the firefly (FLIES is accepted and means FIREFLIES).
-    TOKENS: FIREFLIES PETALS LEAVES WIND RAIN SNOW THUNDER SUNFLARE STORM (= RAIN THUNDER WIND) NONE AUTO
+    TOKENS: FIREFLIES PETALS LEAVES WIND RAIN SNOW THUNDER SUNFLARE AURORA STORM (= RAIN THUNDER WIND) NONE AUTO
     A Z line REPLACES the biome defaults. Put AUTO first to keep them, and prefix a token with - to remove it.
-    (rain / snow always remove SUNFLARE)
+    (rain / snow always remove SUNFLARE; rain / thunder always remove AURORA)
     KEY=VALUE options (a flag name with a value switches it on with that strength, =0 switches it off):
       RAIN=0.2..3      rain density          SNOW=0.2..3    snow density        SNOWSIZE=0.5..2.5  flake size
       WIND=n           wind strength (1 = default, 3 = gale). WIND=-2 = strength 2 blowing LEFT. WINDDIR=-1|1 forces a side
@@ -32,6 +33,10 @@ Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
       FOG=0..1         haze (default: a little in rain, more in snow and more still in a blizzard)
       THUNDER=0.2..5   lightning frequency   FIREFLIES=0..3 / LEAVES=0..3 / PETALS=0..3   density
       GLOW=r,g,b       firefly colour
+      AURORA=0..2      northern lights brightness (green curtains in the sky, fading to violet at the top; =0 switches them off)
+                       automatic on SNOW levels with D >= 0.25; 'Z SNOW AURORA' forces them on a brighter level too.
+                       Fog / blizzard haze (FOG=) hides them, and they glow stronger the darker the level is.
+      AURORACOLOR=r,g,b  main colour (default 70,255,150)      AURORAY=0.1..0.8  height of the curtains (0 = top of the screen, default 0.34)
       SUNFLARE=0..2    lens flare strength   SUNCOLOR=r,g,b   sun colour
       SUNPOS=x,y       a FIXED sun position on screen, as fractions of the screen (0,0 = top left, 1,1 = bottom right):
                          0.5,0.1 noon, top centre      0.5,0.85 sunset, near the bottom centre      0.9,0.12 top right corner
@@ -56,7 +61,26 @@ Z TOKEN [TOKEN ...]   (also KEY=VALUE options, all optional)
                Z AUTO SUNPRESET=SUNSET SUNSIZE=1.5   big orange sun low at the bottom centre, fixed
                Z AUTO SUNPOS=0.5,0.1 SUNDRIFT=0   noon sun, top centre, never moves
                Z FIREFLIES=1.5 GLOW=120,220,255   dense blue fireflies
+               Z SNOW AURORA                snow + northern lights
+               Z SNOW=0.6 AURORA=1.5 AURORACOLOR=90,255,210 WIND=0.4   calm freezing night, strong teal-green aurora
+               Z AUTO -AURORA               keep the defaults but no aurora
                Z NONE                       nothing
+
+H x y w h [fadeSeconds] [KEEP] [FORCE] [OPACITY=0..1] [SOFT=px]
+    dark room (caves and closed buildings). x y w h = the room in world pixels (cover the whole inside, up to the walls
+    and the doorway). The room is solid darkness until the player walks into it: from outside (the corridor, the next
+    room, the far side of a wall or blockade) nothing in it can be seen, lights / enemies / particles included. When the
+    player steps in, the darkness melts over fadeSeconds (default 0.6). Leaving brings the darkness back.
+      KEEP         the room stays revealed after the first visit
+      OPACITY=n    how black it is from outside (default 1 = nothing visible, 0.9 = a faint silhouette)
+      SOFT=px      the border between the dark room and the lit area is a smooth grey gradient, SOFT = half its
+                   width (default 120 -> ~240 px of black > grey > clear centred on the room edge). 0 = almost hard.
+      FORCE        also honoured in open-air biomes. WITHOUT it, H lines are ignored in forest / meadows / peaks
+                   (open areas never get dark rooms); stone and bright caves honour them automatically.
+    The room you spawn in (or respawn into) starts lit. Rooms may touch or overlap. Put one H line per room.
+    examples:  H 0 -768 1000 1536                 a stone-cave chamber, 0.6 s fade
+               H 1000 -768 1000 1536 1.2 KEEP     slow fade, stays open once visited
+               H 400 200 600 500 FORCE OPACITY=0.95   a closed hut inside an open level
 
 E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]
     enemy that patrols the horizontal line pathStartX..pathEndX (x should be between them) at speed px/s.
