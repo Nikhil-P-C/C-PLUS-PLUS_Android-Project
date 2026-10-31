@@ -46,7 +46,7 @@ void ForeGroundBuilder::update(float dt) {
 
 void ForeGroundBuilder::init(std::vector<ForeGroundElement>& elements) {
 
-//    m_elements = elements;
+    m_elements = elements;
 
 
 

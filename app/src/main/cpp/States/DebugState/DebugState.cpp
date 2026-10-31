@@ -234,7 +234,7 @@ bool DebugState::handleEvents(SDL_Event &event) {
     if(event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat){
         if(event.key.key == SDLK_LEFTBRACKET)  { stepJump(-1); return true; }
         if(event.key.key == SDLK_RIGHTBRACKET) { stepJump(1);  return true; }
-        if(event.key.key == SDLK_J)            { doJump();     return true; }
+        if(event.key.key == SDLK_P)            { doJump();     return true; }
     }
     if(InputUtils::IsPointerDown(event)){
         float x, y;

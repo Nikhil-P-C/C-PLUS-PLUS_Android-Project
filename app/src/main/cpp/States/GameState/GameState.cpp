@@ -378,6 +378,7 @@ void GameState::render(SDL_Renderer* renderer)  {
                       m_player.x + m_player.spriteOffsetX + m_player.spriteW * 0.5f - (float) camX,
                       m_player.y + m_player.spriteOffsetY + m_player.spriteH * 0.5f - (float) camY);
     m_ambience.renderOverlay(m_renderer);   // lens flare, lightning flash, weather tint (after the darkness pass)
+    m_parryFx.render(m_renderer, (float)camX, (float)camY);   // parry flash: its own light (not dimmed by caves / tinted by weather), but still hidden by an unentered room
     m_rooms.render(m_renderer, (float)camX, (float)camY);   // rooms the player has not entered yet stay black (caves / buildings)
 
     renderComboCounter(renderer);   // after the light/vignette so it isn't darkened
@@ -484,7 +485,13 @@ void GameState::update(float dt){
         m_bossBuilder.shiftTimers(frozenMs);
         if(m_hurtAnimEndTime)  m_hurtAnimEndTime  += frozenMs;
         if(m_knockbackEndTime) m_knockbackEndTime += frozenMs;
+        if(m_recoilEndTime)    m_recoilEndTime    += frozenMs;   // the parry shove must survive its own 100ms freeze
+        if(m_playerFlashEnd)   m_playerFlashEnd   += frozenMs;
         m_fxParticles.update(dt);
+        // weather is not gameplay: rain, snow, the aurora, the wind/rain beds and the room-darkness fade keep moving on
+        // real time, so a (frequent) parry freeze never makes the ambience stutter.
+        m_ambientParticles.update(dt);
+        updateAmbience(dt);
         updateRealtimeFx(dt);
         return;
     }
@@ -635,6 +642,7 @@ void GameState::update(float dt){
     SDL_FRect playerRect{m_player.x,m_player.y,m_player.w,m_player.h};
     m_enemyBuilder.update(dt,playerRect,m_wallCollisionRect,m_grounds,m_platforms,m_blocks);
     flushEnemyDeathEffects();
+    PlayerDetail::getInstance().addScore(m_enemyBuilder.consumeReflectKills() * ENEMY_KILL_SCORE);   // killed by a reflected projectile
     {
         BossPlayerInfo info;
         info.slashStarted = (m_attackId != m_bossPrevAttackId);   // a new swing began (parry timing)
@@ -762,15 +770,23 @@ void GameState::update(float dt){
 
     unsigned int hitNow =SDL_GetTicks();
 
-    const bool canBeHit = hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer;
-    if(canBeHit)
+    const bool iframesOver = hitNow-PlayerDetail::getInstance().getLastHitTime() >m_invincibilityTimer;
+    if(iframesOver)
         PlayerDetail::getInstance().setInvincibility(false);
+    bool canBeHit = iframesOver && m_parry.invuln <= 0.0f;     // a successful parry also gives a short invulnerability
 
     // Always run the enemy check, even while invincible: a swing that overlaps the player during
     // i-frames is spent (attackHasHit) instead of waiting and landing the moment i-frames end.
     gameMath::collisionSide enemySide = gameMath::collisionSide::NONE;
+    // PARRY: while the window is open a parryable attack is parried instead of landing (no damage, see onParrySuccess)
+    EnemyParryContact parryContact;
     bool enemyHit = m_enemyBuilder.checkAttackOnPlayer(m_player.x, m_player.y, m_player.w, m_player.h,
-                                                       hitNow, canBeHit && !hazardColl, enemySide);
+                                                       hitNow, canBeHit && !hazardColl, enemySide,
+                                                       m_parry.active(), &parryContact, m_isPlayerfacingRight ? 1.0f : -1.0f);
+    if(parryContact.happened){
+        onParrySuccess(parryContact.x, parryContact.y, parryContact.dirX, false);
+        canBeHit = false;       // everything else that frame is covered by the new i-frames
+    }
     if(!enemyHit)       // bosses: their attack boxes, projectiles, rocks and ground waves
         enemyHit = m_bossBuilder.checkAttackOnPlayer(m_player.x, m_player.y, m_player.w, m_player.h,
                                                      hitNow, canBeHit && !hazardColl, enemySide);
@@ -1106,6 +1122,7 @@ void GameState::updateRealtimeFx(float realDt) {
     m_comboPop = std::max(0.0f, m_comboPop - realDt * 6.0f);
     m_impactFlash = std::max(0.0f, m_impactFlash - realDt);
     m_hurtVignette = std::max(0.0f, m_hurtVignette - realDt);
+    m_parryFx.update(realDt);       // real time: the flash animates while the parry hit-stop holds the world still
     updateHurtAudio();
 }
 
@@ -1175,6 +1192,14 @@ void GameState::onEnemyHit(const EnemyHitEvent& e) {
         m_fxParticles.emitSparkBurst(e.x, e.y, e.dirX, 5, 0.9f, 300.0f, 800.0f, 50.0f, 90.0f,
                                      120, 230, 255, 90.0f);
         cam.rumble(0.10f);
+        return;
+    }
+    if(e.isReflect){      // a parried projectile hit its thrower: sparks and a thump, but no combo / recoil / pogo
+        m_fxParticles.emitSparkBurst(e.x, e.y, e.dirX, 8, 1.0f, 300.0f, 800.0f, 50.0f, 90.0f,
+                                     255, 235, 170, 90.0f);
+        Engine::Get().getAssetManager().playSound(SoundType::SFX_ATTACK_SLASH_HIT);
+        cam.addTrauma(0.18f);
+        requestHitStop(0.05f);
         return;
     }
 
@@ -1250,6 +1275,7 @@ void GameState::startPlayerDeath() {
     m_slowMoLeft = 0.0f; m_timeScale = 1.0f;
     triggerHurtAudio(1.0f, 2400, false);
     m_hitStop = 0.0f;
+    m_parry.clear(); m_parryFx.clear();
     m_combo = 0;
     m_isDead = true;
     m_deathPopped = false;
@@ -1528,6 +1554,34 @@ float GameState::probeSolidVertical(float originY, float x, float w, bool up, in
     return best;
 }
 
+// ---- parry ----------------------------------------------------------------------------------------------------
+// The parry is the slash: a slash that starts opens a ~7 frame window (m_parry.open() in handlePhysicAndInput). What is
+// parryable, and the stagger, are on the enemy / boss side; this is only the player's feedback.
+// A parry landed (enemy attack, thrown object, boss strike or boss QTE dash). (x, y) = contact point in world space,
+// dirX = +1 / -1 from the player toward what was parried. The feel comes from stacking all of this on one frame:
+// hit-stop (player AND enemy freeze) + flash + sparks + shake + a sharp clink at a random pitch + the magic reward.
+void GameState::onParrySuccess(float x, float y, float dirX, bool big) {
+    m_parry.succeed();                                            // closes the window, starts the i-frames
+    Camera& cam = Camera::getInstance();
+
+    m_parryFx.spawn(x, y, dirX, big);
+    m_fxParticles.emitSparkBurst(x, y, dirX, big ? 12 : 8, 1.1f, 350.0f, 950.0f, 50.0f, 100.0f,
+                                 255, 240, 200, 100.0f);
+    m_particleSystem.emitBurst(x, y, big ? 30 : 18, 160.0f, 520.0f, 0.20f, 0.45f, 24.0f, 255, 255, 255);
+
+    requestHitStop(big ? PARRY_HITSTOP_BIG_S : PARRY_HITSTOP_S);
+    cam.kick(dirX * (big ? 14.0f : 9.0f));
+    cam.addTrauma(big ? 0.38f : 0.24f);
+
+    AssetManager& assets = Engine::Get().getAssetManager();
+    const float pitch = PARRY_PITCH_MIN + (PARRY_PITCH_MAX - PARRY_PITCH_MIN) * ((float)(SDL_GetTicks() % 997u) / 996.0f);
+    assets.playSoundPitched(SoundType::SFX_PARRY, 1.0f, big ? pitch * 0.92f : pitch);
+
+    PlayerDetail::getInstance().addMagic(PARRY_MAGIC_REWARD);
+    m_playerFlashEnd = SDL_GetTicks() + 90;                       // player sprite flashes white for a beat
+    applyRecoil(-dirX, PARRY_PLAYER_PUSH);                        // both bodies are shoved apart
+}
+
 void GameState::tryBeam(float dt) {
     float drain = BEAM_MAGIC_DRAIN_PER_SEC * dt;
     if(PlayerDetail::getInstance().getMagic() < drain){
@@ -1793,12 +1847,16 @@ void GameState::handlePhysicAndInput(float dt) {
     // player to be airborne - holding down on the ground just gives a normal sideways slash.
     // Attack buffer: a press made during a swing is queued for ATTACK_BUFFER_S and starts the next swing the
     // moment the current one ends, so mashing slash chains smoothly instead of dropping every other press.
+    m_parry.tick(dt);                       // the slash's parry window + the i-frames after a parry
+
     if(InputDispatcher::getInstance().consumeAttack())      m_attackBufferTimer = ATTACK_BUFFER_S;
     else if(m_attackBufferTimer > 0.0f)                     m_attackBufferTimer = std::max(0.0f, m_attackBufferTimer - dt);
 
     if(m_attackBufferTimer > 0.0f && !m_isAttacking){
         m_attackBufferTimer = 0.0f;
-        m_attackId++;   // new swing -> new id; enemies take at most one hit per id
+        m_attackId++;
+        m_parry.open();                     // a slash that starts right before an enemy attack lands IS the parry
+        // new swing -> new id; enemies take at most one hit per id
         // aim is locked in for the whole swing: up held = upward slash, down held (airborne only) = downward
         // slash (pogo target check), otherwise the slash goes the way the player faces.
         if(InputDispatcher::getInstance().lookUp)                             m_slashDir = SlashDir::UP;
@@ -1891,6 +1949,7 @@ void GameState::handlePhysicAndInput(float dt) {
 
 void GameState::setLevel(int level) {
 
+    m_parry.clear(); m_parryFx.clear();
     m_blocks.clear();
     m_platforms.clear();
     m_grounds.clear();
@@ -2059,8 +2118,7 @@ void GameState::resetBossFight() {
 
 void GameState::flushBossEffects() {
     for(const BossParryEvent& e : m_bossBuilder.consumeParryEvents()){
-        m_particleSystem.emitBurst(e.x, e.y, e.big ? 36 : 22, 160.0f, 560.0f, 0.25f, 0.55f, 26.0f, 255, 255, 255);
-        requestHitStop(e.big ? 0.14f : 0.09f);
+        onParrySuccess(e.x, e.y, e.dirX, e.big);   // same feedback as an enemy parry; bosses / QTE strikes just hit a bit bigger
     }
     for(const SDL_FPoint& p : m_bossBuilder.consumeDeathEvents())
         m_particleSystem.emitBurst(p.x, p.y, 40, 160.0f, 520.0f, 0.5f, 1.0f, 70.0f, 255, 240, 200);

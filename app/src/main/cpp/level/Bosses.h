@@ -20,6 +20,7 @@
 //   A missing phase-2 file keeps phase 1 playing, a missing phase-1 file keeps the level music playing (no crash).
 //
 #pragma once
+#include "utils/Parry.h"
 #include <vector>
 #include <string>
 #include <random>
@@ -49,8 +50,12 @@ const unsigned int BOSS_BEAM_REARM_MS   = 600;     // BREATH_BEAM can hurt again
 const float BOSS_ARENA_ENTER_MARGIN     = 200.0f;  // the fight starts once the player is this far inside the arena
 const unsigned int BOSS_ARENA_UNLOCK_MS = 2200;    // the arena stays locked this long after the kill (death burst, score)
 const unsigned int BOSS_MUSIC_FADE_MS   = 1200;    // boss track fades out over this long on the kill
-const unsigned int BOSS_PARRY_PRE_MS    = 260;     // a slash this long BEFORE a parryable strike lands counts as a parry
-const unsigned int BOSS_PARRY_POST_MS   = 110;     // ...and this long after
+// The parry is the player's slash (utils/Parry.h): a slash that STARTS this long BEFORE a parryable strike lands counts (= the
+// player's parry window), and a couple of frames after it still does (the strike resolves a frame before the slash is seen).
+const unsigned int BOSS_PARRY_PRE_MS    = (unsigned int)(PARRY_WINDOW_S * 1000.0f + 0.5f);
+const unsigned int BOSS_PARRY_POST_MS   = 40;
+const unsigned int BOSS_PARRY_CUE_MS    = 260;     // the white "parry now" flash on the boss starts this long before the strike (longer than the window: it is a tell, not the timing)
+const unsigned int BOSS_QTE_EXTRA_MS    = 60;      // the QTE dashes are a touch more forgiving than a normal parry
 const unsigned int BOSS_GRAB_MS         = 1100;    // how long a grab holds the player before the final bite
 const int          BOSS_GRAB_BREAK_HITS = 2;       // hit the grabber this many times to break free
 const int          BOSS_QTE_STEPS       = 5;       // samurai dashes the player must parry to finish the Ancient Sinner
@@ -259,7 +264,7 @@ struct BossPart {
     float swayPhase = 0.0f;
 };
 
-struct BossParryEvent { float x, y; bool big; };
+struct BossParryEvent { float x, y; bool big; float dirX = 1.0f; };   // dirX: from the player toward the boss
 
 // what the boss logic needs to know about the player each frame (GameState fills it in)
 struct BossPlayerInfo {

@@ -244,6 +244,7 @@ enum class SoundType{
     SFX_THUNDER,      // thunder_close_01, on every lightning strike
     SFX_WIND_GUST,    // wind_gust_01, when a gust starts
     SFX_RAIN_SPLASH,  // rain_splash_01 (loaded, not triggered anywhere yet)
+    SFX_PARRY,        // Sound/Parry/Parry.wav: the metallic clink of a successful parry (falls back to the slash collision sound)
     MUSIC_BACKGROUND,
     COUNT
 };
@@ -262,6 +263,8 @@ public:
     // One-shot SFX. Uses a fixed pool of reusable tracks (no track is created per call).
     // If every voice is busy the sound is dropped instead of piling up.
     void playSound(SoundType);
+    // one-shot at a different pitch (1.0 = normal; the parry clink varies it a little every time so it never sounds canned)
+    void playSoundPitched(SoundType, float gain, float pitch);
     // listener = whoever is hearing it (the player), src = where the sound comes from.
     // `gain` lets distant/minor sources (enemy steps) sit below the player's own sounds.
     void playSoundAt(float listenerX,float listenerY,float srcX ,float srcY,SoundType,float gain =1.0f);

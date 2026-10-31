@@ -110,7 +110,7 @@ void BackGroundBuilder::update(float dt) {
 
 void BackGroundBuilder::init(std::vector<BackGroundElement>& elements) {
     //comment this when creating objects here
-//    m_elements = elements;
+    m_elements = elements;
 
     //test view here by creating elements directly if perfect then put the same in level file
 

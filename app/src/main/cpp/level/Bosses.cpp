@@ -471,6 +471,7 @@ void BossBuilder::shiftTimers(unsigned int ms){
         if(b.nextRearm)      b.nextRearm      += ms;
         if(b.hurtFlashEnd)   b.hurtFlashEnd   += ms;
         if(b.whiteFlashEnd)  b.whiteFlashEnd  += ms;
+        if(b.staggerUntil)   b.staggerUntil   += ms;   // the parry hit-stop must not eat the stagger
         if(b.nextBeamFx)     b.nextBeamFx     += ms;
         if(b.deathTime)      b.deathTime      += ms;
     }
@@ -889,7 +890,9 @@ bool BossBuilder::tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& pla
 void BossBuilder::doParry(Boss& b, unsigned int now){
     endAttackCleanup(b, SDL_FRect{0, 0, 0, 0});
     m_parryEvents.push_back({ std::clamp(m_playerRect.x + m_playerRect.w * 0.5f, b.x, b.x + b.w),
-                              b.y + b.h * 0.4f, false });
+                              b.y + b.h * 0.4f, false,
+                              (b.x + b.w * 0.5f >= m_playerRect.x + m_playerRect.w * 0.5f) ? 1.0f : -1.0f });
+    b.whiteFlashEnd = now + 150;
     b.extraRecoverMs = 900;
     b.staggerUntil = now + 1500;
     if(b.attack >= 0){
@@ -976,12 +979,12 @@ void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
     b.baseX = b.x;
 
     if(now < b.qteStrike + BOSS_PARRY_POST_MS) return;
-    const bool ok = m_slashTick > m_parryUsed && m_slashTick + BOSS_PARRY_PRE_MS + 60 >= b.qteStrike && m_slashTick <= b.qteStrike + BOSS_PARRY_POST_MS;
+    const bool ok = m_slashTick > m_parryUsed && m_slashTick + BOSS_PARRY_PRE_MS + BOSS_QTE_EXTRA_MS >= b.qteStrike && m_slashTick <= b.qteStrike + BOSS_PARRY_POST_MS;
     b.stage = 0;
     b.qteFromLeft = (m_rng() & 1u) != 0u;                       // the next dash can come from either side
     if(ok){
         m_parryUsed = m_slashTick;
-        m_parryEvents.push_back({ pcx, pcy, true });
+        m_parryEvents.push_back({ pcx, pcy, true, b.qteFromLeft ? -1.0f : 1.0f });
         Camera::getInstance().addTrauma(0.6f);
         b.qteStep++;
         if(b.qteStep >= BOSS_QTE_STEPS){
@@ -1100,7 +1103,7 @@ bool BossBuilder::checkGhostPogo(const SDL_FRect& slashBox, float& hitX, float& 
 
 void BossBuilder::setPlayerInfo(const BossPlayerInfo& info){
     m_info = info;
-    if(info.slashStarted) m_slashTick = SDL_GetTicks();
+    if(info.slashStarted) m_slashTick = SDL_GetTicks();   // a slash that starts inside the strike's window is the parry
 }
 
 // ----------------------------------------------------------------------------------------------------
@@ -2562,7 +2565,7 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
             const BossAttackDef& a = def->attacks[b.attack];
             const unsigned int windup = (unsigned int)(a.windupMs * (b.phase != BossPhase::PHASE_1 ? BOSS_PHASE2_WINDUP_MUL : 1.0f));
             const unsigned int impact = b.stateStart + windup;
-            if(now + BOSS_PARRY_PRE_MS >= impact){
+            if(now + BOSS_PARRY_CUE_MS >= impact){
                 SDL_SetRenderDrawColor(r, 255, 255, 255, 200);
                 SDL_FRect f{ b.x - camX - 6.0f, b.y - camY - 6.0f, b.w + 12.0f, b.h + 12.0f };
                 SDL_RenderRect(r, &f);

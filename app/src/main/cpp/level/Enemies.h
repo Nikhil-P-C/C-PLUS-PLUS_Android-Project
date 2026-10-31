@@ -6,6 +6,7 @@
 #include "Traps.h"
 #include "engine/Engine.h"
 #include "level/BlockShapeBuilder.h"
+#include "utils/Parry.h"
 #include <SDL3/SDL.h>
 
 const float ENEMY_GRAVITY = 1800.00f; // matches player's m_gravity (GameState.h) so enemies fall at the same rate the player does
@@ -149,6 +150,20 @@ inline int attackRank(AttackType t){
         default:                     return 99;
     }
 }
+// Which attacks the player can PARRY (the parry button, see utils/Parry.h). Melee / body attacks have a wind-up the
+// player can read, so they are parryable; a thrown object is REFLECTED. SHOOT and BEAM are not: they get a red
+// warning tell instead of the gold one (see EnemiesBuilder::render), so the player learns to dodge those.
+// This is the single place to change it.
+inline bool attackParryable(AttackType t){
+    switch(t){
+        case AttackType::BITE:
+        case AttackType::SLASH:
+        case AttackType::DASH:
+        case AttackType::POUNCE:
+        case AttackType::PROJECTILE: return true;
+        default:                     return false;   // SHOOT, BEAM, NONE
+    }
+}
 struct EnemyFrameInfo{
     TextureType texture;
     int frameW, frameH;
@@ -165,6 +180,7 @@ struct EnemyProjectile{
     float vx =0.0f, vy =0.0f;
     float age =0.0f;
     EnemyType owner =EnemyType::NONE;
+    bool  reflected =false;   // parried: now flies back, hurts enemies and ignores the player
 };
 
 struct EnemyAIConfig {
@@ -191,6 +207,15 @@ struct EnemyHitEvent{
     float dirX;       // +1 / -1: direction the hit pushes the enemy (sparks fly this way)
     bool  killed;     // this hit took the enemy to 0 hp
     bool  isBeam;     // beam tick - sparks/rumble only, no combo or hit-stop
+    bool  isReflect = false;   // a reflected projectile hit it - sparks only, no combo / recoil / pogo
+};
+
+// A parry that landed on an enemy attack (filled by EnemiesBuilder::checkAttackOnPlayer, turned into the feedback by GameState).
+struct EnemyParryContact{
+    bool  happened = false;
+    float x = 0.0f, y = 0.0f;   // world point where the attack met the parry
+    float dirX = 1.0f;          // +1 / -1: from the player toward the attacker
+    bool  projectile = false;   // true = a thrown object was reflected
 };
 
 struct Enemy{
@@ -254,6 +279,8 @@ struct Enemy{
     bool isHurt =false;
     unsigned int hurtFlashEndTime =0;
     unsigned int whiteFlashEndTime =0;   // short additive white flash on a melee hit (hurtFlash stays the red tint)
+    unsigned int staggerUntil =0;        // parried: stunned (no AI, no attacks) until this tick
+    bool         parryBonus =false;      // the next slash that lands inside the stagger hits PARRY_BONUS_DAMAGE_MUL harder
     unsigned int nextBeamFxTime =0;      // rate limit for beam spark events
     int lastMeleeAttackId =-1;           // id of the last player swing that damaged this enemy (one hit per swing)
     float beamDamageAccum =0.0f;         // fractional beam damage carried between frames (hp is an int)
@@ -311,8 +338,17 @@ public:
     // outSide (which way to knock the player) on the first hit found.
     // canDamage=false (player invincible, or already hit by something else this frame) still
     // 'spends' an overlapping swing so it can't land later in the same attack.
+    //
+    // parryActive = the player's parry window is open. A parryable attack that reaches the player (plus PARRY_REACH_PAD)
+    // is then parried instead of hurting: the enemy is staggered, a thrown object is reflected, `parryOut` is filled
+    // and the function returns false (no damage). One parry per call. parryFacing = +1 / -1: only attackers on that side
+    // of the player are parried (the slash only covers the front); 0 = any side.
     bool checkAttackOnPlayer(float playerX, float playerY, float playerW, float playerH,
-                             unsigned int now, bool canDamage, gameMath::collisionSide& outSide);
+                             unsigned int now, bool canDamage, gameMath::collisionSide& outSide,
+                             bool parryActive = false, EnemyParryContact* parryOut = nullptr, float parryFacing = 0.0f);
+
+    // kills scored by reflected projectiles since the last call (GameState adds the score)
+    int consumeReflectKills(){ const int k = m_reflectKills; m_reflectKills = 0; return k; }
 
     const std::vector<Enemy>& getEnemies() const { return m_enemies; }
     const std::vector<EnemyProjectile>& getProjectiles() const { return m_projectiles; }
@@ -343,6 +379,10 @@ public:
 private:
     // PROJECTILE attack: throws an object from the enemy's hand, arced so it reaches the player's current position
     void spawnProjectile(const Enemy& e, const SDL_FRect& player);
+    // the player parried this enemy's attack: spend it, stagger the enemy, cancel the lunge
+    void staggerFromParry(Enemy& e, float playerCenterX, unsigned int now);
+    // ms until this enemy's attack becomes live (<=0: already live / over / not attacking)
+    float msToAttackImpact(const Enemy& e) const;
     void updateProjectiles(float dt, const SDL_FRect& wallCollisionRect,
                            const std::vector<LevelGround>& grounds,
                            const std::vector<Platform>& platforms,
@@ -397,5 +437,6 @@ private:
     std::vector<Enemy> m_enemies;
     std::vector<SDL_FPoint> m_deathEvents;
     std::vector<EnemyHitEvent> m_hitEvents;
+    int m_reflectKills = 0;
 
 };

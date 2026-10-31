@@ -16,6 +16,8 @@
 #include "AmbientParticles.h"
 #include "AmbienceFx.h"
 #include "RoomDarkness.h"
+#include "ParryFx.h"
+#include "utils/Parry.h"
 #include "engine/Lighting.h"
 
 #include "level/Fruits.h"
@@ -156,6 +158,8 @@ public:
     // --- boss fights ---
     // death burst, minion summons, level music coming back after the kill (fed by BossBuilder's event queues)
     void flushBossEffects();
+    // parry = the slash timed against an enemy attack (window opens in handlePhysicAndInput); the feedback is onParrySuccess
+    void onParrySuccess(float x, float y, float dirX, bool big);
     // While a fight is on: camera pinned on the arena + player kept inside it. Otherwise the normal follow camera.
     // Replaces the old "lockCameraOn + cameraClamp" block at the end of update().
     void updateBossArena(float realDt);
@@ -356,6 +360,8 @@ private:
     float m_deathDir =1.0f;
 
     // hit VFX state
+    ParryState m_parry;                    // the slash's parry window + the i-frames after a parry (utils/Parry.h)
+    ParryFx    m_parryFx;                  // contact flash, drawn after lighting/ambience and before RoomDarkness
     float    m_hitStop =0.0f;              // seconds of freeze left (sim paused, shake + sparks keep running)
     int      m_combo =0;
     uint32_t m_lastComboHit =0;

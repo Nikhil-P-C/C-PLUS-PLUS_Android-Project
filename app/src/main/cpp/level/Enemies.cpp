@@ -119,10 +119,43 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
         // hitbox, the flip mirrors around the hitbox centre and the body doesn't jump sideways.
         SDL_FlipMode flip = enemy.isFacingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
+        const unsigned int nowT = SDL_GetTicks();
+        const bool stunned = !enemy.isDead && nowT < enemy.staggerUntil;   // parried: dazed, pale blue pulse
         if(placeholderCorpse)  SDL_SetTextureColorMod(texture, 90, 90, 90);
         else if(enemy.isHurt)  SDL_SetTextureColorMod(texture, 255, 110, 110);
+        else if(stunned){
+            const float pulse = 0.5f + 0.5f * std::sin(nowT * 0.03f);
+            SDL_SetTextureColorMod(texture, (Uint8)(150 + 40 * pulse), (Uint8)(185 + 40 * pulse), 255);
+        }
         SDL_RenderTextureRotated(renderer, texture, &src, &dst, 0.0, nullptr, flip);
-        if(placeholderCorpse || enemy.isHurt) SDL_SetTextureColorMod(texture, 255, 255, 255);
+        if(placeholderCorpse || enemy.isHurt || stunned) SDL_SetTextureColorMod(texture, 255, 255, 255);
+
+        // wind-up tells. Parryable: a gold-white flash in the last moments before the hit ("parry now").
+        // Not parryable (SHOOT / BEAM): a red pulse for the whole wind-up ("dodge this one").
+        if(!placeholderCorpse && enemy.action == EnemyAction::ATTACK && !enemy.attackHasHit){
+            const float tMs = msToAttackImpact(enemy);
+            if(tMs > 0.0f){
+                Uint8 cr = 0, cg = 0, cb = 0, ca = 0;
+                if(attackParryable(enemy.attackType)){
+                    if(tMs <= (float)PARRY_CUE_LEAD_MS){
+                        const float k = 1.0f - tMs / (float)PARRY_CUE_LEAD_MS;       // ramps up toward the impact
+                        cr = 255; cg = 235; cb = 150; ca = (Uint8)(90 + 130 * k);
+                    }
+                } else {
+                    const float pulse = 0.5f + 0.5f * std::sin(nowT * 0.035f);
+                    cr = 255; cg = 40; cb = 30; ca = (Uint8)(70 + 90 * pulse);
+                }
+                if(ca > 0){
+                    SDL_SetTextureColorMod(texture, cr, cg, cb);
+                    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_ADD);
+                    SDL_SetTextureAlphaMod(texture, ca);
+                    SDL_RenderTextureRotated(renderer, texture, &src, &dst, 0.0, nullptr, flip);
+                    SDL_SetTextureAlphaMod(texture, 255);
+                    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+                    SDL_SetTextureColorMod(texture, 255, 255, 255);
+                }
+            }
+        }
 
         // melee hit: second additive pass pushes the sprite toward white for a few frames
         if(!placeholderCorpse && SDL_GetTicks() < enemy.whiteFlashEndTime){
@@ -270,6 +303,8 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
             float nextX = enemy.x + enemy.knockbackVelocityX * dt;
             if(isHorizontalPathClear(enemy, nextX, wallCollisionRect, blocks))
                 enemy.x = nextX;
+        } else if(now < enemy.staggerUntil){
+            enemy.knockbackVelocityX = 0.0f;     // parried: stunned in place, no AI, no attacks (gravity still applies below)
         } else {
             enemy.knockbackVelocityX = 0.0f;
             updateAI(enemy,player,dt,wallCollisionRect,blocks);
@@ -342,6 +377,7 @@ void EnemiesBuilder::shiftTimers(unsigned int ms) {
         if(e.knockbackEndTime)  e.knockbackEndTime  += ms;
         if(e.hurtFlashEndTime)  e.hurtFlashEndTime  += ms;
         if(e.whiteFlashEndTime) e.whiteFlashEndTime += ms;
+        if(e.staggerUntil)      e.staggerUntil      += ms;   // the parry hit-stop must not eat the stagger
         if(e.nextAttackTime)    e.nextAttackTime    += ms;
         if(e.lastTime)          e.lastTime          += ms;   // animation frame clock
         if(e.lastSwitchTime)    e.lastSwitchTime    += ms;
@@ -365,7 +401,12 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
            gameMath::checkcollision(meleeHitBox.x, meleeHitBox.y, enemy.x, enemy.y,
                                     meleeHitBox.h, meleeHitBox.w, enemy.h, enemy.w)){
             enemy.lastMeleeAttackId = attackId;
-            enemy.hp -= ENEMY_MELEE_DAMAGE;
+            int meleeDamage = ENEMY_MELEE_DAMAGE;
+            if(enemy.parryBonus && now < enemy.staggerUntil){      // the riposte: first slash into a parried enemy hits harder
+                meleeDamage = (int)((float)meleeDamage * PARRY_BONUS_DAMAGE_MUL);
+                enemy.parryBonus = false;
+            }
+            enemy.hp -= meleeDamage;
 
             float hitterCenterX = meleeHitBox.x + meleeHitBox.w * 0.5f;
             float enemyCenterX  = enemy.x + enemy.w * 0.5f;
@@ -429,10 +470,31 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
 }
 
 bool EnemiesBuilder::checkAttackOnPlayer(float playerX, float playerY, float playerW, float playerH,
-                                         unsigned int now, bool canDamage, gameMath::collisionSide& outSide) {
+                                         unsigned int now, bool canDamage, gameMath::collisionSide& outSide,
+                                         bool parryActive, EnemyParryContact* parryOut, float parryFacing) {
+    const bool canParry = parryActive && parryOut && !parryOut->happened;
+    const float pcx = playerX + playerW * 0.5f;
+    // an attacker overlapping the player's own centre counts as in front, otherwise it must be on the facing side
+    auto inFront = [&](float cx){ return parryFacing == 0.0f || std::fabs(cx - pcx) < 24.0f || ((cx >= pcx ? 1.0f : -1.0f) == parryFacing); };
     for(auto& enemy : m_enemies){
         // attackHasHit makes each attack swing hurt at most once, however long the boxes overlap
         if(enemy.isDead || !enemy.isAttackBoxActive || enemy.attackHasHit) continue;
+
+        // PARRY: the window is open and a parryable attack is within reach (a little before it would actually connect)
+        if(canParry && attackParryable(enemy.attackType) && inFront(enemy.x + enemy.w * 0.5f) &&
+           gameMath::checkcollision(enemy.attackHitBox.x, enemy.attackHitBox.y,
+                                    playerX - PARRY_REACH_PAD, playerY - PARRY_REACH_PAD,
+                                    enemy.attackHitBox.h, enemy.attackHitBox.w,
+                                    playerH + PARRY_REACH_PAD * 2.0f, playerW + PARRY_REACH_PAD * 2.0f)){
+            const float ecx = enemy.x + enemy.w * 0.5f;
+            parryOut->happened = true;
+            parryOut->dirX = (ecx >= pcx) ? 1.0f : -1.0f;
+            parryOut->x = (ecx + pcx) * 0.5f;                       // between the two bodies, at chest height
+            parryOut->y = playerY + playerH * 0.4f;
+            parryOut->projectile = false;
+            staggerFromParry(enemy, pcx, now);
+            return false;                                           // no damage
+        }
 
         if(gameMath::checkcollision(enemy.attackHitBox.x, enemy.attackHitBox.y, playerX, playerY,
                                     enemy.attackHitBox.h, enemy.attackHitBox.w, playerH, playerW)){
@@ -445,7 +507,23 @@ bool EnemiesBuilder::checkAttackOnPlayer(float playerX, float playerY, float pla
     }
     // thrown objects: contact spends the projectile (even on an invincible player, like a swing)
     for(size_t i = 0; i < m_projectiles.size(); ++i){
-        const EnemyProjectile& p = m_projectiles[i];
+        EnemyProjectile& p = m_projectiles[i];
+        if(p.reflected) continue;                                   // parried: it no longer hurts the player
+        // PARRY: reflect it back at whoever threw it
+        if(canParry && !parryOut->happened && inFront(p.x + p.w * 0.5f) &&
+           p.x < playerX + playerW + PARRY_REACH_PAD && p.x + p.w > playerX - PARRY_REACH_PAD &&
+           p.y < playerY + playerH + PARRY_REACH_PAD && p.y + p.h > playerY - PARRY_REACH_PAD){
+            parryOut->happened = true;
+            parryOut->projectile = true;
+            parryOut->dirX = (p.vx > 0.0f) ? 1.0f : -1.0f;          // it was flying toward the player from this side
+            parryOut->x = p.x + p.w * 0.5f;
+            parryOut->y = p.y + p.h * 0.5f;
+            p.reflected = true;
+            p.vx = -p.vx * 1.3f;
+            p.vy = -std::fabs(p.vy) * 0.25f - 120.0f;               // a little lift so it flies back, not into the ground
+            p.age = 0.0f;
+            return false;
+        }
         if(p.x < playerX + playerW && p.x + p.w > playerX && p.y < playerY + playerH && p.y + p.h > playerY){
             const bool movingRight = p.vx > 0.0f;
             m_projectiles.erase(m_projectiles.begin() + (long)i);
@@ -502,6 +580,24 @@ void EnemiesBuilder::updateProjectiles(float dt, const SDL_FRect& wallCollisionR
 
         bool dead = p.age >= ENEMY_PROJECTILE_MAX_LIFE;
 
+        // reflected by a parry: the first living enemy it touches takes a full melee hit
+        if(!dead && p.reflected){
+            for(auto& en : m_enemies){
+                if(en.isDead || !(p.x < en.x + en.w && p.x + p.w > en.x && p.y < en.y + en.h && p.y + p.h > en.y)) continue;
+                en.hp -= ENEMY_MELEE_DAMAGE;
+                const float dir = p.vx >= 0.0f ? 1.0f : -1.0f;
+                en.knockbackVelocityX = dir * ENEMY_KNOCKBACK_SPEED_X;
+                en.knockbackEndTime = SDL_GetTicks() + ENEMY_KNOCKBACK_MS;
+                en.isHurt = true;
+                en.hurtFlashEndTime = SDL_GetTicks() + ENEMY_HURT_FLASH_MS;
+                en.whiteFlashEndTime = SDL_GetTicks() + ENEMY_WHITE_FLASH_MS;
+                m_hitEvents.push_back({p.x + p.w * 0.5f, p.y + p.h * 0.5f, dir, en.hp <= 0, false, true});
+                if(en.hp <= 0){ startDeath(en); m_reflectKills++; }
+                dead = true;
+                break;
+            }
+        }
+
         // level boundary walls (left / right / top / bottom tile borders)
         if(!dead){
             dead = p.x < wallCollisionRect.x + wallT
@@ -529,6 +625,34 @@ void EnemiesBuilder::updateProjectiles(float dt, const SDL_FRect& wallCollisionR
         if(dead) m_projectiles.erase(m_projectiles.begin() + (long)i);
         else     ++i;
     }
+}
+
+// The player parried this enemy's attack. The swing / lunge / leap is over, the enemy is shoved back and stunned,
+// and the player's next slash into it hits harder (see applyPlayerDamage).
+void EnemiesBuilder::staggerFromParry(Enemy& e, float playerCenterX, unsigned int now) {
+    e.attackHasHit = true;
+    e.isAttackBoxActive = false;
+    const float away = (e.x + e.w * 0.5f >= playerCenterX) ? 1.0f : -1.0f;
+    e.knockbackVelocityX = away * ENEMY_KNOCKBACK_SPEED_X * 0.9f;
+    e.knockbackEndTime = now + ENEMY_KNOCKBACK_MS;
+    e.staggerUntil = now + PARRY_STAGGER_MS;
+    e.parryBonus = true;
+    e.whiteFlashEndTime = now + 150;                     // a touch longer than a normal hit flash
+    e.nextAttackTime = std::max(e.nextAttackTime, now + PARRY_STAGGER_MS + 250);
+    e.dashStarted = false;
+    e.dashDone = true;
+    if(e.action == EnemyAction::ATTACK) setAction(e, EnemyAction::SEEK);
+}
+
+float EnemiesBuilder::msToAttackImpact(const Enemy& e) const {
+    if(e.action != EnemyAction::ATTACK) return 0.0f;
+    const auto* ai = getEnemyFrameInfo(e.type, EnemyAction::ATTACK, e.attackType);
+    if(!ai) return 0.0f;
+    const int startFrame = (int)(ai->frameCount * ENEMY_ATTACK_ACTIVE_START);
+    const int framesLeft = startFrame - e.aniStartFrame;
+    if(framesLeft <= 0) return 0.0f;                     // already live
+    const float sinceFrame = (float)(SDL_GetTicks() - e.lastTime);
+    return (float)framesLeft * (float)ai->frameDelay - sinceFrame;
 }
 
 void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,

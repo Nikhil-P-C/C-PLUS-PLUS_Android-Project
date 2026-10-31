@@ -1,6 +1,7 @@
 //
 // Created by LENOVO on 23-07-2026.
 //
+#include <algorithm>
 #include "AssetManager.h"
 #include <cmath>
 #include <SDL3_image/SDL_image.h>
@@ -91,7 +92,10 @@ MIX_Track* AssetManager::acquireSfxTrack() {
             }
             return track;
         }
-        if(!MIX_TrackPlaying(track)) return track;
+        if(!MIX_TrackPlaying(track)){
+            MIX_SetTrackFrequencyRatio(track, 1.0f);   // a pooled track may still carry the pitch of a playSoundPitched()
+            return track;
+        }
     }
     return nullptr;   // all voices busy - drop this sound
 }
@@ -110,6 +114,19 @@ void AssetManager::playSound(SoundType type) {
     MIX_SetTrack3DPosition(track,nullptr);   // pooled track may still be positional from last use
     MIX_SetTrackGain(track,sfxGain(1.0f));
     MIX_PlayTrack(track,0);                  // options is an SDL_PropertiesID: 0 = none (was `true` = bogus ID 1)
+}
+
+void AssetManager::playSoundPitched(SoundType type, float gain, float pitch) {
+    if(type == SoundType::SFX_PARRY && (type >= SoundType::COUNT || !m_soundTable[(unsigned int)type]))
+        type = SoundType::SFX_ATTACK_SLASH_COLLISION;          // no Parry.wav shipped: reuse the slash clink
+    if(type >=SoundType::COUNT || !m_soundTable[(unsigned int)type]) return;
+    MIX_Track* track = acquireSfxTrack();
+    if(!track) return;
+    MIX_SetTrackAudio(track, m_soundTable[(unsigned int)type]);
+    MIX_SetTrack3DPosition(track,nullptr);
+    MIX_SetTrackGain(track,sfxGain(gain));
+    MIX_SetTrackFrequencyRatio(track, std::clamp(pitch, 0.5f, 2.0f));
+    MIX_PlayTrack(track,0);
 }
 
 void AssetManager::playSoundAt(float listenerX, float listenerY, float srcX, float srcY, SoundType type, float gain) {
@@ -515,6 +532,7 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadSound(SoundType::SFX_FOOTSTEP_SNOW,   "Sound/footstep/footsteps_snow_01.wav");
     loadSound(SoundType::SFX_THUNDER,      "Sound/Ambient_Environment/oneshot/thunder_close_01.wav");
     loadSound(SoundType::SFX_WIND_GUST,    "Sound/Ambient_Environment/oneshot/wind_gust_01.wav");
+    loadSound(SoundType::SFX_PARRY,        "Sound/Parry/Parry.wav");
 
     for(const auto & texture: m_textureTable){
         SDL_SetTextureScaleMode(texture,SDL_SCALEMODE_NEAREST);

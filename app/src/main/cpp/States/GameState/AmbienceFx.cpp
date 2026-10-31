@@ -1164,6 +1164,21 @@ float AmbienceFx::auroraVisibility() const {
 void AmbienceFx::renderAurora(SDL_Renderer* r, const View& v) {
     const float vis = auroraVisibility();
     if (vis < 0.02f) return;
+
+    // Night-sky wash. The curtains are ADDITIVE light, and light needs a dark sky behind it: over a bright daytime
+    // backdrop (the level's sky art) they vanish. So dim the sky first, deep blue, strongest at the top and gone
+    // before the horizon. Skipped on levels that are dark already (the darkness pass does that job).
+    {
+        const float night = smoothstep(0.05f, 0.40f, m_darkness);
+        const float wash = clamp01(vis * 1.3f) * 0.80f * (1.0f - 0.7f * night);
+        if (wash > 0.01f) {
+            const float h = v.h * 0.66f;
+            const SDL_FColor top = col(8, 14, 40, wash), bot = col(8, 14, 40, 0.0f);
+            SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+            g_batch.quad4(0.0f, 0.0f, top,  v.w, 0.0f, top,  v.w, h, bot,  0.0f, h, bot);
+            g_batch.flush(r, nullptr);
+        }
+    }
     const float boost = 1.0f + m_darkness * 1.2f;   // the darkness pass comes after this layer and dims it
     const float stripW = clampf(34.0f / std::sqrt(std::max(0.25f, m_density * m_opt.density)), 24.0f, 64.0f);
     const int n = (int)std::ceil(v.w / stripW) + 3;
@@ -1201,7 +1216,7 @@ void AmbienceFx::renderAurora(SDL_Renderer* r, const View& v) {
             nd.yb = baseY + sway;
             nd.hgt = v.h * (0.30f + 0.10f * std::sin(u * 0.0057f + m_t * 0.17f + seed)) * (0.55f + 0.45f * ray);
             nd.shear = std::sin(u * 0.0031f + m_t * 0.20f + seed * 0.7f) * 34.0f;
-            nd.a = patch * ray * bandAmp * vis * boost;
+            nd.a = patch * ray * bandAmp * vis * boost * 1.35f;
         }
 
         for (int i = 0; i < n; ++i) {
