@@ -488,6 +488,12 @@ void GameState::update(float dt){
         if(m_recoilEndTime)    m_recoilEndTime    += frozenMs;   // the parry shove must survive its own 100ms freeze
         if(m_playerFlashEnd)   m_playerFlashEnd   += frozenMs;
         m_fxParticles.update(dt);
+        if(m_hitStop <= 0.0f && m_endSlashAfterFreeze){
+            // a deflected strike of a combo: the swing ends with the freeze, so the NEXT strike can be parried with a fresh slash
+            m_endSlashAfterFreeze = false;
+            m_isAttacking = false;
+            m_tempInc = 0;
+        }
         // weather is not gameplay: rain, snow, the aurora, the wind/rain beds and the room-darkness fade keep moving on
         // real time, so a (frequent) parry freeze never makes the ambience stutter.
         m_ambientParticles.update(dt);
@@ -784,7 +790,8 @@ void GameState::update(float dt){
                                                        hitNow, canBeHit && !hazardColl, enemySide,
                                                        m_parry.active(), &parryContact, m_isPlayerfacingRight ? 1.0f : -1.0f);
     if(parryContact.happened){
-        onParrySuccess(parryContact.x, parryContact.y, parryContact.dirX, false);
+        onParrySuccess(parryContact.x, parryContact.y, parryContact.dirX, false,
+                       parryContact.hasBox ? &parryContact.box : nullptr, parryContact.partial);
         canBeHit = false;       // everything else that frame is covered by the new i-frames
     }
     if(!enemyHit)       // bosses: their attack boxes, projectiles, rocks and ground waves
@@ -1275,7 +1282,7 @@ void GameState::startPlayerDeath() {
     m_slowMoLeft = 0.0f; m_timeScale = 1.0f;
     triggerHurtAudio(1.0f, 2400, false);
     m_hitStop = 0.0f;
-    m_parry.clear(); m_parryFx.clear();
+    m_parry.clear(); m_parryFx.clear(); m_endSlashAfterFreeze = false;
     m_combo = 0;
     m_isDead = true;
     m_deathPopped = false;
@@ -1560,14 +1567,46 @@ float GameState::probeSolidVertical(float originY, float x, float w, bool up, in
 // A parry landed (enemy attack, thrown object, boss strike or boss QTE dash). (x, y) = contact point in world space,
 // dirX = +1 / -1 from the player toward what was parried. The feel comes from stacking all of this on one frame:
 // hit-stop (player AND enemy freeze) + flash + sparks + shake + a sharp clink at a random pitch + the magic reward.
-void GameState::onParrySuccess(float x, float y, float dirX, bool big) {
+// Where the TIP of the player's slash meets the attack box: the point of the box nearest to the slash's leading edge.
+//   side slash: the leading edge is the far x of the slash box (facing right = right edge), at the slash's mid height
+//   up / down slash: the top / bottom edge of the slash box, at its centre x
+// If the tip is already inside the attack box the contact is the tip itself; if the box has not quite been reached yet
+// (the parry reaches PARRY_REACH_PAD early) it snaps to the box's near edge. Always inside the attack box.
+bool GameState::slashTipContact(const SDL_FRect& atk, float& outX, float& outY) const {
+    const SDL_FRect& s = m_playerHitBox;
+    if(!m_isAttacking || s.w <= 0.0f || s.h <= 0.0f) return false;
+    float tipX, tipY;
+    if(m_slashDir == SlashDir::SIDE){
+        tipX = m_isPlayerfacingRight ? (s.x + s.w) : s.x;
+        tipY = s.y + s.h * 0.5f;
+    } else {
+        tipX = s.x + s.w * 0.5f;
+        tipY = (m_slashDir == SlashDir::UP) ? s.y : (s.y + s.h);
+    }
+    outX = std::clamp(tipX, atk.x, atk.x + atk.w);
+    outY = std::clamp(tipY, atk.y, atk.y + atk.h);
+    return true;
+}
+
+// A parry landed (enemy attack, thrown object, boss strike or boss QTE dash). (x, y) = fallback contact point in world
+// space, dirX = +1 / -1 from the player toward what was parried. When the parried attack box is known, the contact is where
+// the tip of the slash meets it, and the white tip spark (half a screen wide) spawns exactly there. The feel comes from
+// stacking all of this on one frame: hit-stop (player AND attacker hold their clash pose) + flash + sparks + shake + a sharp
+// clink at a random pitch + the magic reward. A `partial` parry (deflected, but the attack has more strikes coming) plays
+// the same freeze / spark / clink, with lighter i-frames, push and reward, and ends the slash so the next strike can be parried.
+void GameState::onParrySuccess(float x, float y, float dirX, bool big, const SDL_FRect* attackBox, bool partial) {
+    float cx = x, cy = y;
+    if(attackBox) slashTipContact(*attackBox, cx, cy);
+
     m_parry.succeed();                                            // closes the window, starts the i-frames
+    if(partial) m_parry.invuln = PARRY_INVULN_PARTIAL_S;          // short: the next strike still has to be parried
     Camera& cam = Camera::getInstance();
 
-    m_parryFx.spawn(x, y, dirX, big);
-    m_fxParticles.emitSparkBurst(x, y, dirX, big ? 12 : 8, 1.1f, 350.0f, 950.0f, 50.0f, 100.0f,
+    m_parryFx.spawn(cx, cy, dirX, big);
+    m_parryFx.spawnTipSpark(cx, cy);
+    m_fxParticles.emitSparkBurst(cx, cy, dirX, big ? 12 : 8, 1.1f, 350.0f, 950.0f, 50.0f, 100.0f,
                                  255, 240, 200, 100.0f);
-    m_particleSystem.emitBurst(x, y, big ? 30 : 18, 160.0f, 520.0f, 0.20f, 0.45f, 24.0f, 255, 255, 255);
+    m_particleSystem.emitBurst(cx, cy, big ? 30 : 18, 160.0f, 520.0f, 0.20f, 0.45f, 24.0f, 255, 255, 255);
 
     requestHitStop(big ? PARRY_HITSTOP_BIG_S : PARRY_HITSTOP_S);
     cam.kick(dirX * (big ? 14.0f : 9.0f));
@@ -1577,9 +1616,11 @@ void GameState::onParrySuccess(float x, float y, float dirX, bool big) {
     const float pitch = PARRY_PITCH_MIN + (PARRY_PITCH_MAX - PARRY_PITCH_MIN) * ((float)(SDL_GetTicks() % 997u) / 996.0f);
     assets.playSoundPitched(SoundType::SFX_PARRY, 1.0f, big ? pitch * 0.92f : pitch);
 
-    PlayerDetail::getInstance().addMagic(PARRY_MAGIC_REWARD);
+    PlayerDetail::getInstance().addMagic(partial ? PARRY_MAGIC_REWARD * PARRY_PARTIAL_MAGIC_MUL : PARRY_MAGIC_REWARD);
     m_playerFlashEnd = SDL_GetTicks() + 90;                       // player sprite flashes white for a beat
-    applyRecoil(-dirX, PARRY_PLAYER_PUSH);                        // both bodies are shoved apart
+    applyRecoil(-dirX, partial ? PARRY_PLAYER_PUSH * PARRY_PARTIAL_PUSH_MUL : PARRY_PLAYER_PUSH);   // both bodies are shoved apart
+    if(partial) m_endSlashAfterFreeze = true;
+    else        triggerSlowMo(big ? PARRY_SLOWMO_S * 1.4f : PARRY_SLOWMO_S, big ? PARRY_SLOWMO_MIN * 0.7f : PARRY_SLOWMO_MIN);   // after the freeze
 }
 
 void GameState::tryBeam(float dt) {
@@ -1949,7 +1990,7 @@ void GameState::handlePhysicAndInput(float dt) {
 
 void GameState::setLevel(int level) {
 
-    m_parry.clear(); m_parryFx.clear();
+    m_parry.clear(); m_parryFx.clear(); m_endSlashAfterFreeze = false;
     m_blocks.clear();
     m_platforms.clear();
     m_grounds.clear();
@@ -2118,7 +2159,8 @@ void GameState::resetBossFight() {
 
 void GameState::flushBossEffects() {
     for(const BossParryEvent& e : m_bossBuilder.consumeParryEvents()){
-        onParrySuccess(e.x, e.y, e.dirX, e.big);   // same feedback as an enemy parry; bosses / QTE strikes just hit a bit bigger
+        // same feedback as an enemy parry; bosses / QTE strikes just hit a bit bigger
+        onParrySuccess(e.x, e.y, e.dirX, e.big, e.hasBox ? &e.box : nullptr, e.partial);
     }
     for(const SDL_FPoint& p : m_bossBuilder.consumeDeathEvents())
         m_particleSystem.emitBurst(p.x, p.y, 40, 160.0f, 520.0f, 0.5f, 1.0f, 70.0f, 255, 240, 200);

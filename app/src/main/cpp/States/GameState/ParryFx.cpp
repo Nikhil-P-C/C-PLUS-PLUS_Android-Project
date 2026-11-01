@@ -1,4 +1,5 @@
 #include "ParryFx.h"
+#include "utils/Parry.h"
 #include <cmath>
 #include <algorithm>
 
@@ -76,14 +77,26 @@ void ParryFx::spawn(float wx, float wy, float dirX, bool big) {
     if (m_flashes.size() > 6) m_flashes.erase(m_flashes.begin());   // never pile up
 }
 
+void ParryFx::spawnTipSpark(float wx, float wy) {
+    TipSpark s;
+    s.x = wx; s.y = wy;
+    s.seed = (unsigned int)(wx * 13.0f + wy * 29.0f) + (unsigned int)m_tipSparks.size() * 631u + 7u;
+    m_tipSparks.push_back(s);
+    if (m_tipSparks.size() > 4) m_tipSparks.erase(m_tipSparks.begin());   // never pile up (a combo parries one strike at a time)
+}
+
 void ParryFx::update(float realDt) {
     for (auto& f : m_flashes) f.age += realDt;
     m_flashes.erase(std::remove_if(m_flashes.begin(), m_flashes.end(),
                                    [](const Flash& f) { return f.age >= f.life; }), m_flashes.end());
+    for (auto& s : m_tipSparks) s.age += realDt;
+    m_tipSparks.erase(std::remove_if(m_tipSparks.begin(), m_tipSparks.end(),
+                                     [](const TipSpark& s) { return s.age >= PARRY_SPARK_LIFE_S; }), m_tipSparks.end());
 }
 
 void ParryFx::clear() {
     m_flashes.clear();
+    m_tipSparks.clear();
 }
 
 void ParryFx::render(SDL_Renderer* renderer, float camX, float camY) const {
@@ -126,6 +139,41 @@ void ParryFx::render(SDL_Renderer* renderer, float camX, float camY) const {
         // hot core
         const float cr = (30.0f * s) * (1.0f - t) + 6.0f;
         g.ring(sx, sy, cr * 0.5f, cr, SDL_FColor{1.0f, 1.0f, 1.0f, a});
+    }
+
+    // ---- the tip spark: white, PARRY_SPARK_WIDTH wide in total (half arm each way), snaps to full width then thins out ----
+    for (const TipSpark& sp : m_tipSparks) {
+        const float t    = std::clamp(sp.age / PARRY_SPARK_LIFE_S, 0.0f, 1.0f);
+        const float grow = std::clamp(t / 0.18f, 0.0f, 1.0f);         // full width within the first ~18% of its life
+        const float reach = (PARRY_SPARK_WIDTH * 0.5f) * easeOut(grow);
+        const float fade = 1.0f - t;
+        const float a    = fade * fade * (3.0f - 2.0f * fade);        // smooth fade-out
+        const float sx = sp.x - camX, sy = sp.y - camY;
+        const SDL_FColor white{1.0f, 1.0f, 1.0f, a};
+        const SDL_FColor haze{1.0f, 1.0f, 1.0f, a * 0.45f};
+
+        // soft wide haze under a thin hard blade: two layers per side read as a glowing line
+        const float bladeW = 5.0f + 26.0f * fade * fade;
+        for (int side = 0; side < 2; ++side) {
+            const float ang = side == 0 ? 0.0f : PI_F;
+            g.streak(sx, sy, ang, 0.0f, reach,        bladeW * 2.4f, haze);
+            g.streak(sx, sy, ang, 0.0f, reach,        bladeW,        white);
+            g.streak(sx, sy, ang, 0.0f, reach * 0.55f, bladeW * 0.45f, white);
+        }
+
+        // a short vertical arm and a few white splinters thrown off the contact point
+        g.streak(sx, sy, -PI_F * 0.5f, 0.0f, reach * 0.16f, bladeW * 0.9f, white);
+        g.streak(sx, sy,  PI_F * 0.5f, 0.0f, reach * 0.16f, bladeW * 0.9f, white);
+        unsigned int seed = sp.seed;
+        for (int k = 0; k < 6; ++k) {
+            const float ang  = (frand(seed) - 0.5f) * 2.2f + (k & 1 ? PI_F : 0.0f);
+            const float len  = (60.0f + frand(seed) * 150.0f) * (0.4f + 0.6f * grow);
+            g.streak(sx, sy, ang, 6.0f, 6.0f + len, 3.0f + 4.0f * fade, SDL_FColor{1.0f, 1.0f, 1.0f, a * 0.85f});
+        }
+
+        // hot white core on the contact point itself
+        const float cr = 54.0f * fade + 10.0f;
+        g.ring(sx, sy, cr * 0.5f, cr, white);
     }
 
     if (!m_verts.empty()) {

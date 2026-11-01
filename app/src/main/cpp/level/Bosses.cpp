@@ -474,6 +474,8 @@ void BossBuilder::shiftTimers(unsigned int ms){
         if(b.staggerUntil)   b.staggerUntil   += ms;   // the parry hit-stop must not eat the stagger
         if(b.nextBeamFx)     b.nextBeamFx     += ms;
         if(b.deathTime)      b.deathTime      += ms;
+        if(b.qteStrike)      b.qteStrike      += ms;   // the QTE telegraph must not run down during a parry freeze
+        if(b.qteRageUntil)   b.qteRageUntil   += ms;
     }
     if(m_restoreAt) m_restoreAt += ms;
     if(m_unlockAt)  m_unlockAt  += ms;
@@ -653,6 +655,8 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
     const BossDef* def = getBossDef(b.type);
     if(!def) return;
 
+    if(b.parryPending) resolveParry(b, now);      // the parry hit-stop is over: now the boss reacts (stagger + opening)
+
     if(!b.arenaReady) setupArena(b, wall);
     if(b.isHurt && now >= b.hurtFlashEnd) b.isHurt = false;
 
@@ -774,10 +778,14 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
                 b.attackHitBox = previewBox(b, a, player, wall);
             }
             b.isAttackBoxActive = false;
-            if(bossAttackParryable(a) && tryParry(b, a, player, b.stateStart + windup, now)) break;
+            {
+                // a combo: a parry in the wind-up deflects its FIRST swing only; a single strike is parried for good
+                const bool combo = bossAttackIsCombo(a);
+                if(bossAttackParryable(a) && tryParry(b, a, player, b.stateStart + windup, now, combo, 0) && !combo) break;
+            }
             if(elapsed >= windup){
                 setState(b, BossState::ATTACKING, now);
-                b.attackHasHit = false;
+                b.attackHasHit = (b.swingParriedMask & 1u) != 0;     // swing 0 already deflected in the wind-up: it cannot hurt
                 b.beamAim = false;
             }
             break;
@@ -786,7 +794,22 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
         case BossState::ATTACKING: {
             const BossAttackDef& a = def->attacks[b.attack];
             runAttack(b, *def, a, dt, player, wall, blocks, now, elapsed);
-            if(bossAttackParryable(a) && elapsed < BOSS_PARRY_POST_MS && tryParry(b, a, player, b.stateStart, now)) break;
+            if(bossAttackParryable(a)){
+                if(bossAttackIsCombo(a)){
+                    // every swing of the combo has its own parry window (slash starts just before it / just after it lands)
+                    const int swings = a.count;
+                    const float interval = (float)a.activeMs / (float)swings;
+                    bool finalParried = false;
+                    for(int k = 0; k < swings && !finalParried; ++k){
+                        if(b.swingParriedMask & (1u << k)) continue;                       // already deflected
+                        const unsigned int swingAt = b.stateStart + (unsigned int)(interval * (float)k);
+                        if(now + BOSS_PARRY_PRE_MS < swingAt) break;                       // this one (and every later one) is still too far away
+                        if(now > swingAt + BOSS_PARRY_POST_MS) continue;                   // too late for this swing
+                        if(tryParry(b, a, player, swingAt, now, k < swings - 1, k) && k == swings - 1) finalParried = true;
+                    }
+                    if(finalParried) break;
+                } else if(elapsed < BOSS_PARRY_POST_MS && tryParry(b, a, player, b.stateStart, now)) break;
+            }
             if(b.endEarly || elapsed >= a.activeMs){
                 endAttackCleanup(b, wall);
                 b.attackReadyAt[b.attack] = now + a.cooldownMs;
@@ -877,22 +900,44 @@ float BossBuilder::phaseSpeedMul(const Boss& b) const {
 // ----------------------------------------------------------------------------------------------------
 //  parry: slash inside the window right before / after a parryable strike lands
 // ----------------------------------------------------------------------------------------------------
-bool BossBuilder::tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now){
+bool BossBuilder::tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now,
+                           bool partial, int swing){
     if(m_slashTick <= m_parryUsed) return false;
     if(m_slashTick + BOSS_PARRY_PRE_MS < impactAt || m_slashTick > impactAt + BOSS_PARRY_POST_MS) return false;
     const float reach = a.reach > 0.0f ? std::min(a.reach + 140.0f, 560.0f) : 560.0f;
     if(horizontalGap(b, player) > reach) return false;
     m_parryUsed = m_slashTick;
-    doParry(b, now);
+    doParry(b, now, partial, swing);
     return true;
 }
 
-void BossBuilder::doParry(Boss& b, unsigned int now){
-    endAttackCleanup(b, SDL_FRect{0, 0, 0, 0});
-    m_parryEvents.push_back({ std::clamp(m_playerRect.x + m_playerRect.w * 0.5f, b.x, b.x + b.w),
-                              b.y + b.h * 0.4f, false,
-                              (b.x + b.w * 0.5f >= m_playerRect.x + m_playerRect.w * 0.5f) ? 1.0f : -1.0f });
+// partial = a deflected swing of a combo that is not the last one: the freeze / spark / clink all play, that one swing is
+// voided, and the boss carries on into the next swing (which needs a fresh slash). The full parry voids the whole attack,
+// but the boss holds its clash pose through the hit-stop - resolveParry() applies the stagger on the first update after it.
+void BossBuilder::doParry(Boss& b, unsigned int now, bool partial, int swing){
+    BossParryEvent ev{ std::clamp(m_playerRect.x + m_playerRect.w * 0.5f, b.x, b.x + b.w),
+                       b.y + b.h * 0.4f, false,
+                       (b.x + b.w * 0.5f >= m_playerRect.x + m_playerRect.w * 0.5f) ? 1.0f : -1.0f };
+    ev.partial = partial;
+    if(b.attackHitBox.w > 0.0f && b.attackHitBox.h > 0.0f){ ev.hasBox = true; ev.box = b.attackHitBox; }
+    m_parryEvents.push_back(ev);
+
+    if(partial){
+        b.swingParriedMask |= (1u << swing);
+        b.attackHasHit = true;                   // this swing is spent
+        b.isAttackBoxActive = false;
+        b.whiteFlashEnd = now + 110;
+        Camera::getInstance().addTrauma(0.25f);
+        return;
+    }
+    endAttackCleanup(b, SDL_FRect{0, 0, 0, 0});  // nothing of this attack can hurt any more
     b.whiteFlashEnd = now + 150;
+    b.parryPending = true;
+    Camera::getInstance().addTrauma(0.45f);
+}
+
+void BossBuilder::resolveParry(Boss& b, unsigned int now){
+    b.parryPending = false;
     b.extraRecoverMs = 900;
     b.staggerUntil = now + 1500;
     if(b.attack >= 0){
@@ -900,7 +945,6 @@ void BossBuilder::doParry(Boss& b, unsigned int now){
         if(def) b.attackReadyAt[b.attack] = now + def->attacks[b.attack].cooldownMs;
     }
     setState(b, BossState::RECOVER, now);
-    Camera::getInstance().addTrauma(0.45f);
 }
 
 // ----------------------------------------------------------------------------------------------------
@@ -925,10 +969,13 @@ void BossBuilder::beginQte(Boss& b, unsigned int now){
     setState(b, BossState::QTE, now);
     b.hp = 1;
     b.qteStep = 0;
+    b.qteAttacks = 0;
+    b.qteOpening = true;
+    b.qteRageUntil = now + BOSS_QTE_RAGE_MS;
     b.stage = 0;
     b.qteFromLeft = (m_rng() & 1u) != 0u;
     b.qteAimY = m_playerRect.y + m_playerRect.h * 0.5f;
-    b.qteStrike = now + 1700 + BOSS_QTE_TRAVEL_MS;
+    b.qteStrike = b.qteRageUntil + 700 + BOSS_QTE_TRAVEL_MS;
     m_hazards.clear();
     b.attack = -1;
     Camera::getInstance().addTrauma(0.8f);
@@ -937,7 +984,10 @@ void BossBuilder::beginQte(Boss& b, unsigned int now){
 bool BossBuilder::getQteLift(const SDL_FRect& player, float& outVelocityY) const {
     for(const Boss& b : m_bosses){
         if(b.state != BossState::QTE) continue;
-        const float hoverFeet = m_floorY - BOSS_QTE_HOVER_ABOVE_FLOOR;
+        // 50px higher after every attack of the sequence, kept inside the arena
+        const float maxAbove = std::max(BOSS_QTE_HOVER_ABOVE_FLOOR, (m_floorY - b.arena.y) - player.h - 40.0f);
+        const float above = std::min(BOSS_QTE_HOVER_ABOVE_FLOOR + BOSS_QTE_LIFT_PER_ATTACK * (float)b.qteAttacks, maxAbove);
+        const float hoverFeet = m_floorY - above;
         const float feet = player.y + player.h;
         outVelocityY = (feet > hoverFeet) ? -430.0f : 0.0f;    // rise, then hang
         return true;
@@ -957,6 +1007,14 @@ void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
     const float spawnX = b.qteFromLeft ? cam.x - b.w - 320.0f : cam.x + cam.w + 320.0f;     // far off camera
     const float throughX = b.qteFromLeft ? pcx + 170.0f - b.w * 0.5f : pcx - 170.0f - b.w * 0.5f;   // where he ends up past the player
     const float hitX = pcx - b.w * 0.5f;                                                      // centred on the player at the parry moment
+    if(now < b.qteRageUntil){
+        // RAGE: he roars in place, shaking, pulsing white, before the opening dash. Nothing can hurt him or the player.
+        faceToward(b, pcx);
+        Camera::getInstance().rumble(0.4f);
+        if(((now / 140u) & 1u) != 0u) b.whiteFlashEnd = now + 100;
+        b.qteAimY = pcy;
+        return;
+    }
     b.isFacingRight = b.qteFromLeft;
 
     if(now < dashStart){
@@ -979,12 +1037,29 @@ void BossBuilder::updateQte(Boss& b, const SDL_FRect& player, unsigned int now){
     b.baseX = b.x;
 
     if(now < b.qteStrike + BOSS_PARRY_POST_MS) return;
+    if(b.qteOpening){
+        // the opening dash tore straight through the player: no parry, no damage - it just lifts them (qteAttacks)
+        b.qteOpening = false;
+        b.qteAttacks++;
+        b.stage = 0;
+        b.qteFromLeft = (m_rng() & 1u) != 0u;
+        b.qteStrike = now + qteTelegraphMs(0) + BOSS_QTE_TRAVEL_MS;
+        b.qteAimY = pcy;
+        Camera::getInstance().addTrauma(0.7f);
+        return;
+    }
+    b.qteAttacks++;                                              // parried or missed, every attack lifts the player higher
     const bool ok = m_slashTick > m_parryUsed && m_slashTick + BOSS_PARRY_PRE_MS + BOSS_QTE_EXTRA_MS >= b.qteStrike && m_slashTick <= b.qteStrike + BOSS_PARRY_POST_MS;
     b.stage = 0;
     b.qteFromLeft = (m_rng() & 1u) != 0u;                       // the next dash can come from either side
     if(ok){
         m_parryUsed = m_slashTick;
-        m_parryEvents.push_back({ pcx, pcy, true, b.qteFromLeft ? -1.0f : 1.0f });
+        {
+            BossParryEvent ev{ pcx, pcy, true, b.qteFromLeft ? -1.0f : 1.0f };
+            ev.hasBox = true;
+            ev.box = SDL_FRect{ b.x, b.y, b.w, b.h };      // the dash's body: the slash tip meets it
+            m_parryEvents.push_back(ev);
+        }
         Camera::getInstance().addTrauma(0.6f);
         b.qteStep++;
         if(b.qteStep >= BOSS_QTE_STEPS){
@@ -1249,6 +1324,8 @@ void BossBuilder::beginAttack(Boss& b, unsigned int now){
     b.travelled = b.budget = 0.0f;
     b.extraRecoverMs = 0;
     b.spawned = 0;
+    b.swingParriedMask = 0;
+    b.parryPending = false;
     b.nextSpawnTick = 0;
     b.nextRearm = 0;
     b.stage = 0;
@@ -1307,7 +1384,7 @@ void BossBuilder::runAttack(Boss& b, const BossDef& def, const BossAttackDef& a,
             const int swings = std::max(1, a.count);
             const float interval = (float)a.activeMs / (float)swings;
             const int step = std::min(swings - 1, (int)((float)elapsed / interval));
-            if(step > b.spawned){ b.spawned = step; b.attackHasHit = false; faceToward(b, pcx); }
+            if(step > b.spawned){ b.spawned = step; b.attackHasHit = (b.swingParriedMask & (1u << step)) != 0; faceToward(b, pcx); }
             const float local = (float)elapsed - (float)step * interval;
             if(local < interval * 0.5f && horizontalGap(b, player) > 12.0f)
                 tryMoveX(b, b.x + dirSign * sp * dt, wall, blocks);

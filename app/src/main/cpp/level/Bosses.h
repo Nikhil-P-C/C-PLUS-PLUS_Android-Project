@@ -61,6 +61,8 @@ const int          BOSS_GRAB_BREAK_HITS = 2;       // hit the grabber this many 
 const int          BOSS_QTE_STEPS       = 5;       // samurai dashes the player must parry to finish the Ancient Sinner
 const unsigned int BOSS_QTE_TRAVEL_MS   = 170;     // the dash flies in from off-screen this long before it reaches the player (= the parry moment)
 const unsigned int BOSS_QTE_FOLLOW_MS   = 90;      // ...and carries on through the player this long after
+const float        BOSS_QTE_LIFT_PER_ATTACK   = 50.0f;    // every QTE attack (the opening dash, then each parried OR missed one) pushes the player this much higher
+const unsigned int BOSS_QTE_RAGE_MS           = 1600;     // he rages (roar, shaking, white pulses) before the opening dash
 const float        BOSS_QTE_HOVER_ABOVE_FLOOR = 250.0f;   // the QTE keeps the player pushed up this high above the floor
 const float BOSS_MIN_ARENA_H           = 704.0f;  // arenas are never shorter than this (one full screen): QTE lift, tall bosses, jumps need the room
 const float BOSS_PREACHER_UPPER_RISE    = 3840.0f; // phase 3: the upper arena is the fight arena moved this far UP (level_23 has its ground there)
@@ -182,6 +184,11 @@ inline bool bossAttackParryable(const BossAttackDef& a){
     return a.parry || a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP;
 }
 
+// A combo (count > 1 swings of a claw / bite): every swing is parried on its own, one by one.
+inline bool bossAttackIsCombo(const BossAttackDef& a){
+    return (a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP) && a.count > 1;
+}
+
 // BossAttackDef::cond
 const unsigned int BOSS_C_PLAYER_GROUND = 1;    // player standing on something
 const unsigned int BOSS_C_PLAYER_AIR    = 2;    // player in the air
@@ -264,7 +271,12 @@ struct BossPart {
     float swayPhase = 0.0f;
 };
 
-struct BossParryEvent { float x, y; bool big; float dirX = 1.0f; };   // dirX: from the player toward the boss
+struct BossParryEvent {
+    float x, y; bool big; float dirX = 1.0f;   // dirX: from the player toward the boss
+    bool      partial = false;                 // a deflected strike of a combo that is NOT the last one (no stagger yet)
+    bool      hasBox = false;                  // box = the attack box that was parried (GameState puts the tip spark where the slash tip meets it)
+    SDL_FRect box{0.0f, 0.0f, 0.0f, 0.0f};
+};
 
 // what the boss logic needs to know about the player each frame (GameState fills it in)
 struct BossPlayerInfo {
@@ -337,6 +349,9 @@ struct Boss {
     unsigned int staggerUntil = 0;
     // QTE (Ancient Sinner)
     int   qteStep = 0;
+    bool  qteOpening = false;         // the first dash (right after the rage) goes THROUGH the player: not parried, not damaging, just the lift
+    int   qteAttacks = 0;             // QTE attacks resolved so far (opening dash included): each one raises the player's hover height
+    unsigned int qteRageUntil = 0;    // raging until this tick
     unsigned int qteStrike = 0;
     bool  qteDone = false;
     float qteFromX = 0, qteToX = 0;   // current samurai dash (x of the hitbox)
@@ -353,6 +368,10 @@ struct Boss {
     float dirX = 0, dirY = 0;
     float travelled = 0, budget = 0;
     unsigned int extraRecoverMs = 0;
+    // combos (CLAW_SWIPE / BITE_SNAP with count > 1): bit k = swing k was deflected by a parry (it can no longer hurt)
+    unsigned int swingParriedMask = 0;
+    // a full parry is RESOLVED after the hit-stop: the boss holds its clash pose through the freeze, then staggers
+    bool parryPending = false;
     int   spawned = 0;
     unsigned int nextSpawnTick = 0;
     unsigned int nextRearm = 0;
@@ -482,8 +501,10 @@ private:
     void startPhase3(Boss& b, const SDL_FRect& wall, unsigned int now);
     void spawnClimbGhosts();
     float ghostScatterX(int index, float w) const;   // scattered x for the index-th climb child
-    bool tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now);
-    void doParry(Boss& b, unsigned int now);
+    bool tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now,
+                  bool partial = false, int swing = 0);
+    void doParry(Boss& b, unsigned int now, bool partial = false, int swing = 0);
+    void resolveParry(Boss& b, unsigned int now);
     void setSurface(Boss& b, Boss::Surface s);
     void buildSurfacePath(Boss& b, int target, const SDL_FRect& player, const SDL_FRect& wall);
     void startGrab(int bossIdx, int part, unsigned int now);

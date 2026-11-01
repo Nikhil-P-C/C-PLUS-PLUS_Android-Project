@@ -159,7 +159,11 @@ public:
     // death burst, minion summons, level music coming back after the kill (fed by BossBuilder's event queues)
     void flushBossEffects();
     // parry = the slash timed against an enemy attack (window opens in handlePhysicAndInput); the feedback is onParrySuccess
-    void onParrySuccess(float x, float y, float dirX, bool big);
+    // attackBox = the enemy / boss attack box that was parried: the spark spawns where the TIP of the slash meets it.
+    // partial = a deflected strike of a multi-hit attack that is not the last one (freeze + spark, but the attacker is not staggered).
+    void onParrySuccess(float x, float y, float dirX, bool big, const SDL_FRect* attackBox = nullptr, bool partial = false);
+    // the point of attackBox nearest to the tip of the slash that is in the air right now (false = no slash box to use)
+    bool slashTipContact(const SDL_FRect& attackBox, float& outX, float& outY) const;
     // While a fight is on: camera pinned on the arena + player kept inside it. Otherwise the normal follow camera.
     // Replaces the old "lockCameraOn + cameraClamp" block at the end of update().
     void updateBossArena(float realDt);
@@ -362,6 +366,7 @@ private:
     // hit VFX state
     ParryState m_parry;                    // the slash's parry window + the i-frames after a parry (utils/Parry.h)
     ParryFx    m_parryFx;                  // contact flash, drawn after lighting/ambience and before RoomDarkness
+    bool     m_endSlashAfterFreeze =false; // a deflected strike of a combo: the slash ends with the freeze so the next one can be parried at once
     float    m_hitStop =0.0f;              // seconds of freeze left (sim paused, shake + sparks keep running)
     int      m_combo =0;
     uint32_t m_lastComboHit =0;

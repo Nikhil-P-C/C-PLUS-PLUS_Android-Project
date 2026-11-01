@@ -47,6 +47,9 @@ void EnemiesBuilder::setAction(Enemy& e, EnemyAction next) {
     e.isAttackBoxActive = false;
     if(next == EnemyAction::ATTACK){
         e.attackHasHit = false;   // fresh swing, fresh hit
+        e.strikesDone = 0;
+        e.strikesTotal = std::max(1, attackStrikeCount(e.type, e.attackType));
+        e.parryPending = false;
         e.dashStarted = false;
         e.dashTravelled = 0.0f;
         e.dashDone = false;
@@ -292,6 +295,8 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
             continue;
         }
 
+        if(enemy.parryPending) resolveParry(enemy, now);   // the parry hit-stop is over: now the enemy reacts
+
         if(enemy.isHurt && now >= enemy.hurtFlashEndTime) enemy.isHurt = false;
 
         const float prevX = enemy.x;
@@ -492,6 +497,9 @@ bool EnemiesBuilder::checkAttackOnPlayer(float playerX, float playerY, float pla
             parryOut->x = (ecx + pcx) * 0.5f;                       // between the two bodies, at chest height
             parryOut->y = playerY + playerH * 0.4f;
             parryOut->projectile = false;
+            parryOut->hasBox = true;
+            parryOut->box = enemy.attackHitBox;                     // GameState puts the tip spark where the slash tip meets this
+            parryOut->partial = (enemy.strikesDone + 1 < enemy.strikesTotal);
             staggerFromParry(enemy, pcx, now);
             return false;                                           // no damage
         }
@@ -518,6 +526,8 @@ bool EnemiesBuilder::checkAttackOnPlayer(float playerX, float playerY, float pla
             parryOut->dirX = (p.vx > 0.0f) ? 1.0f : -1.0f;          // it was flying toward the player from this side
             parryOut->x = p.x + p.w * 0.5f;
             parryOut->y = p.y + p.h * 0.5f;
+            parryOut->hasBox = true;
+            parryOut->box = SDL_FRect{p.x, p.y, p.w, p.h};
             p.reflected = true;
             p.vx = -p.vx * 1.3f;
             p.vy = -std::fabs(p.vy) * 0.25f - 120.0f;               // a little lift so it flies back, not into the ground
@@ -627,17 +637,46 @@ void EnemiesBuilder::updateProjectiles(float dt, const SDL_FRect& wallCollisionR
     }
 }
 
-// The player parried this enemy's attack. The swing / lunge / leap is over, the enemy is shoved back and stunned,
-// and the player's next slash into it hits harder (see applyPlayerDamage).
+// The player parried this enemy's attack. The swing / lunge / leap is voided on the spot (no damage can land), but the
+// enemy does NOT change pose yet: it holds its clash frame through the hit-stop, and resolveParry() (first update after
+// the freeze) then shoves it back and stuns it - or, if this was not the last strike of a multi-hit attack, replays the swing.
 void EnemiesBuilder::staggerFromParry(Enemy& e, float playerCenterX, unsigned int now) {
+    (void)now;
     e.attackHasHit = true;
     e.isAttackBoxActive = false;
-    const float away = (e.x + e.w * 0.5f >= playerCenterX) ? 1.0f : -1.0f;
+    e.parryPending = true;
+    e.parryPartial = (e.strikesDone + 1 < e.strikesTotal);
+    e.parryFromX = playerCenterX;
+    e.whiteFlashEndTime = SDL_GetTicks() + 150;          // a touch longer than a normal hit flash; shifted by the freeze
+}
+
+// Multi-hit: wind the swing back to just before its active window, so the next strike has its own readable tell.
+void EnemiesBuilder::rearmStrike(Enemy& e, unsigned int now) {
+    const auto* ai = getEnemyFrameInfo(e.type, EnemyAction::ATTACK, e.attackType);
+    const int fc = ai ? ai->frameCount : 1;
+    e.strikesDone++;
+    e.aniStartFrame = std::max(0, (int)(fc * ENEMY_ATTACK_ACTIVE_START) - 2);
+    e.aniDone = false;
+    e.lastTime = now;
+    e.attackHasHit = false;
+    e.isAttackBoxActive = false;
+}
+
+void EnemiesBuilder::resolveParry(Enemy& e, unsigned int now) {
+    e.parryPending = false;
+    if(e.parryPartial){
+        // deflected, but another strike is coming: no stagger, no knockback - just replay the swing
+        if(e.action == EnemyAction::ATTACK) rearmStrike(e, now);
+        else e.attackHasHit = true;
+        return;
+    }
+    const float away = (e.x + e.w * 0.5f >= e.parryFromX) ? 1.0f : -1.0f;
+    e.attackHasHit = true;
+    e.isAttackBoxActive = false;
     e.knockbackVelocityX = away * ENEMY_KNOCKBACK_SPEED_X * 0.9f;
     e.knockbackEndTime = now + ENEMY_KNOCKBACK_MS;
     e.staggerUntil = now + PARRY_STAGGER_MS;
     e.parryBonus = true;
-    e.whiteFlashEndTime = now + 150;                     // a touch longer than a normal hit flash
     e.nextAttackTime = std::max(e.nextAttackTime, now + PARRY_STAGGER_MS + 250);
     e.dashStarted = false;
     e.dashDone = true;
@@ -912,7 +951,13 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                             enemy.aniStartFrame <= (int)(fc * ENEMY_ATTACK_ACTIVE_END);
             const bool pastWindow = enemy.aniStartFrame > (int)(fc * ENEMY_ATTACK_ACTIVE_END);
             const bool pounceAirborne = enemy.attackType == AttackType::POUNCE && enemy.dashStarted && !enemy.dashDone;
-            if(pastWindow && !pounceAirborne) enemy.attackHasHit = true;   // swing is over: nothing left to hurt, hide the rect
+            if(pastWindow && !pounceAirborne){
+                if(enemy.strikesDone + 1 < enemy.strikesTotal && !enemy.parryPending){
+                    rearmStrike(enemy, now);             // multi-hit: the swing goes again for the next strike
+                } else {
+                    enemy.attackHasHit = true;           // swing is over: nothing left to hurt, hide the rect
+                }
+            }
             enemy.isAttackBoxActive = false;
 
             switch(enemy.attackType){

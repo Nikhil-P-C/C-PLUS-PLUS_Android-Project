@@ -164,6 +164,15 @@ inline bool attackParryable(AttackType t){
         default:                     return false;   // SHOOT, BEAM, NONE
     }
 }
+// How many separate strikes ONE use of this attack lands (1 = a normal attack). A double-hit attack replays its swing, and
+// the player has to parry the strikes one by one: a deflected strike is a "partial" parry (freeze + spark, no stagger yet),
+// the parry of the LAST strike is the full one. Only SLASH / BITE swings can repeat (dash, pounce, projectile are single).
+// Opt in here, per enemy + attack, e.g.:  if(t == EnemyType::CAVE_PREDATOR && a == AttackType::SLASH) return 2;
+inline int attackStrikeCount(EnemyType t, AttackType a){
+    (void)t;
+    if(a != AttackType::SLASH && a != AttackType::BITE) return 1;
+    return 1;
+}
 struct EnemyFrameInfo{
     TextureType texture;
     int frameW, frameH;
@@ -216,6 +225,10 @@ struct EnemyParryContact{
     float x = 0.0f, y = 0.0f;   // world point where the attack met the parry
     float dirX = 1.0f;          // +1 / -1: from the player toward the attacker
     bool  projectile = false;   // true = a thrown object was reflected
+    // the attack box that was parried (world space): GameState works out where the TIP of the slash meets it
+    bool      hasBox = false;
+    SDL_FRect box{0.0f, 0.0f, 0.0f, 0.0f};
+    bool  partial = false;      // true = this was NOT the last strike of a multi-hit attack (deflect only, no stagger yet)
 };
 
 struct Enemy{
@@ -281,6 +294,13 @@ struct Enemy{
     unsigned int whiteFlashEndTime =0;   // short additive white flash on a melee hit (hurtFlash stays the red tint)
     unsigned int staggerUntil =0;        // parried: stunned (no AI, no attacks) until this tick
     bool         parryBonus =false;      // the next slash that lands inside the stagger hits PARRY_BONUS_DAMAGE_MUL harder
+    // multi-hit attacks (attackStrikeCount): which strike of the current attack is in play
+    int          strikesDone =0, strikesTotal =1;
+    // a parry is RESOLVED after the hit-stop: the enemy holds its clash pose through the freeze, then staggers (or, for a
+    // deflected non-last strike, replays its swing). Set by staggerFromParry, consumed by resolveParry on the next update.
+    bool         parryPending =false;
+    bool         parryPartial =false;
+    float        parryFromX =0.0f;       // player centre x at the parry (which way the stagger shoves the enemy)
     unsigned int nextBeamFxTime =0;      // rate limit for beam spark events
     int lastMeleeAttackId =-1;           // id of the last player swing that damaged this enemy (one hit per swing)
     float beamDamageAccum =0.0f;         // fractional beam damage carried between frames (hp is an int)
@@ -380,7 +400,9 @@ private:
     // PROJECTILE attack: throws an object from the enemy's hand, arced so it reaches the player's current position
     void spawnProjectile(const Enemy& e, const SDL_FRect& player);
     // the player parried this enemy's attack: spend it, stagger the enemy, cancel the lunge
-    void staggerFromParry(Enemy& e, float playerCenterX, unsigned int now);
+    void staggerFromParry(Enemy& e, float playerCenterX, unsigned int now);   // marks the parry (pose is held)
+    void resolveParry(Enemy& e, unsigned int now);                            // applies it once the hit-stop is over
+    void rearmStrike(Enemy& e, unsigned int now);                             // multi-hit: replay the swing for the next strike
     // ms until this enemy's attack becomes live (<=0: already live / over / not attacking)
     float msToAttackImpact(const Enemy& e) const;
     void updateProjectiles(float dt, const SDL_FRect& wallCollisionRect,

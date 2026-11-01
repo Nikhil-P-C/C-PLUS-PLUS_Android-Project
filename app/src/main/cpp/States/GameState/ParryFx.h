@@ -16,11 +16,15 @@ public:
     // contact flash. (wx, wy) = world point where the attack met the parry, dirX = +1/-1 toward the attacker
     void spawn(float wx, float wy, float dirX, bool big);
 
+    // the tip spark: a white blade-flare PARRY_SPARK_WIDTH wide (half the screen), centred on (wx, wy) = the exact world
+    // point where the tip of the player's slash meets the enemy's attack box. Spawned on top of spawn().
+    void spawnTipSpark(float wx, float wy);
+
     void update(float realDt);
     void render(SDL_Renderer* renderer, float camX, float camY) const;
     void clear();
 
-    bool busy() const { return !m_flashes.empty(); }
+    bool busy() const { return !m_flashes.empty() || !m_tipSparks.empty(); }
 
 private:
     struct Flash {
@@ -29,6 +33,13 @@ private:
         unsigned int seed = 1u;
     };
     std::vector<Flash> m_flashes;
+
+    struct TipSpark {
+        float x = 0.0f, y = 0.0f;
+        float age = 0.0f;
+        unsigned int seed = 1u;
+    };
+    std::vector<TipSpark> m_tipSparks;
 
     mutable std::vector<SDL_Vertex> m_verts;   // scratch buffers, reused every frame
     mutable std::vector<int>        m_idx;
