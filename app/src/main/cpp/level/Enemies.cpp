@@ -122,7 +122,7 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
         // hitbox, the flip mirrors around the hitbox centre and the body doesn't jump sideways.
         SDL_FlipMode flip = enemy.isFacingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
-        const unsigned int nowT = SDL_GetTicks();
+        const unsigned int nowT = FrameClock::now();
         const bool stunned = !enemy.isDead && nowT < enemy.staggerUntil;   // parried: dazed, pale blue pulse
         if(placeholderCorpse)  SDL_SetTextureColorMod(texture, 90, 90, 90);
         else if(enemy.isHurt)  SDL_SetTextureColorMod(texture, 255, 110, 110);
@@ -161,7 +161,7 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
         }
 
         // melee hit: second additive pass pushes the sprite toward white for a few frames
-        if(!placeholderCorpse && SDL_GetTicks() < enemy.whiteFlashEndTime){
+        if(!placeholderCorpse && FrameClock::now() < enemy.whiteFlashEndTime){
             SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(texture, 200);
             SDL_RenderTextureRotated(renderer, texture, &src, &dst, 0.0, nullptr, flip);
@@ -195,7 +195,7 @@ void EnemiesBuilder::renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& 
     }
     Uint8 a = 220;
     if(e.isDead){ r = g = b = 90; a = 120; }
-    else if(e.isHurt || SDL_GetTicks() < e.whiteFlashEndTime){ r = 255; g = 120; b = 120; }
+    else if(e.isHurt || FrameClock::now() < e.whiteFlashEndTime){ r = 255; g = 120; b = 120; }
 
     SDL_BlendMode prevBlend = SDL_BLENDMODE_NONE;
     SDL_GetRenderDrawBlendMode(renderer, &prevBlend);

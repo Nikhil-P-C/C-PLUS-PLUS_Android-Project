@@ -263,7 +263,7 @@ void GameState::render(SDL_Renderer* renderer)  {
         {
             SDL_RenderTexture(renderer, m_playerTexture, &src, &dst);
         }
-        if(SDL_GetTicks() < m_playerFlashEnd){
+        if(FrameClock::now() < m_playerFlashEnd){
             // damage flash: second additive pass pushes the sprite toward white
             SDL_SetTextureBlendMode(m_playerTexture, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(m_playerTexture, 230);
@@ -472,6 +472,7 @@ void GameState::update(float dt){
         startPlayerDeath();
     }
     if(m_isDead){
+        if(m_exactFreeze) endExactFreeze();
         updateDeath(dt);
         return;     // no input, collisions, hits or camera follow while the death animation plays
     }
@@ -479,6 +480,24 @@ void GameState::update(float dt){
     // and the wall-clock (SDL_GetTicks) timers are pushed forward so the freeze doesn't eat them.
     if(m_hitStop > 0.0f){
         m_hitStop -= dt;
+        if(m_exactFreeze){
+            // PARRY FREEZE-FRAME: nothing moves. No particles, no weather, no camera shake, no spark animation, and the
+            // render clock (utils/FrameClock.h) is stopped too, so flashes / pulses / light flicker hold the clash pose.
+            // Ends on WALL-CLOCK time, so a slow frame can never stretch the freeze past its length.
+            InputDispatcher::getInstance().consumeAttack();     // slashes mashed during the freeze are dropped: the next strike needs a fresh, timed slash
+            updateHurtAudio();                                   // audio only
+            if(SDL_GetTicks() - FrameClock::frozenAt() >= m_exactFreezeMs){
+                m_hitStop = 0.0f;
+                endExactFreeze();
+                if(m_endSlashAfterFreeze){
+                    // a deflected strike of a combo: the swing ends with the freeze, so the NEXT strike can be parried with a fresh slash
+                    m_endSlashAfterFreeze = false;
+                    m_isAttacking = false;
+                    m_tempInc = 0;
+                }
+            }
+            return;
+        }
         const unsigned int frozenMs = (unsigned int)(dt * 1000.0f + 0.5f);
         m_aniLastTime = SDL_GetTicks();                 // pauses the player/slash frame animation
         m_enemyBuilder.shiftTimers(frozenMs);
@@ -1181,6 +1200,39 @@ void GameState::requestHitStop(float seconds) {
     if(seconds > m_hitStop) m_hitStop = seconds;
 }
 
+void GameState::beginExactFreeze(float seconds) {
+    FrameClock::freeze();                                   // render code now reads the tick of the clash
+    m_exactFreeze   = true;
+    m_exactFreezeMs = (unsigned int)(seconds * 1000.0f + 0.5f);
+    m_hitStop       = std::max(m_hitStop, seconds);
+    m_parryFx.holdAtPeak();                                 // the spark is at full size on the frozen frame
+    // a burst that was spawned this very frame is still a dot: let it open up a touch so the frozen frame shows a burst
+    m_fxParticles.update(0.04f);
+    m_particleSystem.update(0.04f);
+}
+
+void GameState::endExactFreeze() {
+    if(!m_exactFreeze) return;
+    m_exactFreeze = false;
+    const uint32_t nowT = SDL_GetTicks();
+    const uint32_t ms   = nowT - FrameClock::frozenAt();    // real time that passed behind the freeze
+    FrameClock::thaw();
+    m_parryFx.release();                                    // the spark now plays out and fades
+
+    m_aniLastTime = nowT;                                   // the player / slash animation resumes from the frozen frame
+    m_enemyBuilder.shiftTimers(ms);
+    m_bossBuilder.shiftTimers(ms);
+    if(m_hurtAnimEndTime)    m_hurtAnimEndTime    += ms;
+    if(m_knockbackEndTime)   m_knockbackEndTime   += ms;
+    if(m_recoilEndTime)      m_recoilEndTime      += ms;
+    if(m_playerFlashEnd)     m_playerFlashEnd     += ms;
+    if(m_lastComboHit)       m_lastComboHit       += ms;    // the combo must not run out behind the freeze
+    if(m_healCooldownEndTime)m_healCooldownEndTime+= ms;
+    if(m_audioFxActive)      m_audioFxStart       += ms;    // hurt-audio envelope is tied to the hit i-frames
+    PlayerDetail& pd = PlayerDetail::getInstance();
+    if(pd.isInvincible() && pd.getLastHitTime()) pd.setLastHitTime(pd.getLastHitTime() + ms);   // hit i-frames don't drain during the freeze
+}
+
 void GameState::flushEnemyHitEffects() {
     for(const EnemyHitEvent& e : m_enemyBuilder.consumeHitEvents()){
         onEnemyHit(e);
@@ -1282,6 +1334,7 @@ void GameState::startPlayerDeath() {
     m_slowMoLeft = 0.0f; m_timeScale = 1.0f;
     triggerHurtAudio(1.0f, 2400, false);
     m_hitStop = 0.0f;
+    if(m_exactFreeze) endExactFreeze();
     m_parry.clear(); m_parryFx.clear(); m_endSlashAfterFreeze = false;
     m_combo = 0;
     m_isDead = true;
@@ -1608,7 +1661,6 @@ void GameState::onParrySuccess(float x, float y, float dirX, bool big, const SDL
                                  255, 240, 200, 100.0f);
     m_particleSystem.emitBurst(cx, cy, big ? 30 : 18, 160.0f, 520.0f, 0.20f, 0.45f, 24.0f, 255, 255, 255);
 
-    requestHitStop(big ? PARRY_HITSTOP_BIG_S : PARRY_HITSTOP_S);
     cam.kick(dirX * (big ? 14.0f : 9.0f));
     cam.addTrauma(big ? 0.38f : 0.24f);
 
@@ -1621,6 +1673,9 @@ void GameState::onParrySuccess(float x, float y, float dirX, bool big, const SDL
     applyRecoil(-dirX, partial ? PARRY_PLAYER_PUSH * PARRY_PARTIAL_PUSH_MUL : PARRY_PLAYER_PUSH);   // both bodies are shoved apart
     if(partial) m_endSlashAfterFreeze = true;
     else        triggerSlowMo(big ? PARRY_SLOWMO_S * 1.4f : PARRY_SLOWMO_S, big ? PARRY_SLOWMO_MIN * 0.7f : PARRY_SLOWMO_MIN);   // after the freeze
+
+    // LAST, once everything of the clash is on screen: freeze that exact frame (not just a slow-down)
+    beginExactFreeze(partial ? PARRY_HITSTOP_PARTIAL_S : (big ? PARRY_HITSTOP_BIG_S : PARRY_HITSTOP_S));
 }
 
 void GameState::tryBeam(float dt) {
@@ -1990,6 +2045,7 @@ void GameState::handlePhysicAndInput(float dt) {
 
 void GameState::setLevel(int level) {
 
+    if(m_exactFreeze) endExactFreeze();
     m_parry.clear(); m_parryFx.clear(); m_endSlashAfterFreeze = false;
     m_blocks.clear();
     m_platforms.clear();
@@ -2190,7 +2246,7 @@ void GameState::renderArenaGates(SDL_Renderer* renderer) {
     if(m_arenaGate <= 0.0f) return;
     const int camX = (int)std::round(Camera::getInstance().getCamera().x);
     const int camY = (int)std::round(Camera::getInstance().getCamera().y);
-    const float pulse = 0.78f + 0.22f * std::sin(SDL_GetTicks() * 0.006f);
+    const float pulse = 0.78f + 0.22f * std::sin(FrameClock::now() * 0.006f);
     const float a = m_arenaGate * pulse;
     const float top = m_arenaRect.y - (float)camY, h = m_arenaRect.h;
     const float glow = 110.0f;
@@ -2385,7 +2441,7 @@ bool GameState::hasWallLeft(float x, float y) {
 }
 
 bool GameState::isBlinkFrame() const {
-    unsigned int elapsed = SDL_GetTicks() - PlayerDetail::getInstance().getLastHitTime();
+    unsigned int elapsed = FrameClock::now() - PlayerDetail::getInstance().getLastHitTime();
     return (elapsed / m_blinkTimer) % 2 == 0;
 }
 

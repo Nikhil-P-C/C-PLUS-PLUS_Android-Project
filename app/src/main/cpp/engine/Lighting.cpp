@@ -1,5 +1,6 @@
 #include "Lighting.h"
 #include "engine/Engine.h"
+#include "utils/FrameClock.h"
 #include <algorithm>
 #include <cmath>
 
@@ -84,7 +85,7 @@ void Lighting::setLevel(const LevelAmbient& ambient, const std::vector<LightSour
 
 void Lighting::render(SDL_Renderer* r, float camX, float camY, float playerX, float playerY) {
     if (!r) return;
-    const float t = SDL_GetTicks() * 0.001f;
+    const float t = FrameClock::now() * 0.001f;   // stopped during the parry freeze-frame
     const float dark = clamp01(m_ambient.darkness);
     const float playerOuter = std::max(0.0f, m_ambient.playerRadius + m_ambient.playerSoftness);
 

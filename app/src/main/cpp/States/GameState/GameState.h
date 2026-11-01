@@ -18,6 +18,7 @@
 #include "RoomDarkness.h"
 #include "ParryFx.h"
 #include "utils/Parry.h"
+#include "utils/FrameClock.h"
 #include "engine/Lighting.h"
 
 #include "level/Fruits.h"
@@ -119,6 +120,7 @@ class GameState : public State{
 public:
     GameState(SDL_Renderer* renderer,int level);
     ~GameState() override{
+        FrameClock::thaw();                                           // never leave the render clock frozen
         Engine::Get().getAssetManager().setPitchRatio(1.0f);          // never leave the audio muffled/slowed
         Engine::Get().getAssetManager().setHearingDamage(0.0f);
         Engine::Get().getAssetManager().setHeartbeat(0.0f);
@@ -175,6 +177,11 @@ public:
     void flushEnemyHitEffects();
     void onEnemyHit(const EnemyHitEvent& e);
     void requestHitStop(float seconds);
+    // The parry freeze-frame: stops EVERYTHING (simulation, particles, weather, camera shake, the render clock) on the
+    // exact frame of the clash for `seconds` of wall-clock time. endExactFreeze() thaws the clock and pushes every
+    // wall-clock gameplay timer forward by the frozen time, so nothing expires behind the freeze.
+    void beginExactFreeze(float seconds);
+    void endExactFreeze();
     // pushes the player away from what they just hit (dirX = -facing). A hurt-knockback in progress wins.
     void applyRecoil(float dirX, float speed);
     // vertical pushback: dirY = +1 shoves the player down, -1 up. Same hurt-knockback guard as applyRecoil.
@@ -368,6 +375,8 @@ private:
     ParryFx    m_parryFx;                  // contact flash, drawn after lighting/ambience and before RoomDarkness
     bool     m_endSlashAfterFreeze =false; // a deflected strike of a combo: the slash ends with the freeze so the next one can be parried at once
     float    m_hitStop =0.0f;              // seconds of freeze left (sim paused, shake + sparks keep running)
+    bool     m_exactFreeze =false;         // the freeze is a parry freeze-frame (nothing at all moves, see beginExactFreeze)
+    uint32_t m_exactFreezeMs =0;           // how long (wall clock) the freeze-frame lasts
     int      m_combo =0;
     uint32_t m_lastComboHit =0;
     float    m_comboPop =0.0f;             // 1 -> 0 after each hit, drives the counter's scale pop

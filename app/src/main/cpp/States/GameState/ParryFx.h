@@ -20,6 +20,12 @@ public:
     // point where the tip of the player's slash meets the enemy's attack box. Spawned on top of spawn().
     void spawnTipSpark(float wx, float wy);
 
+    // Freeze-frame support: pose every live flash / tip spark at the moment they look best and stop their clock, so the
+    // frozen frame shows the spark at full size instead of a not-yet-grown one. release() lets them play out and fade.
+    void holdAtPeak();
+    void release() { m_held = false; }
+    bool isHeld() const { return m_held; }
+
     void update(float realDt);
     void render(SDL_Renderer* renderer, float camX, float camY) const;
     void clear();
@@ -33,6 +39,7 @@ private:
         unsigned int seed = 1u;
     };
     std::vector<Flash> m_flashes;
+    bool m_held = false;
 
     struct TipSpark {
         float x = 0.0f, y = 0.0f;

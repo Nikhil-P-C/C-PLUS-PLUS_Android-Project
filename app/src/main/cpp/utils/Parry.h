@@ -16,24 +16,28 @@
 
 // ---- timing (frames @ 60fps, written as frames/60 so the intent is readable) ----
 constexpr float PARRY_WINDOW_S          = 7.0f  / 60.0f;   // ~0.117s: tight, opens the moment a slash starts
-constexpr float PARRY_HITSTOP_S         = 0.24f;           // success freeze (player AND enemy): a long, Silksong-style hold on the clash
-constexpr float PARRY_HITSTOP_BIG_S     = 0.32f;           // boss parries / QTE strikes
-constexpr float PARRY_INVULN_S          = 0.45f;           // brief invulnerability after a successful parry
+// The freeze is an EXACT freeze-frame: the world, the spark, the particles, the weather and every wall-clock effect hold
+// the pose they had on the clash (see utils/FrameClock.h) for this long, then everything carries on from that frame.
+constexpr float PARRY_HITSTOP_S         = 0.25f;            // full parry freeze-frame (player AND enemy)
+constexpr float PARRY_HITSTOP_BIG_S     = 0.25f;            // boss parries / QTE strikes
+constexpr float PARRY_HITSTOP_PARTIAL_S = 0.25f;            // a deflected (not last) strike of a combo: lower this if three freezes in a row is too much
+constexpr float PARRY_INVULN_S          = 2.5f;            // invulnerability after a full parry (2-3s). Does NOT make the player transparent / blink
+constexpr int   PARRY_MAX_PER_ATTACK    = 3;               // one attack can be parried at most this many times (one per strike)
 constexpr float PARRY_MAGIC_REWARD      = 35.0f;           // a big chunk of the 100 magic bar: parrying is the best way to fill it
 
 // ---- multi-hit attacks (a combo / double strike): every strike is parried on its own, one by one ----
 // A parry that is NOT the last strike of the attack only deflects that strike: the freeze, the spark and the clink all
 // play, but the attacker is not staggered yet - it carries on into its next strike, which needs a fresh slash.
 // The LAST strike's parry is the full one (stagger, knockback, riposte bonus).
-constexpr float PARRY_SLOWMO_S          = 1.35f;           // after a full parry's freeze the world eases back in from slow motion over this long
-constexpr float PARRY_SLOWMO_MIN        = 1.30f;           // ...starting at this speed (not used for deflected strikes of a combo: that would break the rhythm)
+constexpr float PARRY_SLOWMO_S          = 0.35f;           // after a full parry's freeze the world eases back in from slow motion over this long
+constexpr float PARRY_SLOWMO_MIN        = 0.30f;           // ...starting at this speed (not used for deflected strikes of a combo: that would break the rhythm)
 constexpr float PARRY_INVULN_PARTIAL_S  = 0.10f;           // i-frames after a deflected (not last) strike: short, so the next strike still has to be parried
 constexpr float PARRY_PARTIAL_PUSH_MUL  = 0.35f;           // the player is shoved back less, so the next strike is still in reach
 constexpr float PARRY_PARTIAL_MAGIC_MUL = 0.5f;            // magic reward of a deflected strike (the last one pays in full)
 
 // ---- the tip spark: a white blade-flare at the exact point where the tip of the slash meets the enemy's attack box ----
-constexpr float PARRY_SPARK_WIDTH       = 1600.0f;          // half of the 1600px logical screen, centred on the contact point
-constexpr float PARRY_SPARK_LIFE_S      = 0.50f;           // real-time seconds (it keeps animating through the hit-stop)
+constexpr float PARRY_SPARK_WIDTH       = 800.0f;          // half of the 1600px logical screen, centred on the contact point
+constexpr float PARRY_SPARK_LIFE_S      = 0.26f;           // real-time seconds (it keeps animating through the hit-stop)
 
 // ---- the other side ----
 constexpr unsigned int PARRY_STAGGER_MS = 800;             // enemy stunned this long (0.6 - 1s)

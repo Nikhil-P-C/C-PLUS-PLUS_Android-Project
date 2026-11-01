@@ -370,6 +370,8 @@ struct Boss {
     unsigned int extraRecoverMs = 0;
     // combos (CLAW_SWIPE / BITE_SNAP with count > 1): bit k = swing k was deflected by a parry (it can no longer hurt)
     unsigned int swingParriedMask = 0;
+    // how many times THIS attack has been parried (a combo is parried one swing at a time); capped at PARRY_MAX_PER_ATTACK
+    int          parriesThisAttack = 0;
     // a full parry is RESOLVED after the hit-stop: the boss holds its clash pose through the freeze, then staggers
     bool parryPending = false;
     int   spawned = 0;

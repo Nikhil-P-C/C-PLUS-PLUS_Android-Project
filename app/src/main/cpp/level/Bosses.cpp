@@ -902,11 +902,14 @@ float BossBuilder::phaseSpeedMul(const Boss& b) const {
 // ----------------------------------------------------------------------------------------------------
 bool BossBuilder::tryParry(Boss& b, const BossAttackDef& a, const SDL_FRect& player, unsigned int impactAt, unsigned int now,
                            bool partial, int swing){
-    if(m_slashTick <= m_parryUsed) return false;
+    if(m_slashTick <= m_parryUsed) return false;                                  // one parry per slash
+    if(b.parriesThisAttack >= PARRY_MAX_PER_ATTACK) return false;                 // one attack can only be parried 3 times
+    if(swing >= 0 && swing < 32 && (b.swingParriedMask & (1u << swing))) return false;             // this swing was already deflected: re-slashing it doesn't parry it again
     if(m_slashTick + BOSS_PARRY_PRE_MS < impactAt || m_slashTick > impactAt + BOSS_PARRY_POST_MS) return false;
     const float reach = a.reach > 0.0f ? std::min(a.reach + 140.0f, 560.0f) : 560.0f;
     if(horizontalGap(b, player) > reach) return false;
     m_parryUsed = m_slashTick;
+    b.parriesThisAttack++;
     doParry(b, now, partial, swing);
     return true;
 }
@@ -1325,6 +1328,7 @@ void BossBuilder::beginAttack(Boss& b, unsigned int now){
     b.extraRecoverMs = 0;
     b.spawned = 0;
     b.swingParriedMask = 0;
+    b.parriesThisAttack = 0;
     b.parryPending = false;
     b.nextSpawnTick = 0;
     b.nextRearm = 0;
@@ -2431,7 +2435,7 @@ void BossBuilder::renderBoss(SDL_Renderer* r, const Boss& b, int camX, int camY)
     }
     if(def->tier == BossTier::MINI){ cr = (Uint8)(cr * 0.8f); cg = (Uint8)(cg * 0.8f); cb = (Uint8)(cb * 0.8f); }
 
-    const unsigned int now = SDL_GetTicks();
+    const unsigned int now = FrameClock::now();
     Uint8 a = 230;
     if(b.isDead()){ cr = cg = cb = 90; a = 120; }
     else if(b.isHurt || now < b.whiteFlashEnd){ cr = 255; cg = 130; cb = 130; }
@@ -2522,7 +2526,7 @@ void BossBuilder::renderAttackPlaceholders(SDL_Renderer* r, int camX, int camY) 
     SDL_BlendMode prev = SDL_BLENDMODE_NONE;
     SDL_GetRenderDrawBlendMode(r, &prev);
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
-    const unsigned int now = SDL_GetTicks();
+    const unsigned int now = FrameClock::now();
 
     for(const auto& b : m_bosses){
         if(b.isDead() || b.attack < 0) continue;
@@ -2612,7 +2616,7 @@ void BossBuilder::renderExtras(SDL_Renderer* r, int camX, int camY) const {
     SDL_BlendMode prev = SDL_BLENDMODE_NONE;
     SDL_GetRenderDrawBlendMode(r, &prev);
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
-    const unsigned int now = SDL_GetTicks();
+    const unsigned int now = FrameClock::now();
 
     for(const auto& b : m_bosses){
         if(b.isDead()) continue;

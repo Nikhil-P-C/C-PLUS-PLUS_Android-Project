@@ -15,4 +15,5 @@
 #include "gameMath.h"
 #include "SpriteCollector.h"
 #include "Log.h"
+
 #endif //MY_APP_UTILS_H

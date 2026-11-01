@@ -85,7 +85,14 @@ void ParryFx::spawnTipSpark(float wx, float wy) {
     if (m_tipSparks.size() > 4) m_tipSparks.erase(m_tipSparks.begin());   // never pile up (a combo parries one strike at a time)
 }
 
+void ParryFx::holdAtPeak() {
+    for (auto& f : m_flashes)    f.age = std::max(f.age, f.life * 0.12f);
+    for (auto& s : m_tipSparks)  s.age = std::max(s.age, PARRY_SPARK_LIFE_S * 0.18f);   // the spark is at full width from here
+    m_held = true;
+}
+
 void ParryFx::update(float realDt) {
+    if (m_held) return;     // the parry freeze-frame: hold the pose
     for (auto& f : m_flashes) f.age += realDt;
     m_flashes.erase(std::remove_if(m_flashes.begin(), m_flashes.end(),
                                    [](const Flash& f) { return f.age >= f.life; }), m_flashes.end());
@@ -95,6 +102,7 @@ void ParryFx::update(float realDt) {
 }
 
 void ParryFx::clear() {
+    m_held = false;
     m_flashes.clear();
     m_tipSparks.clear();
 }
