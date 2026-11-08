@@ -24,6 +24,7 @@
 #include <vector>
 #include <string>
 #include <random>
+#include <deque>
 #include <SDL3/SDL.h>
 #include <memory>
 #include "States/MenuState/MenuKit.h"   // title cards reuse the menu pixel font
@@ -47,6 +48,11 @@ const float BOSS_PROJECTILE_GRAVITY     = 1300.0f; // PROJECTILE_ARC curvature
 const float BOSS_ROCK_WARN_SEC          = 0.75f;   // shadow marker time before a rock drops
 const float BOSS_ROCK_GRAVITY           = 2200.0f;
 const unsigned int BOSS_BEAM_REARM_MS   = 600;     // BREATH_BEAM can hurt again after this long
+// Beams NEVER lock onto the player and can NOT be parried. When a beam (or breath / flame) follows at all, it follows where the
+// player WAS this long ago, and the aim line turns toward that old spot at a limited rate - so you can always outrun / jump it.
+const unsigned int BOSS_BEAM_TRACK_DELAY_MS = 650;   // the beam aims at the player's position from this long ago
+const float BOSS_BEAM_AIM_TURN_DEG    = 140.0f;      // deg/s the aim line turns during the wind-up (the tell); it freezes at 65% of the wind-up
+const float BOSS_BEAM_SWEEP_TURN_DEG  = 45.0f;       // deg/s the live beam sweeps toward the old spot (phase 2 only; phase 1 stays frozen)
 const float BOSS_ARENA_ENTER_MARGIN     = 200.0f;  // the fight starts once the player is this far inside the arena
 const unsigned int BOSS_ARENA_UNLOCK_MS = 2200;    // the arena stays locked this long after the kill (death burst, score)
 const unsigned int BOSS_MUSIC_FADE_MS   = 1200;    // boss track fades out over this long on the kill
@@ -155,6 +161,7 @@ enum class BossAttackKind {
     DODGE_DASH,        // reactive: dash away from a player swing, i-frames, then an instant counter bite
     ORB_SUMMON,        // `count` magical orbs appear in the air, hover, then fly at the player (speed)
     SMITE,             // `count` full-height light columns with a warning
+    BLADE_SLASH,       // a MOVING blade hitbox: wind-up -> strike -> impact -> return, each at its own linear speed (aux = BladeSlashStyle)
     NONE
 };
 
@@ -179,14 +186,38 @@ struct BossAttackDef {
     float          aux = 0.0f;    // kind specific (see the kinds above)
 };
 
-// Every slash (claw swipe / bite snap) can be parried; other attacks only when their table entry says `parry`.
+// BLADE_SLASH aux: which swing it is (see kSlash in Bosses.cpp: origin, destination and the speed of every phase)
+enum BladeSlashStyle {
+    SLASH_AXE = 0,      // raised high, down in front (jump / step out of the column)
+    SLASH_SWORD,        // drawn back, horizontal across the reach at chest height (jump it)
+    SLASH_RISING,       // scooped from the ground up past the head
+    SLASH_BACKHAND,     // horizontal the other way: from far in front back toward the body
+    SLASH_RAKE,         // diagonal claw rake, high front to low front
+    SLASH_LASH,         // low, thin, very long horizontal whip along the floor (jump it)
+    SLASH_SLAM,         // heavy overhead with a big blade and a long, crushing impact
+    SLASH_COUNT
+};
+static_assert(SLASH_COUNT <= 8, "BLADE_SLASH aux packs up to 3 swing styles, 3 bits each");
+// BLADE_SLASH aux: the style of each swing of a combo (count = number of swings, max 3), e.g. SLASH_SEQ(SLASH_SWORD, SLASH_RISING, SLASH_AXE)
+constexpr float SLASH_SEQ(int s0, int s1 = 0, int s2 = 0){ return (float)(s0 + 8 * s1 + 64 * s2); }
+
+// Every slash (claw swipe / bite snap / blade slash) can be parried; other attacks only when their table entry says `parry`.
+// Beams (BEAM_DIAG / BREATH_BEAM / FLAMETHROWER) can NEVER be parried, whatever the table says.
 inline bool bossAttackParryable(const BossAttackDef& a){
-    return a.parry || a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP;
+    if(a.kind == BossAttackKind::BEAM_DIAG || a.kind == BossAttackKind::BREATH_BEAM || a.kind == BossAttackKind::FLAMETHROWER)
+        return false;
+    return a.parry || a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP || a.kind == BossAttackKind::BLADE_SLASH;
 }
 
-// A combo (count > 1 swings of a claw / bite): every swing is parried on its own, one by one.
+// A combo (count > 1 swings of a claw / bite / blade): every swing is parried on its own, one by one.
 inline bool bossAttackIsCombo(const BossAttackDef& a){
-    return (a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP) && a.count > 1;
+    return (a.kind == BossAttackKind::CLAW_SWIPE || a.kind == BossAttackKind::BITE_SNAP || a.kind == BossAttackKind::BLADE_SLASH) && a.count > 1;
+}
+
+// Length of one swing of a combo. A BLADE_SLASH is faster in phase 2 (its whole timeline shrinks by the phase's speed multiplier).
+inline float bossSwingInterval(const BossAttackDef& a, float speedMul){
+    const float total = (a.kind == BossAttackKind::BLADE_SLASH) ? std::max(80.0f, (float)a.activeMs / std::max(0.1f, speedMul)) : (float)a.activeMs;
+    return total / (float)std::max(1, a.count);
 }
 
 // BossAttackDef::cond
@@ -343,6 +374,12 @@ struct Boss {
     // diagonal beam
     float beamX1 = 0, beamY1 = 0, beamX2 = 0, beamY2 = 0, beamThick = 40.0f;
     bool  beamAim = false, beamOn = false;
+    float beamAngle = 0.0f;           // current aim (radians): turns toward the DELAYED player spot at a limited rate, never snaps onto the player
+    bool  beamAngleValid = false;
+    // blade slash (BLADE_SLASH): the blade is its own moving box
+    SDL_FRect bladeNow{0, 0, 0, 0};   // where the blade is this frame
+    SDL_FRect bladePrev{0, 0, 0, 0};  // ...and last frame (the hitbox is the sweep of the two, so a fast strike cannot skip over the player)
+    int       bladePhase = 0;         // 0 none, 1 wind-up, 2 strike, 3 impact, 4 return
     // reactive dodge
     bool  afterDodge = false;
     // parry / stagger
@@ -549,12 +586,17 @@ private:
 
     float phaseSpeedMul(const Boss& b) const;
     void endAttackCleanup(Boss& b, const SDL_FRect& wall);
-    void aimBeam(Boss& b, const SDL_FRect& player, const BossAttackDef& a);
+    void beamOrigin(const Boss& b, float& ox, float& oy) const;
+    void trackBeam(Boss& b, float dt, bool snap, float turnDegPerSec, unsigned int now);   // aim at where the player WAS (delayed + turn-rate limited)
+    bool delayedPlayerPos(unsigned int now, unsigned int delayMs, float& x, float& y) const;
 
 private:
     std::vector<Boss> m_bosses;
     std::vector<Boss> m_template;   // the bosses exactly as the level defined them (resetFight restores from it)
     std::vector<BossHazard> m_hazards;
+    // the player's centre over the last couple of seconds (SDL_GetTicks clock): what the beams are allowed to "remember"
+    struct PlayerSample { unsigned int t; float x, y; };
+    std::deque<PlayerSample> m_trail;
     std::vector<EnemyHitEvent> m_hitEvents;
     std::vector<BossParryEvent> m_parryEvents;
     // Preacher phase 3: sinner children with broken wings fly UP toward the Preacher. Landing on one (never a side

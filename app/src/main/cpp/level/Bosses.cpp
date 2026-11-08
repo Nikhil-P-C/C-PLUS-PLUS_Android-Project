@@ -54,14 +54,14 @@ namespace {
                     380, 170, 110, 520, combatType::GROUND, EnemyType::CAVE_RAT, 700, 900, 650, 0.0f, 1.0f, 3, {
                                                                                                                              { K::CHARGE,     "Gnaw Dash",     350, 800, 500, 700, 1150, 0, 200, 0, 2200, BOTH },
                                                                                                                              { K::GRAB_BITE,  "Snatch & Bite", 420, 350, 900, 190,  700, 0, 0, 260, 3500, BOTH },
-                                                                                                                             { K::CLAW_SWIPE, "Claw Rake",     300, 420, 450, 150,  300, 2, 0, 200, 1500, BOTH },
+                                                                                                                             { K::BLADE_SLASH, "Claw Rake",    300, 420, 450, 150,  300, 2, 0, 200, 1500, BOTH, 0, true, SLASH_SEQ(SLASH_RAKE, SLASH_BACKHAND) },
                                                                                                                      }},
             // Ancient Sinner: a spinosaur three times your height. Phase 2 = the First Berserker (overdrive: faster, thicker
             // beam, flurries). When its health is gone it does NOT die: it lunges at you in a parry QTE - parry 3 strikes.
             { BossType::STONE_ANCIENT_SINNER, Biome::STONE_CAVE, BossTier::MAIN, "Ancient Sinner",
                     1100, 250, 270, 150, combatType::GROUND, EnemyType::SINNERS_CHILD, 900, 1100, 1000, 0.5f, 1.0f, 4, {
-                                                                                                                             { K::CLAW_SWIPE, "Penance Slash",   520, 300, 700, 300, 200, 1, 0, 340, 1400, P1 },
-                                                                                                                             { K::CLAW_SWIPE, "Berserk Flurry",  380, 700, 600, 320, 350, 3, 0, 360, 2200, P2 },
+                                                                                                                             { K::BLADE_SLASH, "Penance Slash",  520, 300, 700, 300, 200, 1, 0, 340, 1400, P1, 0, true, SLASH_SEQ(SLASH_RISING) },
+                                                                                                                             { K::BLADE_SLASH, "Berserk Flurry", 380, 700, 600, 320, 350, 3, 0, 360, 2200, P2, 0, true, SLASH_SEQ(SLASH_SWORD, SLASH_BACKHAND, SLASH_SLAM) },
                                                                                                                              { K::SHOCKWAVE,  "Hand Slam",       800, 1200, 900,  0, 560, 1, 0, 0, 4000, BOTH },
                                                                                                                              { K::BEAM_DIAG,  "Spino Beam",      900, 1500, 1000, 1800, 0, 0, 0, 0, 6000, BOTH, PG },
                                                                                                                      }, BossBehavior::NONE, 1.5f, 1.0f, true },
@@ -69,7 +69,7 @@ namespace {
             // Shaft Warden: slow and heavy. Slams and stomps when you are on the ground, jumps up at you when you are in the air.
             { BossType::SHAFT_WARDEN, Biome::WOODEN_SHAFT, BossTier::MINI, "Shaft Warden",
                     450, 200, 170, 110, combatType::GROUND, EnemyType::SHAFTS_RAPTOR, 700, 900, 1000, 0.0f, 1.0f, 3, {
-                                                                                                                             { K::CLAW_SWIPE, "Heavy Slam",     750,  350, 950, 230, 160, 1, 0, 260, 2200, BOTH, PG },
+                                                                                                                             { K::BLADE_SLASH, "Heavy Slam",    750,  350, 950, 230, 160, 1, 0, 260, 2200, BOTH, PG, true, SLASH_SEQ(SLASH_SLAM) },
                                                                                                                              { K::SHOCKWAVE,  "Stomp",          800, 1000, 1000, 0, 460, 1, 0, 0, 4200, BOTH, PG },
                                                                                                                              { K::LEAP_SLAM,  "Pouncing Jump",  800, 2200, 1100, 0, 520, 1, 0, 0, 3500, BOTH, PA },
                                                                                                                      }},
@@ -85,13 +85,17 @@ namespace {
                                                                                                                              { K::SHOCKWAVE,  "Armoured Stomp", 800, 1000, 1000,  0, 440, 1, 0, 0, 4200, BOTH, PG },
                                                                                                                              { K::LEAP_SLAM,  "Heavy Jump",    850, 2200, 1100,  0, 500, 1, 0, 0, 3600, BOTH, PA },
                                                                                                                      }},
-            // Sentinel Para: a parasaur who'd rather not fight. Fast, and every strike of hers can be PARRIED (slash just
-            // before it lands): the attack is cancelled and she is left open. Phase 2: faster, chains attacks at random.
+            // Sentinel Para: a parasaur who'd rather not fight. Fast, and her blade slashes + dash can be PARRIED (slash just
+            // before the strike starts): the attack is cancelled and she is left open. Her beam can NOT be parried and can not
+            // follow you (it only turns toward where you WERE). Slashes are moving blades (BLADE_SLASH, aux = swing style):
+            // Axe Fall (top -> bottom), Sword Cut (horizontal), Rising Cut (bottom -> top). Phase 2: faster, chains attacks at random.
             { BossType::PLAINS_SENTINEL_PARA, Biome::PLAINS, BossTier::MAIN, "Sentinel Para",
-                    900, 170, 195, 360, combatType::GROUND, EnemyType::HUNTER_RAPTOR, 900, 1100, 800, 0.5f, 1.0f, 5, {
-                                                                                                                             { K::CLAW_SWIPE,      "Blade Flurry",  300,  520, 500, 220, 500, 3, 0, 260, 1500, BOTH, 0, true },
+                    900, 170, 195, 360, combatType::GROUND, EnemyType::HUNTER_RAPTOR, 900, 1100, 800, 0.5f, 1.0f, 7, {
+                                                                                                                             { K::BLADE_SLASH,     "Axe Fall",      560,  460, 600, 300, 420, 1, 0, 300, 1800, BOTH, 0, true, SLASH_SEQ(SLASH_AXE) },
+                                                                                                                             { K::BLADE_SLASH,     "Sword Cut",     440,  380, 520, 300, 380, 1, 0, 340, 1400, BOTH, 0, true, SLASH_SEQ(SLASH_SWORD) },
+                                                                                                                             { K::BLADE_SLASH,     "Rising Cut",    480,  420, 600, 300, 360, 1, 0, 300, 2400, BOTH, 0, true, SLASH_SEQ(SLASH_RISING) },
                                                                                                                              { K::CHARGE,          "Sentinel Dash", 380,  500, 500, 800, 1300, 0, 300, 0, 2800, BOTH, 0, true },
-                                                                                                                             { K::BEAM_DIAG,       "Duty Beam",     700, 1300, 900, 1800, 0, 0, 0, 0, 5500, BOTH, PG, true },
+                                                                                                                             { K::BEAM_DIAG,       "Duty Beam",     700, 1300, 900, 1800, 0, 0, 0, 0, 5500, BOTH, PG },
                                                                                                                              { K::TELEPORT_POUNCE, "Blink Pounce",  600, 4000, 1000, 0, 0, 1, 0, 0, 4500, BOTH },
                                                                                                                              { K::TELEPORT_POUNCE, "Blink Barrage", 500, 6000, 1000, 0, 0, 2, 0, 0, 8000, P2 },
                                                                                                                      }, BossBehavior::NONE, 1.45f, 1.0f, false, false, 0, 0.4f },
@@ -102,7 +106,7 @@ namespace {
                     420, 200, 240, 0, combatType::GROUND, EnemyType::PREDATOR_CAT, 700, 900, 900, 0.0f, 1.0f, 3, {
                                                                                                                              { K::ERUPT,       "Thorn Snare",  700, 1600, 1300, 0, 0, 3, 0, 0, 4000, BOTH },
                                                                                                                              { K::SPORE_CLOUD, "Spore Cloud",  800,  600, 1300, 0, 0, 2, 0, 0, 7000, BOTH },
-                                                                                                                             { K::CLAW_SWIPE,  "Vine Lash",    600,  300, 900, 360, 0, 1, 0, 380, 1800, BOTH },
+                                                                                                                             { K::BLADE_SLASH,  "Vine Lash",   600,  300, 900, 360, 0, 1, 0, 380, 1800, BOTH, 0, true, SLASH_SEQ(SLASH_LASH) },
                                                                                                                      }},
             // Treehorn Elder: an ancient moss-and-bark horned beast. Horn charge (stuns on the wall), roots erupting in a line,
             // rolling logs (jump them), seed volleys; phase 2 drops branches from the canopy and gets faster.
@@ -119,7 +123,7 @@ namespace {
             // away (i-frames) and snaps back with a bite.
             { BossType::MOUNTAIN_CAT_QUEEN, Biome::MOUNTAIN, BossTier::MINI, "Cat Queen",
                     400, 170, 105, 430, combatType::GROUND, EnemyType::PREDATOR_CAT, 700, 900, 700, 0.0f, 1.0f, 4, {
-                                                                                                                             { K::CLAW_SWIPE, "Sword Claws",  280,  450, 400, 200, 520, 2, 0, 220, 1200, BOTH },
+                                                                                                                             { K::BLADE_SLASH, "Sword Claws", 280,  450, 400, 200, 520, 2, 0, 220, 1200, BOTH, 0, true, SLASH_SEQ(SLASH_SWORD, SLASH_RISING) },
                                                                                                                              { K::LEAP_SLAM,  "High Pounce",  650, 2600, 800, 0, 650, 0, 220, 0, 3200, BOTH, 0, false, 1 },
                                                                                                                              { K::BITE_SNAP,  "Savage Bite",  220,  200, 500, 160, 380, 0, 0, 190, 1400, BOTH },
                                                                                                                              { K::DODGE_DASH, "Evade",          0,  260, 100, 330, 1500, 0, 0, 0, 1800, BOTH, RE },
@@ -140,9 +144,9 @@ namespace {
             // he conjures hovering orbs and light columns. Only his body takes damage, never the wings.
             { BossType::PEAK_THE_PREACHER, Biome::PEAK, BossTier::MAIN, "The Preacher",
                     1500, 180, 250, 330, combatType::GROUND, EnemyType::SINNERS_CHILD, 1000, 1200, 800, 0.5f, 1.0f, 11, {
-                                                                                                                             { K::CLAW_SWIPE,      "Blade Flurry",   320,  520, 500, 230, 480, 3, 0, 270, 1600, BOTH, 0, true },
+                                                                                                                             { K::BLADE_SLASH,      "Blade Flurry",   320,  520, 500, 230, 480, 3, 0, 270, 1600, BOTH, 0, true, SLASH_SEQ(SLASH_SWORD, SLASH_RISING, SLASH_AXE) },
                                                                                                                              { K::TELEPORT_POUNCE, "Blink Pounce",   600, 4000, 1000, 0, 0, 1, 0, 0, 5000, BOTH },
-                                                                                                                             { K::BEAM_DIAG,       "Sinner's Beam",  850, 1500, 1000, 1800, 0, 0, 0, 0, 6500, BOTH, PG, true },
+                                                                                                                             { K::BEAM_DIAG,       "Sinner's Beam",  850, 1500, 1000, 1800, 0, 0, 0, 0, 6500, BOTH, PG },
                                                                                                                              { K::SHOCKWAVE,       "Hand Slam",      750, 1200, 900, 0, 540, 1, 0, 0, 4200, BOTH },
                                                                                                                              { K::TAIL_SWEEP,      "Brother's Whip", 650,  450, 850, 320, 0, 0, 0, 330, 2800, BOTH },
                                                                                                                              { K::FLAMETHROWER,    "Brother's Flame", 900, 1700, 1100, 650, 0, 0, 150, 0, 6500, BOTH },
@@ -180,6 +184,73 @@ namespace {
     }
     inline float horizontalGap(const Boss& b, const SDL_FRect& p){
         return std::max(0.0f, std::max(p.x - (b.x + b.w), b.x - (p.x + p.w)));
+    }
+
+    // ------------------------------------------------------------------------------------------------
+    //  BLADE_SLASH: a moving hitbox. Four phases, every one a straight line at ITS OWN constant speed:
+    //     wind-up  rest   -> origin   slow, the tell (TELEGRAPH, windupMs)          harmless
+    //     strike   origin -> dest     very fast                                      HURTS (swept box)
+    //     impact   dest   -> follow   crawls: the blade bites in / follows through   HURTS
+    //     return   follow -> rest     medium                                         harmless
+    //  strike + impact + return share the attack's activeMs (strikeFrac + impactFrac + returnFrac = 1).
+    //  Points are the CENTRE of the blade: fx = forward of the boss's front edge, in units of the attack's `reach`
+    //  (negative = back over the body); fy = down from the boss's top, in units of the boss's height (<0 = above its head).
+    //  The distance of each leg over its time is the speed: tune a swing by moving its points / changing the fractions.
+    // ------------------------------------------------------------------------------------------------
+    struct SlashPt { float fx, fy; };
+    struct SlashPattern {
+        const char* name;
+        SlashPt rest, origin, dest, follow;
+        float bladeW, bladeH;                    // blade box: width in units of reach, height in units of the boss height
+        float strikeFrac, impactFrac, returnFrac;
+    };
+    const SlashPattern kSlash[SLASH_COUNT] = {
+            // Axe Fall: raised high over the head, comes down in front like an axe and bites into the ground. Walk out of the
+            // column or roll under it; hugging the boss does not save you.
+            { "Axe Fall",   {0.05f,  0.30f}, {0.30f, -0.40f}, {0.50f,  0.80f}, {0.52f,  0.95f}, 0.60f, 0.42f, 0.28f, 0.27f, 0.45f },
+            // Sword Cut: drawn back over the body, then one horizontal blade across the whole reach at chest height. Jump it.
+            { "Sword Cut",  {0.00f,  0.60f}, {-0.20f, 0.60f}, {0.95f,  0.60f}, {1.05f,  0.60f}, 0.45f, 0.22f, 0.30f, 0.20f, 0.50f },
+            // Rising Cut: scooped from the ground up to above the head. Early in the swing it hits the floor in front, late in
+            // the swing it hits a jumper.
+            { "Rising Cut", {0.00f,  0.50f}, {0.10f,  0.95f}, {0.80f, -0.20f}, {0.88f, -0.35f}, 0.50f, 0.35f, 0.30f, 0.25f, 0.45f },
+            // Backhand: the blade starts far out in front and sweeps back toward the body (the second half of a sword combo).
+            { "Backhand",   {0.00f,  0.55f}, {0.95f,  0.55f}, {-0.10f, 0.55f}, {-0.18f, 0.55f}, 0.45f, 0.22f, 0.30f, 0.20f, 0.50f },
+            // Rake: a claw dragged diagonally down from above-front to the floor in front.
+            { "Rake",       {0.00f,  0.35f}, {0.15f, -0.15f}, {0.85f,  0.85f}, {0.90f,  0.97f}, 0.45f, 0.30f, 0.28f, 0.22f, 0.50f },
+            // Lash: a thin whip along the floor, very long and very fast. Jump it.
+            { "Lash",       {-0.10f, 0.90f}, {-0.30f, 0.92f}, {1.10f,  0.92f}, {1.20f,  0.92f}, 0.50f, 0.16f, 0.35f, 0.15f, 0.50f },
+            // Slam: a huge blade comes down heavy and stays down (long impact): the big, slow, readable one.
+            { "Slam",       {0.00f,  0.20f}, {0.15f, -0.60f}, {0.45f,  0.88f}, {0.47f,  0.98f}, 0.75f, 0.55f, 0.22f, 0.40f, 0.38f },
+    };
+
+    // style of swing `swing` of an attack (aux packs up to 3 styles, 3 bits each)
+    inline int slashStyleAt(const BossAttackDef& a, int swing){
+        int v = (int)(a.aux + 0.5f);
+        for(int i = 0; i < swing; ++i) v /= 8;
+        return std::clamp(v % 8, 0, (int)SLASH_COUNT - 1);
+    }
+
+    // blade box for a phase (1 wind-up, 2 strike, 3 impact, 4 return) at progress k (0..1 inside that phase), linear.
+    // nextStyle >= 0 (a combo that is not finished): the "return" goes straight to the origin of the next swing instead of to rest.
+    SDL_FRect bladeBoxAt(const Boss& b, const BossAttackDef& a, int style, int phase, float k, int nextStyle = -1){
+        const SlashPattern& s = kSlash[style];
+        const SlashPt* from = &s.rest; const SlashPt* to = &s.origin;
+        if(phase == 2){ from = &s.origin; to = &s.dest; }
+        else if(phase == 3){ from = &s.dest; to = &s.follow; }
+        else if(phase == 4){ from = &s.follow; to = (nextStyle >= 0) ? &kSlash[nextStyle].origin : &s.rest; }
+        k = std::clamp(k, 0.0f, 1.0f);
+        const float fx = from->fx + (to->fx - from->fx) * k;
+        const float fy = from->fy + (to->fy - from->fy) * k;
+        const float cx = b.isFacingRight ? (b.x + b.w + fx * a.reach) : (b.x - fx * a.reach);
+        const float cy = b.y + fy * b.h;
+        const float w = s.bladeW * a.reach, h = s.bladeH * b.h;
+        return SDL_FRect{ cx - w * 0.5f, cy - h * 0.5f, w, h };
+    }
+
+    inline SDL_FRect unionRect(const SDL_FRect& p, const SDL_FRect& q){
+        const float x1 = std::min(p.x, q.x), y1 = std::min(p.y, q.y);
+        const float x2 = std::max(p.x + p.w, q.x + q.w), y2 = std::max(p.y + p.h, q.y + q.h);
+        return SDL_FRect{ x1, y1, x2 - x1, y2 - y1 };
     }
 }  // namespace
 
@@ -246,6 +317,7 @@ void BossBuilder::init(const std::vector<Boss>& bosses){
     m_arenaValid = false;
     m_unlockAt = 0;
     m_hazards.clear();
+    m_trail.clear();
     m_hitEvents.clear();
     m_deathEvents.clear();
     m_summons.clear();
@@ -479,6 +551,7 @@ void BossBuilder::shiftTimers(unsigned int ms){
     }
     if(m_restoreAt) m_restoreAt += ms;
     if(m_unlockAt)  m_unlockAt  += ms;
+    for(auto& s : m_trail) s.t += ms;               // the beams' memory is game time: a hit-stop freeze must not age it
 }
 
 // ====================================================================================================
@@ -637,6 +710,8 @@ void BossBuilder::update(float dt, const SDL_FRect& player, const SDL_FRect& wal
     }
 
     m_playerRect = player;
+    m_trail.push_back({ now, player.x + player.w * 0.5f, player.y + player.h * 0.5f });
+    while(m_trail.size() > 2 && now - m_trail.front().t > 2500u) m_trail.pop_front();
     if(m_grab.active && now - m_grab.start >= BOSS_GRAB_MS){      // held too long: the final bite lands
         m_pendingBite = true;
         m_pendingBiteUntil = now + 900;
@@ -773,7 +848,15 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
             }
             if(a.kind == K::BEAM_DIAG){
                 b.beamAim = true;
-                if(elapsed < windup * 0.65f) aimBeam(b, player, a);          // the beam locks on, then the tell stays put
+                // the aim line only ever points at where the player WAS (delayed), turns at a limited rate, then freezes: the tell stays put
+                if(elapsed < windup * 0.65f) trackBeam(b, dt, false, BOSS_BEAM_AIM_TURN_DEG, now);
+            } else if(a.kind == K::BLADE_SLASH){
+                // wind-up: the blade drifts slowly from its rest pose to its origin pose (the outline IS the tell)
+                const float k = windup > 0 ? std::min(1.0f, (float)elapsed / (float)windup) : 1.0f;
+                b.bladePhase = 1;
+                b.bladeNow = bladeBoxAt(b, a, slashStyleAt(a, 0), 1, k);
+                b.bladePrev = b.bladeNow;
+                b.attackHitBox = b.bladeNow;
             } else {
                 b.attackHitBox = previewBox(b, a, player, wall);
             }
@@ -798,7 +881,7 @@ void BossBuilder::updateBoss(Boss& b, float dt, const SDL_FRect& player, const S
                 if(bossAttackIsCombo(a)){
                     // every swing of the combo has its own parry window (slash starts just before it / just after it lands)
                     const int swings = a.count;
-                    const float interval = (float)a.activeMs / (float)swings;
+                    const float interval = bossSwingInterval(a, phaseSpeedMul(b));
                     bool finalParried = false;
                     for(int k = 0; k < swings && !finalParried; ++k){
                         if(b.swingParriedMask & (1u << k)) continue;                       // already deflected
@@ -884,6 +967,8 @@ void BossBuilder::endAttackCleanup(Boss& b, const SDL_FRect& wall){
     b.isAttackBoxActive = false;
     b.attackHasHit = true;
     b.beamOn = b.beamAim = false;
+    b.bladePhase = 0;
+    b.bladeNow = b.bladePrev = SDL_FRect{0, 0, 0, 0};
     b.markerOn = false;
     b.hidden = false;
     b.exposed = false;
@@ -1260,17 +1345,47 @@ void BossBuilder::buildSurfacePath(Boss& b, int target, const SDL_FRect& player,
     b.wpIdx = 0;
 }
 
-void BossBuilder::aimBeam(Boss& b, const SDL_FRect& player, const BossAttackDef& a){
-    (void)a;
+void BossBuilder::beamOrigin(const Boss& b, float& ox, float& oy) const {
     const bool winged = b.winged;
-    const float ox = winged ? (b.x + b.w * 0.5f) : (b.isFacingRight ? b.x + b.w * 0.85f : b.x + b.w * 0.15f);
-    const float oy = winged ? (b.y + b.h * 0.45f) : (b.y + b.h * 0.2f);
-    float dx = (player.x + player.w * 0.5f) - ox, dy = (player.y + player.h * 0.5f) - oy;
-    if(!winged && std::fabs(dx) < 60.0f) dx = b.isFacingRight ? 60.0f : -60.0f;   // never straight down through the boss
-    const float len = std::max(1.0f, std::sqrt(dx * dx + dy * dy));
+    ox = winged ? (b.x + b.w * 0.5f) : (b.isFacingRight ? b.x + b.w * 0.85f : b.x + b.w * 0.15f);
+    oy = winged ? (b.y + b.h * 0.45f) : (b.y + b.h * 0.2f);
+}
+
+// Where the player was `delayMs` ago (the newest sample that is at least that old; the oldest one we have if the trail is shorter).
+bool BossBuilder::delayedPlayerPos(unsigned int now, unsigned int delayMs, float& x, float& y) const {
+    x = m_playerRect.x + m_playerRect.w * 0.5f;
+    y = m_playerRect.y + m_playerRect.h * 0.5f;
+    if(m_trail.empty()) return false;
+    const PlayerSample* pick = &m_trail.front();
+    for(const PlayerSample& s : m_trail){
+        if(now >= s.t && now - s.t >= delayMs) pick = &s; else break;
+    }
+    x = pick->x; y = pick->y;
+    return true;
+}
+
+// Beams never lock onto the player. The aim line points at where the player WAS BOSS_BEAM_TRACK_DELAY_MS ago and turns toward
+// that old spot at most `turnDegPerSec`; so standing still gets you hit, running gets you out of it. snap = first frame only.
+void BossBuilder::trackBeam(Boss& b, float dt, bool snap, float turnDegPerSec, unsigned int now){
+    float ox, oy; beamOrigin(b, ox, oy);
+    float tx, ty; delayedPlayerPos(now, BOSS_BEAM_TRACK_DELAY_MS, tx, ty);
+    float dx = tx - ox, dy = ty - oy;
+    if(!b.winged && std::fabs(dx) < 60.0f) dx = b.isFacingRight ? 60.0f : -60.0f;   // never straight down through the boss
+    const float want = std::atan2(dy, dx);
+    constexpr float PI_F = 3.14159265358979f;
+    if(snap || !b.beamAngleValid){
+        b.beamAngle = want;
+        b.beamAngleValid = true;
+    } else {
+        float diff = want - b.beamAngle;
+        while(diff >  PI_F) diff -= 2.0f * PI_F;
+        while(diff < -PI_F) diff += 2.0f * PI_F;
+        const float maxStep = turnDegPerSec * (PI_F / 180.0f) * dt;
+        b.beamAngle += std::clamp(diff, -maxStep, maxStep);
+    }
     b.beamX1 = ox; b.beamY1 = oy;
-    b.beamX2 = ox + dx / len * 2200.0f;
-    b.beamY2 = oy + dy / len * 2200.0f;
+    b.beamX2 = ox + std::cos(b.beamAngle) * 2200.0f;
+    b.beamY2 = oy + std::sin(b.beamAngle) * 2200.0f;
 }
 
 // ====================================================================================================
@@ -1335,6 +1450,9 @@ void BossBuilder::beginAttack(Boss& b, unsigned int now){
     b.stage = 0;
     b.stageT = now;
     b.attackHasHit = false;
+    b.beamAngleValid = false;
+    b.bladePhase = 0;
+    b.bladeNow = b.bladePrev = SDL_FRect{0, 0, 0, 0};
     setState(b, BossState::TELEGRAPH, now);
 }
 
@@ -1508,7 +1626,10 @@ void BossBuilder::runAttack(Boss& b, const BossDef& def, const BossAttackDef& a,
         case K::BREATH_BEAM:
         case K::FLAMETHROWER: {
             const bool flame = a.kind == K::FLAMETHROWER;
-            if(p2) faceToward(b, pcx);                            // phase 2: it follows the player
+            if(p2){                                               // phase 2: it follows - but only where the player WAS (delayed), never live
+                float dpx, dpy; delayedPlayerPos(now, BOSS_BEAM_TRACK_DELAY_MS, dpx, dpy);
+                faceToward(b, dpx);
+            }
             if(!b.launched){ b.launched = true; b.nextRearm = now + (flame ? 320 : BOSS_BEAM_REARM_MS); }
             else if(now >= b.nextRearm){ b.attackHasHit = false; b.nextRearm = now + (flame ? 320 : BOSS_BEAM_REARM_MS); }
             b.attackHitBox = flame ? frontBox(a.reach, b.h * 0.45f, b.h * 0.4f) : frontBox(a.reach, b.h * 0.2f, b.h * 0.45f);
@@ -1517,10 +1638,48 @@ void BossBuilder::runAttack(Boss& b, const BossDef& def, const BossAttackDef& a,
             break;
         }
 
+        case K::BLADE_SLASH: {
+            // a combo (count > 1) is `count` slots of equal length; each slot = strike -> impact -> return, and the return of every
+            // swing but the last flows straight into the origin pose of the next swing (the blade never stops at rest in between)
+            const int swings = std::clamp(a.count, 1, 3);
+            const float mul = phaseSpeedMul(b);                                   // phase 2 swings faster
+            const float slot = bossSwingInterval(a, mul);
+            const int j = std::min(swings - 1, (int)((float)elapsed / slot));
+            if(j > b.spawned){                                                    // the next swing begins
+                b.spawned = j;
+                b.attackHasHit = (b.swingParriedMask & (1u << j)) != 0;           // a swing that was already deflected cannot hurt
+            }
+            const bool last = (j == swings - 1);
+            const int style = slashStyleAt(a, j);
+            const SlashPattern& s = kSlash[style];
+            const float u = std::min(1.0f, ((float)elapsed - slot * (float)j) / slot);
+            int ph; float k;
+            if(u < s.strikeFrac){ ph = 2; k = u / s.strikeFrac; }
+            else if(u < s.strikeFrac + s.impactFrac){ ph = 3; k = (u - s.strikeFrac) / s.impactFrac; }
+            else { ph = 4; k = (u - s.strikeFrac - s.impactFrac) / std::max(0.01f, s.returnFrac); }
+            if(ph == 4 && !last && b.stage != j + 1){ b.stage = j + 1; faceToward(b, pcx); }   // turn to the player as the blade comes around for the next swing
+
+            // the body steps into every strike (a.speed = lunge px/s)
+            if(ph == 2 && a.speed > 0.0f && horizontalGap(b, player) > 12.0f)
+                tryMoveX(b, b.x + dirSign * a.speed * mul * dt, wall, blocks);
+
+            if(b.bladePhase < 2) b.bladePrev = bladeBoxAt(b, a, style, 1, 1.0f);   // first frame: the sweep starts from the origin pose
+            const SDL_FRect cur = bladeBoxAt(b, a, style, ph, k, (ph == 4 && !last) ? slashStyleAt(a, j + 1) : -1);
+            // the hitbox is the sweep of last frame's blade and this frame's: at strike speed the blade moves ~50px a frame
+            b.attackHitBox = (ph <= 3) ? unionRect(b.bladePrev, cur) : cur;
+            b.isAttackBoxActive = (ph <= 3) && !b.attackHasHit;                   // strike + impact hurt; the return does not
+            b.bladePrev = cur;
+            b.bladeNow = cur;
+            b.bladePhase = ph;
+            if(last && u >= 1.0f) b.endEarly = true;
+            break;
+        }
+
         case K::BEAM_DIAG: {
-            const bool strong = p2;                                // berserk / phase 2+: thicker, tracks, rearms faster
+            const bool strong = p2;                                // berserk / phase 2+: thicker, sweeps (late), rearms faster
             if(!b.launched){ b.launched = true; b.nextRearm = now; }
-            if(strong) aimBeam(b, player, a);                      // follows the player's feet
+            // phase 1: frozen where the tell showed. phase 2: drifts toward where the player WAS (delayed, slow turn): it can be outrun
+            if(strong) trackBeam(b, dt, false, BOSS_BEAM_SWEEP_TURN_DEG, now);
             b.beamOn = true;
             b.beamThick = strong ? 78.0f : 48.0f;
             if(now >= b.nextRearm){ b.attackHasHit = false; b.nextRearm = now + (strong ? 380 : 520); }
@@ -2534,6 +2693,13 @@ void BossBuilder::renderAttackPlaceholders(SDL_Renderer* r, int camX, int camY) 
         if(!def) continue;
         const BossAttackKind kind = def->attacks[b.attack].kind;
         const bool telegraph = b.state == BossState::TELEGRAPH;
+        if(kind == K::BLADE_SLASH && b.state == BossState::ATTACKING && b.bladePhase == 4 && b.bladeNow.w > 0.0f){
+            // the return is harmless: only a faint outline of the blade sliding back
+            SDL_SetRenderDrawColor(r, 255, 255, 255, 70);
+            SDL_FRect back{ b.bladeNow.x - camX, b.bladeNow.y - camY, b.bladeNow.w, b.bladeNow.h };
+            SDL_RenderRect(r, &back);
+            continue;
+        }
         if(!telegraph && !b.isAttackBoxActive) continue;
         if(b.attackHitBox.w <= 0.0f || b.attackHitBox.h <= 0.0f) continue;
 
@@ -2548,6 +2714,7 @@ void BossBuilder::renderAttackPlaceholders(SDL_Renderer* r, int camX, int camY) 
             case K::FLAMETHROWER: cr = 255; cg = 120; cb = 20;  break;
             case K::AERIAL_DIVE:  cr = 255; cg = 230; cb = 60;  break;
             case K::TAIL_SWEEP:   cr = 255; cg = 120; cb = 40;  break;
+            case K::BLADE_SLASH:  cr = 255; cg = 90;  cb = 60;  break;
             default: break;
         }
         SDL_FRect box{ b.attackHitBox.x - camX, b.attackHitBox.y - camY, b.attackHitBox.w, b.attackHitBox.h };
@@ -2560,6 +2727,11 @@ void BossBuilder::renderAttackPlaceholders(SDL_Renderer* r, int camX, int camY) 
             SDL_RenderFillRect(r, &box);
             SDL_SetRenderDrawColor(r, cr, cg, cb, 255);
             SDL_RenderRect(r, &box);
+            if(kind == K::BLADE_SLASH && b.bladeNow.w > 0.0f){       // the blade itself, inside the sweep that hurts
+                SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
+                SDL_FRect blade{ b.bladeNow.x - camX, b.bladeNow.y - camY, b.bladeNow.w, b.bladeNow.h };
+                SDL_RenderRect(r, &blade);
+            }
         }
     }
 

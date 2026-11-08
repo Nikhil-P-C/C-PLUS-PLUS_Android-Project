@@ -147,6 +147,27 @@ void DebugState::render(SDL_Renderer *renderer) {
             SDL_SetRenderDrawColor(renderer,255,0,0,255);
             SDL_RenderFillRect(renderer,&atk);
         }
+        // blade slash: the blade itself in every phase (white = hurts, grey = wind-up / return, harmless). The red box above is its sweep.
+        if(boss.bladePhase > 0 && boss.bladeNow.w > 0.0f){
+            SDL_FRect blade{boss.bladeNow.x-camX,boss.bladeNow.y-camY,boss.bladeNow.w,boss.bladeNow.h};
+            const bool hurts = boss.bladePhase == 2 || boss.bladePhase == 3;
+            const Uint8 v = hurts ? 255 : 150;
+            SDL_SetRenderDrawColor(renderer,v,v,v,255);
+            SDL_RenderRect(renderer,&blade);
+        }
+        // beams: the aim line while it is only a tell (orange), centre line + the two edges of its width while it hurts (red)
+        if(boss.beamAim || boss.beamOn){
+            const float bx1 = boss.beamX1-camX, by1 = boss.beamY1-camY, bx2 = boss.beamX2-camX, by2 = boss.beamY2-camY;
+            SDL_SetRenderDrawColor(renderer,255,boss.beamOn ? 0 : 140,0,255);
+            SDL_RenderLine(renderer,bx1,by1,bx2,by2);
+            if(boss.beamOn){
+                const float dx = bx2-bx1, dy = by2-by1;
+                const float len = std::max(1.0f, std::sqrt(dx*dx+dy*dy));
+                const float nx = -dy/len*boss.beamThick*0.5f, ny = dx/len*boss.beamThick*0.5f;
+                SDL_RenderLine(renderer,bx1+nx,by1+ny,bx2+nx,by2+ny);
+                SDL_RenderLine(renderer,bx1-nx,by1-ny,bx2-nx,by2-ny);
+            }
+        }
         if(boss.arenaReady){
             SDL_FRect arena{boss.arena.x-camX,boss.arena.y-camY,boss.arena.w,boss.arena.h};
             SDL_SetRenderDrawColor(renderer,255,0,255,255);
