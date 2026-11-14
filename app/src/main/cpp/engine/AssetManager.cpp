@@ -510,6 +510,13 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadTexture(TextureType::FX_THRUST_1,       "Attacks/hit_thrust_1.png");
     loadTexture(TextureType::FX_THRUST_2,       "Attacks/hit_thrust_2.png");
 
+    // spider child (sliced from spider_child.png: 48x48 frames - idle 0-4, walk 5-12, bite 13-18, shoot 19-21)
+    loadTexture(TextureType::ENEMY_SPIDER_CHILD_IDLE,   "Enemy/spider_child/spider_child_idle.png");
+    loadTexture(TextureType::ENEMY_SPIDER_CHILD_PATROL, "Enemy/spider_child/spider_child_walk.png");
+    loadTexture(TextureType::ENEMY_SPIDER_CHILD_SEEK,   "Enemy/spider_child/spider_child_walk.png");
+    loadTexture(TextureType::ENEMY_SPIDER_CHILD_ATTACK1,"Enemy/spider_child/spider_child_shoot.png");
+    loadTexture(TextureType::ENEMY_SPIDER_CHILD_ATTACK2,"Enemy/spider_child/spider_child_bite.png");
+
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_PATROL,"Enemy/sinner_child/sinner_child_patrol.png");
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_SEEK,"Enemy/sinner_child/sinner_child_seek.png");
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_DEAD,"Enemy/sinner_child/sinner_child_death.png");

@@ -133,7 +133,8 @@ enum class TextureType{
     FX_THRUST_2,         // shorter crossing scratch
     PLAYER_DOUBLE_JUMP,
 
-    ENEMY_SPIDER_CHILD_PATROL,
+    ENEMY_SPIDER_CHILD_IDLE,      // idle (standing still) - see getEnemyIdleFrameInfo()
+    ENEMY_SPIDER_CHILD_PATROL,    // walk cycle (also used by SEEK / RETURN)
     ENEMY_SPIDER_CHILD_SEEK,
     ENEMY_SPIDER_CHILD_ATTACK1,
     ENEMY_SPIDER_CHILD_ATTACK2,

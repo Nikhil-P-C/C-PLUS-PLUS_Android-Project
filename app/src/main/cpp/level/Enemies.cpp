@@ -27,6 +27,15 @@ namespace {
     }
 }
 
+// Sheets that were drawn facing LEFT (the renderer assumes RIGHT, so these get the flip inverted).
+static inline bool enemyArtFacesLeft(EnemyType t){
+    switch(t){
+        case EnemyType::SPIDER_CHILD: return true;
+        default: return false;
+    }
+}
+static const EnemyFrameInfo* currentFrameInfo(const Enemy& e);   // defined next to getEnemyFrameInfo
+
 // Enemies come from the level file now ('E' lines, see LevelLoader::parseEnemy) - they used to be hardcoded here.
 void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
     m_enemies = enemies;
@@ -73,7 +82,7 @@ SDL_FRect EnemiesBuilder::getEnemyRenderedRect(const Enemy& e, const EnemyFrameI
 }
 
 SDL_FRect EnemiesBuilder::getSpriteRect(const Enemy& e) const {
-    const EnemyFrameInfo* info = getEnemyFrameInfo(e.type,e.action,e.attackType);
+    const EnemyFrameInfo* info = currentFrameInfo(e);
     if(!info) info = getEnemyFrameInfo(e.type,EnemyAction::SEEK,AttackType::NONE);
     if(!info) return {e.x,e.y,e.w,e.h};
     return getEnemyRenderedRect(e,*info);
@@ -84,7 +93,7 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
     const Cull::View view = Cull::world();
     for(const auto& enemy: m_enemies){
-        const EnemyFrameInfo* info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+        const EnemyFrameInfo* info = currentFrameInfo(enemy);
 
         // camera culling: the union of the hitbox and the sprite rect, plus a margin for the borrowed fallback
         // sheets (corpse / attack art can use a different frame size than the current action).
@@ -135,9 +144,9 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
         SDL_FRect dst{world.x - camX, world.y - camY, world.w, world.h};
 
-        // all enemy art is drawn facing RIGHT; flip when facing left. Because dst is centred on the
+        // enemy art is drawn facing RIGHT by default (enemyArtFacesLeft() lists the exceptions); flip when it should face the other way. Because dst is centred on the
         // hitbox, the flip mirrors around the hitbox centre and the body doesn't jump sideways.
-        SDL_FlipMode flip = enemy.isFacingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+        SDL_FlipMode flip = (enemy.isFacingRight != enemyArtFacesLeft(enemy.type)) ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
         const unsigned int nowT = FrameClock::now();
         const bool stunned = !enemy.isDead && nowT < enemy.staggerUntil;   // parried: dazed, pale blue pulse
@@ -316,7 +325,7 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
 
         if(enemy.isHurt && now >= enemy.hurtFlashEndTime) enemy.isHurt = false;
 
-        const float prevX = enemy.x;
+        const float prevX = enemy.x, prevY = enemy.y;
         const bool wasKnockedBack = now < enemy.knockbackEndTime;
 
         if(now < enemy.knockbackEndTime){
@@ -334,7 +343,23 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
         applyGravityAndCollision(enemy,dt,wallCollisionRect,grounds,platforms,blocks);
         if(!wasKnockedBack) updateFootsteps(enemy,prevX,player,now);
 
-        const auto* info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+        // idle pose: standing still (no movement for a moment) -> swap to the idle sheet, restart its frame counter
+        {
+            const bool walkingAction = enemy.action == EnemyAction::PATROL || enemy.action == EnemyAction::SEEK
+                                       || enemy.action == EnemyAction::RETURN;
+            const bool moved = std::fabs(enemy.x - prevX) > 0.01f ||
+                               (enemy.combat != combatType::GROUND && std::fabs(enemy.y - prevY) > 0.01f);
+            if(moved || !walkingAction){
+                enemy.idleSince = 0;
+                if(enemy.idlePose){ enemy.idlePose = false; enemy.aniStartFrame = 0; enemy.lastTime = now; }
+            } else {
+                if(enemy.idleSince == 0) enemy.idleSince = now;
+                if(!enemy.idlePose && now - enemy.idleSince >= ENEMY_IDLE_DELAY_MS && getEnemyIdleFrameInfo(enemy.type)){
+                    enemy.idlePose = true; enemy.aniStartFrame = 0; enemy.lastTime = now;
+                }
+            }
+        }
+        const auto* info = currentFrameInfo(enemy);
         if(!info || info->frameCount<=1 || enemy.aniDone) continue;
 
         if(now - enemy.lastTime > (unsigned int)info->frameDelay)
@@ -1267,7 +1292,9 @@ namespace {
     void enemySizeFor(EnemyType t, float& w, float& h){
         w = ENEMY_BASE_W; h = ENEMY_BASE_H;
         switch(t){
-            case EnemyType::SPIDER_CHILD: case EnemyType::MOSS_GLOW_WORM:    // bugs
+            case EnemyType::SPIDER_CHILD:                                    // sprite body ~35x21 src px (x5 scale)
+                w = 110.0f; h = 65.0f; break;
+            case EnemyType::MOSS_GLOW_WORM:                                  // bugs
             case EnemyType::MOSS_BAT: case EnemyType::GIANT_BATS:            // bats
             case EnemyType::CAVE_RAT:                                        // rat
                 h = ENEMY_BASE_H * 0.5f; break;
@@ -1286,11 +1313,31 @@ Enemy::Enemy(float x, float y, EnemyType type, EnemyAction action, AttackType at
     enemySizeFor(type, w, h);
 }
 
+// Optional standing-still sheet. Enemies without a row here simply keep playing their walk/seek cycle when stopped.
+// Add a row per enemy as its idle art arrives: {texture, frameW, frameH, frameCount, frameDelay, loop, footPad}
+const EnemyFrameInfo* getEnemyIdleFrameInfo(EnemyType type) {
+    static const std::unordered_map<uint32_t, EnemyFrameInfo> idleTable{
+            {static_cast<uint32_t>(EnemyType::SPIDER_CHILD), {TextureType::ENEMY_SPIDER_CHILD_IDLE,48,48,5,140,true,11}},
+    };
+    auto it = idleTable.find(static_cast<uint32_t>(type));
+    return it != idleTable.end() ? &it->second : nullptr;
+}
+
+// The frame row an enemy is actually showing right now: the idle sheet while it stands still (ground/air, walking
+// actions only), otherwise the normal action/attack row. Render, sprite rect and the animation tick all go through this
+// so they can never disagree about which sheet the frame index belongs to.
+static const EnemyFrameInfo* currentFrameInfo(const Enemy& e){
+    if(e.idlePose && (e.action == EnemyAction::PATROL || e.action == EnemyAction::SEEK || e.action == EnemyAction::RETURN)){
+        if(const EnemyFrameInfo* idle = getEnemyIdleFrameInfo(e.type)) return idle;
+    }
+    return getEnemyFrameInfo(e.type,e.action,e.attackType);
+}
+
 const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, AttackType attackType) {
     if(Action == EnemyAction::ATTACK){
         static const std::unordered_map<uint32_t, EnemyFrameInfo> attackTable{
-                {enemyAttackKey(EnemyType::SPIDER_CHILD,AttackType::SHOOT), {TextureType::ENEMY_SPIDER_CHILD_ATTACK1,64,64,6,80,false}},
-                {enemyAttackKey(EnemyType::SPIDER_CHILD,AttackType::BITE), {TextureType::ENEMY_SPIDER_CHILD_ATTACK2,64,64,6,80,false}},
+                {enemyAttackKey(EnemyType::SPIDER_CHILD,AttackType::SHOOT), {TextureType::ENEMY_SPIDER_CHILD_ATTACK1,48,48,3,120,false,11}},
+                {enemyAttackKey(EnemyType::SPIDER_CHILD,AttackType::BITE), {TextureType::ENEMY_SPIDER_CHILD_ATTACK2,48,48,6,80,false,11}},
 
                 {enemyAttackKey(EnemyType::MOSS_GLOW_WORM,AttackType::DASH), {TextureType::ENEMY_MOSS_GLOW_WORM_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::MOSS_GLOW_WORM,AttackType::BITE), {TextureType::ENEMY_MOSS_GLOW_WORM_ATTACK2,64,64,6,80,false}},
@@ -1357,9 +1404,9 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
     }
 
     static const std::unordered_map<uint32_t, EnemyFrameInfo> table{
-            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SPIDER_CHILD_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SPIDER_CHILD_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SPIDER_CHILD_PATROL,64,64,4,90,true}},
+            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SPIDER_CHILD_PATROL,48,48,8,90,true,11}},
+            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SPIDER_CHILD_SEEK,48,48,8,70,true,11}},
+            {enemyActionKey(EnemyType::SPIDER_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_SPIDER_CHILD_PATROL,48,48,8,70,true,11}},
 
             {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::PATROL), {TextureType::ENEMY_MOSS_GLOW_WORM_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_GLOW_WORM_SEEK,64,64,4,90,true}},

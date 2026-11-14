@@ -33,6 +33,7 @@ const int ENEMY_SPRITE_SCALE            = 5;       // source px -> screen px (sa
 const float ENEMY_FOOTSTEP_HEAR_RANGE   = 1100.0f; // px from the player; further enemies are silent (saves mixer voices)
 const float ENEMY_FOOTSTEP_GAIN         = 0.6f;    // below the player's own steps
 const unsigned int ENEMY_FOOTSTEP_MIN_INTERVAL_MS = 300; // floor if the step clip is shorter than this
+const unsigned int ENEMY_IDLE_DELAY_MS = 120;   // standing still this long -> switch to the idle sheet (avoids flicker on 1-frame stalls)
 const float ENEMY_FACE_DEADZONE         = 6.0f;    // ignore tiny left/right offsets so facing doesn't flicker when lined up with the target
 
 // attack timing: the attack hitbox is only live during this slice of the attack animation
@@ -208,6 +209,8 @@ struct EnemyAIConfig {
 
 const EnemyAIConfig* getEnemyAIConfig(EnemyType type);
 const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type,EnemyAction Action,AttackType attackType);
+// optional standing-still sheet (nullptr = this enemy has no idle art; it keeps its walk cycle)
+const EnemyFrameInfo* getEnemyIdleFrameInfo(EnemyType type);
 
 // One landed player hit (melee swing, or a rate-limited tick of the beam). World space.
 // GameState turns these into sparks / shake / hit-stop / combo (see GameState::onEnemyHit).
@@ -265,6 +268,8 @@ struct Enemy{
     bool hasHitEnd =false;
 
     bool aniDone= false;
+    bool idlePose = false;              // showing the idle sheet (standing still); managed by EnemiesBuilder::update
+    unsigned int idleSince = 0;         // tick it stopped moving (0 = moving)
 
     PathAxis axis = PathAxis::AUTO;
     PathShape pathShape = PathShape::LINE;
