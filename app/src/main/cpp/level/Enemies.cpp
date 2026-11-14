@@ -3,6 +3,7 @@
 //
 #include "Enemies.h"
 #include "States/GameState/GameState.h"
+#include "utils/Cull.h"
 #include <algorithm>
 #include <cmath>
 
@@ -81,8 +82,24 @@ SDL_FRect EnemiesBuilder::getSpriteRect(const Enemy& e) const {
 void EnemiesBuilder::render(SDL_Renderer *renderer) {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
+    const Cull::View view = Cull::world();
     for(const auto& enemy: m_enemies){
         const EnemyFrameInfo* info = getEnemyFrameInfo(enemy.type,enemy.action,enemy.attackType);
+
+        // camera culling: the union of the hitbox and the sprite rect, plus a margin for the borrowed fallback
+        // sheets (corpse / attack art can use a different frame size than the current action).
+        {
+            SDL_FRect r{enemy.x, enemy.y, enemy.w, enemy.h};
+            if(info){
+                const SDL_FRect s = getEnemyRenderedRect(enemy, *info);
+                const float x0 = std::min(r.x, s.x), y0 = std::min(r.y, s.y);
+                const float x1 = std::max(r.x + r.w, s.x + s.w), y1 = std::max(r.y + r.h, s.y + s.h);
+                r = {x0, y0, x1 - x0, y1 - y0};
+            }
+            constexpr float SPRITE_SLACK = 96.0f;
+            if(!Cull::hit(view, r.x - SPRITE_SLACK, r.y - SPRITE_SLACK, r.w + SPRITE_SLACK * 2.0f, r.h + SPRITE_SLACK * 2.0f))
+                continue;
+        }
         SDL_Texture* texture = info ? Engine::Get().getAssetManager().getTexture(info->texture) : nullptr;
         bool placeholderCorpse = false;
 

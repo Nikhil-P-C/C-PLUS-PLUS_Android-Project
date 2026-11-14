@@ -8,28 +8,16 @@
 #include "engine/Engine.h"
 #include "utils/InputUtils.h"
 #include "level/LevelLoader/LevelLoader.h"
+#include "utils/PerfStats.h"
+#include "utils/Cull.h"
+#include <cstdio>
 
 
 void DebugState::render(SDL_Renderer *renderer) {
     renderJumpStrip(renderer);
     m_player =m_gameState->getPlayer();
 
-    if (m_frames != m_lastRenderedFrames || !m_fpsTexture) {
-        if (m_fpsTexture) {
-            SDL_DestroyTexture(m_fpsTexture);
-            m_fpsTexture = nullptr;
-        }
-        std::string fps = "FPS:" + std::to_string(m_frames);
-        SDL_Surface *fpsSurface = TTF_RenderText_Solid(m_font, fps.c_str(), fps.length(),
-                                                       {255, 255, 255});
-        if (fpsSurface) {
-            m_fpsTexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
-            SDL_DestroySurface(fpsSurface);
-        }
-        m_lastRenderedFrames = m_frames;
-    }
-    SDL_FRect fpsrect{0, 0, 100, 100};
-    SDL_RenderTexture(renderer, m_fpsTexture, nullptr, &fpsrect);
+    renderPerfPanel(renderer);
 
     int camX = (int) std::round(Camera::getInstance().getCamera().x);
     int camY = (int) std::round(Camera::getInstance().getCamera().y);
@@ -192,6 +180,116 @@ void DebugState::update(float dt) {
     }
 }
 
+// ---- performance panel ------------------------------------------------------------------------------------------------
+namespace {
+    SDL_Texture* makeText(SDL_Renderer* r, TTF_Font* font, const char* text, SDL_Color c, bool wrapped, float& w, float& h){
+        SDL_Surface* s = wrapped ? TTF_RenderText_Solid_Wrapped(font, text, 0, c, 0)
+                                 : TTF_RenderText_Solid(font, text, 0, c);
+        if(!s) return nullptr;
+        SDL_Texture* t = SDL_CreateTextureFromSurface(r, s);
+        w = (float)s->w; h = (float)s->h;
+        SDL_DestroySurface(s);
+        return t;
+    }
+}
+
+// rebuilt 4x per second so the numbers are readable (and so we are not creating textures every frame)
+void DebugState::refreshPerfText(SDL_Renderer* renderer){
+    if(!m_perfFont) return;
+    PerfStats& perf = PerfStats::get();
+    const PerfStats::Summary sm = perf.summarize();
+
+    // header colour: green = holding 60, yellow = dipping, red = struggling
+    SDL_Color head{90, 230, 120, 255};
+    if(sm.avgMs > 20.0f)      head = {255, 80, 70, 255};
+    else if(sm.avgMs > 17.5f) head = {255, 210, 70, 255};
+    char buf[768];
+    std::snprintf(buf, sizeof(buf), "%.0f FPS   %.1f ms", sm.fps, sm.avgMs);
+    if(m_perfHeadTex){ SDL_DestroyTexture(m_perfHeadTex); m_perfHeadTex = nullptr; }
+    m_perfHeadTex = makeText(renderer, m_perfFont, buf, head, false, m_perfHeadW, m_perfHeadH);
+
+    if(m_perfBodyTex){ SDL_DestroyTexture(m_perfBodyTex); m_perfBodyTex = nullptr; }
+    if(m_perfCompact) return;
+
+    int aliveEnemies = 0;
+    for(const auto& e : m_gameState->getEnemies()) if(!e.isDead) ++aliveEnemies;
+    const uint32_t tested = perf.cullTested(), rejected = perf.cullRejected();
+    const float culledPct = tested ? 100.0f * (float)rejected / (float)tested : 0.0f;
+    const float ram = PerfStats::residentMB();
+
+    int n = 0;
+    n += std::snprintf(buf + n, sizeof(buf) - n, "frame  min %.1f  max %.1f  p99 %.1f ms\n", sm.minMs, sm.maxMs, sm.p99Ms);
+    n += std::snprintf(buf + n, sizeof(buf) - n, "1%% low %.0f FPS   hitches >%.0fms: %d\n", sm.lowFps, PerfStats::HITCH_MS, sm.hitches);
+    n += std::snprintf(buf + n, sizeof(buf) - n, "work %.1f ms  (%.0f%% of %.1f budget)\n", perf.workMs(),
+                       100.0f * perf.workMs() / PerfStats::BUDGET_MS, PerfStats::BUDGET_MS);
+    n += std::snprintf(buf + n, sizeof(buf) - n, "update %.1f  events %.1f  present %.1f\n",
+                       perf.section(PerfStats::UPDATE), perf.section(PerfStats::EVENTS), perf.section(PerfStats::PRESENT));
+    n += std::snprintf(buf + n, sizeof(buf) - n, "render world %.1f  overlays %.1f\n",
+                       perf.section(PerfStats::RENDER_STATES), perf.section(PerfStats::RENDER_OVERLAYS));
+    n += std::snprintf(buf + n, sizeof(buf) - n, "culled %u / %u (%.0f%%)\n", rejected, tested, culledPct);
+    n += std::snprintf(buf + n, sizeof(buf) - n, "enemies %d  traps %d  bosses %d\n", aliveEnemies,
+                       (int)m_gameState->getTraps().size(), (int)m_gameState->getBossBuilder().getBosses().size());
+    if(ram > 0.0f) n += std::snprintf(buf + n, sizeof(buf) - n, "RAM %.0f MB   ", ram);
+    n += std::snprintf(buf + n, sizeof(buf) - n, "%s", m_rendererName.c_str());
+    m_perfBodyTex = makeText(renderer, m_perfFont, buf, SDL_Color{235, 235, 235, 255}, true, m_perfBodyW, m_perfBodyH);
+}
+
+void DebugState::renderPerfPanel(SDL_Renderer* renderer){
+    if(!m_perfVisible) return;
+    const uint64_t now = SDL_GetTicks();
+    if(now >= m_perfNextRefresh || !m_perfHeadTex){
+        refreshPerfText(renderer);
+        m_perfNextRefresh = now + 250;
+    }
+
+    constexpr float PAD = 8.0f, GRAPH_H = 56.0f, GRAPH_BARS = 120.0f;
+    const SDL_FRect box = perfPanelRect();
+    const float bodyH = m_perfCompact ? 0.0f : m_perfBodyH;
+    const float graphH = m_perfCompact ? 0.0f : GRAPH_H + PAD;
+    const SDL_FRect bg{box.x, box.y, box.w, PAD * 2 + m_perfHeadH + (bodyH > 0 ? bodyH + PAD * 0.5f : 0.0f) + graphH};
+
+    SDL_BlendMode prev = SDL_BLENDMODE_NONE;
+    SDL_GetRenderDrawBlendMode(renderer, &prev);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 170);
+    SDL_RenderFillRect(renderer, &bg);
+
+    float y = bg.y + PAD;
+    if(m_perfHeadTex){
+        const SDL_FRect d{bg.x + PAD, y, m_perfHeadW, m_perfHeadH};
+        SDL_RenderTexture(renderer, m_perfHeadTex, nullptr, &d);
+    }
+    y += m_perfHeadH;
+    if(!m_perfCompact){
+        if(m_perfBodyTex){
+            y += PAD * 0.5f;
+            const SDL_FRect d{bg.x + PAD, y, m_perfBodyW, m_perfBodyH};
+            SDL_RenderTexture(renderer, m_perfBodyTex, nullptr, &d);
+            y += m_perfBodyH;
+        }
+        // frame-time graph: one bar per frame (newest on the right), 0..50 ms. Lines mark 60 fps and 30 fps.
+        y += PAD;
+        constexpr float MAX_MS = 50.0f;
+        const float barW = (bg.w - PAD * 2) / GRAPH_BARS;
+        float ms[(int)GRAPH_BARS];
+        const int n = PerfStats::get().recent(ms, (int)GRAPH_BARS);
+        for(int i = 0; i < n; ++i){
+            const float h = std::min(ms[i], MAX_MS) / MAX_MS * GRAPH_H;
+            if(ms[i] <= 17.5f)                 SDL_SetRenderDrawColor(renderer, 90, 230, 120, 230);
+            else if(ms[i] < PerfStats::HITCH_MS) SDL_SetRenderDrawColor(renderer, 255, 210, 70, 230);
+            else                               SDL_SetRenderDrawColor(renderer, 255, 80, 70, 230);
+            const SDL_FRect bar{bg.x + PAD + (GRAPH_BARS - (float)n + (float)i) * barW, y + GRAPH_H - h, std::max(1.0f, barW - 1.0f), h};
+            SDL_RenderFillRect(renderer, &bar);
+        }
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 90);
+        const float y60 = y + GRAPH_H - (1000.0f / 60.0f) / MAX_MS * GRAPH_H;
+        const float y30 = y + GRAPH_H - (1000.0f / 30.0f) / MAX_MS * GRAPH_H;
+        SDL_RenderLine(renderer, bg.x + PAD, y60, bg.x + bg.w - PAD, y60);
+        SDL_RenderLine(renderer, bg.x + PAD, y30, bg.x + bg.w - PAD, y30);
+    }
+    SDL_SetRenderDrawBlendMode(renderer, prev);
+}
+
 // ---- DEBUG level jump: "<  LVL n  >  GO" at the bottom centre (touch / mouse), or [ ] to pick and J to go ----
 void DebugState::stepJump(int dir){
     if(m_jumpLevel < 0) m_jumpLevel = m_gameState->getLevel();
@@ -251,6 +349,21 @@ void DebugState::renderJumpStrip(SDL_Renderer* renderer){
 }
 
 bool DebugState::handleEvents(SDL_Event &event) {
+    // performance panel: F3 hides / shows it, tapping (or clicking) it folds it to the header line and back
+    if(event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat && event.key.key == SDLK_F3){
+        m_perfVisible = !m_perfVisible;
+        return true;
+    }
+    if(m_perfVisible && InputUtils::IsPointerDown(event)){
+        float x, y;
+        InputUtils::GetPointerPosition(event, m_renderer, x, y);
+        const SDL_FRect r = perfPanelRect();
+        if(x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + (m_perfCompact ? 40.0f : r.h)){
+            m_perfCompact = !m_perfCompact;
+            m_perfNextRefresh = 0;     // rebuild the text right away
+            return true;
+        }
+    }
     if(!m_jumpEnabled) return false;
     if(event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat){
         if(event.key.key == SDLK_LEFTBRACKET)  { stepJump(-1); return true; }
@@ -287,12 +400,17 @@ DebugState::DebugState(SDL_Renderer *renderer, GameState *gameState) {
     m_font = TTF_OpenFontIO(m_fontFile,false, 24);
     LOGI("font:%d",(bool)m_font);
     if(!m_font)LOGE("failed to load font");
+    m_perfFont = TTF_OpenFontIO(m_perfFontFile, false, 20);
+    if(!m_perfFont) LOGE("failed to load perf font");
+    if(const char* name = SDL_GetRendererName(renderer)) m_rendererName = name;
 }
 DebugState::~DebugState(){
     if(m_jumpTexture) SDL_DestroyTexture(m_jumpTexture);
     SDL_CloseIO(m_fontFile);
     TTF_CloseFont(m_font);
-    if(m_fpsTexture)
-        SDL_DestroyTexture(m_fpsTexture);
+    if(m_perfHeadTex) SDL_DestroyTexture(m_perfHeadTex);
+    if(m_perfBodyTex) SDL_DestroyTexture(m_perfBodyTex);
+    if(m_perfFont)    TTF_CloseFont(m_perfFont);
+    if(m_perfFontFile) SDL_CloseIO(m_perfFontFile);
     LOGI("debug state destructor :%p",this);
 }

@@ -5,6 +5,7 @@
 
 #include "State/State.h"
 #include "States/GameState/GameState.h"
+#include "utils/PerfStats.h"
 
 #define LOG_TAG "DebugState"
 
@@ -21,6 +22,10 @@ private:
     void stepJump(int dir);
     void doJump();
     void renderJumpStrip(SDL_Renderer* renderer);
+    // performance overlay: FPS, frame time (avg / min / max / 1% low), where the time goes, frame-time graph, culling, RAM
+    void refreshPerfText(SDL_Renderer* renderer);
+    void renderPerfPanel(SDL_Renderer* renderer);
+    static SDL_FRect perfPanelRect(){ return SDL_FRect{8.0f, 8.0f, 440.0f, 262.0f}; }
     SDL_Renderer* m_renderer = nullptr;
     bool m_jumpEnabled = false;
     int  m_jumpLevel = -1;                    // level shown in the strip (-1 = current level)
@@ -36,13 +41,21 @@ private:
     TrapBuilder m_trapBuilder;
     Player m_player;
     CheckPoint m_checkPoint;
-    SDL_Texture*  m_fpsTexture       = nullptr;
     TTF_Font*     m_font             = nullptr;
     SDL_IOStream* m_fontFile         = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
+    // perf panel (own font stream: a TTF_Font owns the read position of the stream it was opened from)
+    TTF_Font*     m_perfFont         = nullptr;
+    SDL_IOStream* m_perfFontFile     = SDL_IOFromFile("Fonts/Pixel Game.otf", "rb");
+    SDL_Texture*  m_perfHeadTex      = nullptr;   // "60 FPS  16.7 ms" coloured by how healthy it is
+    SDL_Texture*  m_perfBodyTex      = nullptr;   // the detail lines
+    float m_perfHeadW = 0.0f, m_perfHeadH = 0.0f, m_perfBodyW = 0.0f, m_perfBodyH = 0.0f;
+    uint64_t m_perfNextRefresh = 0;               // SDL_GetTicks() of the next text rebuild (4x per second)
+    bool m_perfVisible = true;                    // F3, or tap the panel to fold it to the header line
+    bool m_perfCompact = false;
+    std::string m_rendererName;
     int m_framedelay = 1000/60;
     unsigned int m_last = SDL_GetTicks();
     int m_fps =0;
     int m_frames =0;
-    int m_lastRenderedFrames=-1;
     static constexpr float JUMP_X = 550.0f, JUMP_Y = 646.0f, JUMP_H = 58.0f;
 };

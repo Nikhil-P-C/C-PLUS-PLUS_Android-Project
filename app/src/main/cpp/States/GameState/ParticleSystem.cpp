@@ -3,6 +3,7 @@
 //
 #include "ParticleSystem.h"
 #include "engine/Engine.h"
+#include "utils/Cull.h"
 #include <SDL3/SDL.h>
 #include "utils/utils.h"
 #include <random>
@@ -15,8 +16,14 @@ void ParticleSystem::render(SDL_Renderer* renderer)
 
     int camX = m_screenSpace ? 0 : (int)std::round(Camera::getInstance().getCamera().x);
     int camY = m_screenSpace ? 0 : (int)std::round(Camera::getInstance().getCamera().y);
+    // camera culling: world-space particles are tested against the world view, screen-space ones against the screen
+    const Cull::View view = m_screenSpace ? Cull::screen() : Cull::world();
     for(const auto& fx : m_spriteFx){
         if(!fx.alive) continue;
+        {
+            const float reach = std::max(fx.frameW, fx.frameH) * fx.scale;   // covers any rotation
+            if(!Cull::hitCircle(view, fx.x, fx.y, reach)) continue;
+        }
         const int frame = std::min(fx.frames - 1, (int)(fx.age / fx.frameDur));
         SDL_FRect fsrc{0.0f, (float)(frame * fx.frameH), (float)fx.frameW, (float)fx.frameH};
         const float dw = fx.frameW * fx.scale, dh = fx.frameH * fx.scale;
@@ -32,6 +39,8 @@ void ParticleSystem::render(SDL_Renderer* renderer)
             continue;
         float alpha = particle.life / particle.maxLife;
         if(particle.size<0)continue;
+        // size is the diameter for rings / flashes / streaks and the edge for puffs, so `size` is a safe reach
+        if(!Cull::hitCircle(view, particle.x, particle.y, particle.size)) continue;
 
         if(particle.kind != ParticleKind::PUFF){
             // Hard-edged vector shapes (no soft texture): additive, x/y is the centre.

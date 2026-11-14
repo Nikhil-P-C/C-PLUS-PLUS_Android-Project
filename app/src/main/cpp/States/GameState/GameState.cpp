@@ -6,6 +6,7 @@
 #include "States/DebugState/DebugState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
 #include "utils/utils.h"
+#include "utils/Cull.h"
 #include <cmath>
 #include <algorithm>
 
@@ -87,8 +88,13 @@ void GameState::render(SDL_Renderer* renderer)  {
     m_ambientParticles.renderBack(m_renderer);
     m_ambience.renderBack(m_renderer);
 
+    // camera culling: one view for the whole world pass (same rounded camera the draws below subtract)
+    const Cull::View view = Cull::world();
+    const float tilePx = TILE_SIZE * SCALE;
+
     for(const auto& tile : m_wallTiles)
     {
+        if(!Cull::hit(view, tile.x, tile.y, tilePx, tilePx)) continue;
         SDL_FRect dst = {
                 tile.x - (float)camX,
                 tile.y - (float)camY,
@@ -102,6 +108,7 @@ void GameState::render(SDL_Renderer* renderer)  {
     }
 
     for(auto const& tile:m_wallShape.tiles){
+        if(!Cull::hit(view, tile.x, tile.y, tile.w, tile.h)) continue;
         SDL_FRect src = tile.src;
         SDL_FRect dst{tile.x-(float)camX,tile.y-(float)camY,tile.w,tile.h};
         SDL_RenderTexture(renderer,m_tileset,&src,&dst);
@@ -116,8 +123,17 @@ void GameState::render(SDL_Renderer* renderer)  {
         int widthTiles = platformWidth / tileSize;
         int heightTiles = platformHeight / tileSize;
 
-        for (int y = 0; y < heightTiles; y++) {
-            for (int x = 0; x < widthTiles; x++) {
+        // camera culling: skip the platform, then walk only the tile columns / rows that touch the screen.
+        // (left / right / top / bottom below still use the REAL tile index, so the edge art is unchanged)
+        if(widthTiles <= 0 || heightTiles <= 0) continue;
+        if(!Cull::hit(view, platform.x, platform.y, widthTiles * tilePx, heightTiles * tilePx)) continue;
+        const int firstX = std::clamp((int)std::floor((view.x - platform.x) / tilePx), 0, widthTiles - 1);
+        const int lastX  = std::clamp((int)std::floor((view.x + view.w - platform.x) / tilePx), 0, widthTiles - 1);
+        const int firstY = std::clamp((int)std::floor((view.y - platform.y) / tilePx), 0, heightTiles - 1);
+        const int lastY  = std::clamp((int)std::floor((view.y + view.h - platform.y) / tilePx), 0, heightTiles - 1);
+
+        for (int y = firstY; y <= lastY; y++) {
+            for (int x = firstX; x <= lastX; x++) {
 
                 SDL_FRect src;
 
@@ -183,7 +199,8 @@ void GameState::render(SDL_Renderer* renderer)  {
 
     }
     // boss levels: the exit flag only exists once the boss is dead
-    if(!m_bossBuilder.hasLivingBoss()){
+    if(!m_bossBuilder.hasLivingBoss() &&
+       Cull::hit(view, m_checkPoint.x, m_checkPoint.y, m_checkPoint.w, m_checkPoint.h)){   // camera culling
         SDL_FRect checkPointDst{m_checkPoint.x-camX,m_checkPoint.y-camY,m_checkPoint.w,m_checkPoint.h};
         if(m_checkPoint.aniType == CheckPointAni::NO_FLAG)
         {

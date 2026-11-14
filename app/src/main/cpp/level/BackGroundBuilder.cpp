@@ -3,6 +3,7 @@
 //
 #include "BackGroundBuilder.h"
 #include "utils/utils.h"
+#include "utils/Cull.h"
 #include <SDL3/SDL.h>
 namespace {
     inline TextureType toTextureType(BackGroundType type){
@@ -83,21 +84,21 @@ void BackGroundBuilder::render(SDL_Renderer *renderer) {
     // needed, the bright-pass threshold decides what actually glows.
     float camX = Camera::getInstance().getCamera().x;
     float camY = Camera::getInstance().getCamera().y;
-    for(const auto element : m_elements){
+    const Cull::View screen = Cull::screen();   // parallax layers are positioned in screen space
+    for(const auto& element : m_elements){       // by reference: this used to copy every element each frame
         SDL_FRect dst{element.rect.x - camX * element.parallaxFloatX,
                       element.rect.y - camY * element.parallaxFloatY,
                       element.rect.w, element.rect.h};
-//        SDL_FRect src{0.00f,0.00f,};
-//        if((dst.x >= 0.00f && dst.x+dst.w <= GameData::getInstance().getWinWidth())&&
-//            dst.y <= 0.00f && dst.y+dst.h <= GameData::getInstance().getWinHeight()){
-//            continue;
-//        }
-        SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(toTextureType(element.type));
-        SDL_RenderTexture(renderer,texture, nullptr,&dst);
-        if(element.type == BackGroundType::GREENERY_MOUNTAINS){//try fill gap ,manually
-            SDL_FRect gapDst{(element.rect.x) - camX * element.parallaxFloatX,
-                             (element.rect.y+element.rect.h-100)- camY * element.parallaxFloatY,
-                             element.rect.w, element.rect.h};
+        const bool isMountains = element.type == BackGroundType::GREENERY_MOUNTAINS;
+        SDL_FRect gapDst{dst.x, dst.y + element.rect.h - 100.0f, element.rect.w, element.rect.h};
+        const bool bodyVisible = Cull::hit(screen, dst);
+        const bool gapVisible  = isMountains && Cull::hit(screen, gapDst);
+        if(!bodyVisible && !gapVisible) continue;   // camera culling: layer is entirely off screen
+        if(bodyVisible){
+            SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(toTextureType(element.type));
+            SDL_RenderTexture(renderer,texture, nullptr,&dst);
+        }
+        if(gapVisible){//try fill gap ,manually
             SDL_SetRenderDrawColor(renderer,65 ,85 ,34,255);
             SDL_RenderFillRect(renderer,&gapDst);
         }

@@ -99,7 +99,8 @@ void Lighting::render(SDL_Renderer* r, float camX, float camY, float playerX, fl
 
     // lights that can be seen this frame (screen space)
     struct Visible { const LightSource* l; float sx, sy, flick; };
-    std::vector<Visible> vis;
+    static std::vector<Visible> vis;   // reused every frame: no per-frame heap allocation
+    vis.clear();
     vis.reserve(m_lights.size());
     for (const auto& l : m_lights) {
         const float sx = l.x - camX, sy = l.y - camY;

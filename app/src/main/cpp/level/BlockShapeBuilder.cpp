@@ -5,6 +5,7 @@
 #include <cmath>
 #include "BlockShapeBuilder.h"
 #include "engine/Engine.h"
+#include "utils/Cull.h"
 namespace {
     inline SpriteType toSpriteType(BlockType type){
         if(type == BlockType::CLAY)
@@ -94,8 +95,10 @@ void BlockBuilder::render(SDL_Renderer *renderer) {
     SDL_Texture* texture =Engine::Get().getAssetManager().getTexture(TextureType::TILESET_SPRITE);
     if(!texture)
         return;
+    const Cull::View view = Cull::world();
     for(const auto& tile : m_tiles)
     {
+        if(!Cull::hit(view, tile.dst)) continue;   // camera culling
         SDL_FRect dst{tile.dst.x-camX,tile.dst.y-camY,tile.dst.w,tile.dst.h};
         SDL_RenderTexture(renderer,texture,&tile.src,&dst);
     }

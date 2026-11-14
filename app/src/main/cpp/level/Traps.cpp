@@ -3,6 +3,7 @@
 //
 #include <algorithm>
 #include "Traps.h"
+#include "utils/Cull.h"
 #include "States/GameState/GameState.h"
 namespace {
     inline uint32_t trapKey(TrapType type,TrapStatus status)
@@ -60,10 +61,11 @@ void TrapBuilder::render(SDL_Renderer *renderer)
 {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
+    const Cull::View view = Cull::world();
     for(const auto& trap:m_traps)
     {
         if(trap.showChain && trapHasPath(trap.type))
-            renderChain(renderer, trap, camX, camY);
+            renderChain(renderer, trap, camX, camY);   // culls itself, link by link
     }
     for(const auto& trap:m_traps)
     {
@@ -75,6 +77,10 @@ void TrapBuilder::render(SDL_Renderer *renderer)
             LOGI("failed to load info type :%d ,status:%d", trap.type, trap.status);
             continue;
         }
+
+        // camera culling. A square of the sprite's longer side covers every orientation (a sideways trap swaps w/h).
+        const float side = std::max((float)info->frameW, (float)info->frameH) * SCALE;
+        if(!Cull::hit(view, trap.x, trap.y, side, side)) continue;
 
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(info->texture);
 
@@ -216,6 +222,27 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
         return;
     }
     const float LINK_SPACING = 40.0f; // px between links, tune to your sprite size
+    const float LINK_SIZE = 8 * SCALE;
+    const Cull::View view = Cull::world();
+
+    // one link, skipped when it is off screen
+    auto drawLink = [&](float wx, float wy){
+        if(!Cull::hit(view, wx, wy, LINK_SIZE, LINK_SIZE)) return;
+        SDL_FRect dst{wx - camX, wy - camY, LINK_SIZE, LINK_SIZE};
+        SDL_RenderTexture(renderer, tex, nullptr, &dst);
+    };
+    // a straight run of links from a to b. The whole run is rejected first when its bounding box is off screen
+    // (this also fixes the old 0/0 when a and b were closer than one link: count was 0 and t became NaN).
+    auto drawStrand = [&](SDL_FPoint a, SDL_FPoint b){
+        if(!Cull::hit(view, std::min(a.x, b.x), std::min(a.y, b.y),
+                      std::fabs(b.x - a.x) + LINK_SIZE, std::fabs(b.y - a.y) + LINK_SIZE)) return;
+        const float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
+        const int count = (int)(len / LINK_SPACING);
+        for(int i = 0; i <= count; i++) {
+            const float t = count > 0 ? (float)i / (float)count : 0.0f;
+            drawLink(a.x + (b.x-a.x)*t, a.y + (b.y-a.y)*t);
+        }
+    };
 
     if(trap.pathShape == PathShape::LINE) {
         SDL_FPoint a = (trap.axis == PathAxis::HORIZONTAL) ? SDL_FPoint{trap.startPath+(info->frameW*SCALE/2)-((8*SCALE)/2),
@@ -227,13 +254,7 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
                                                                         trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)}
                                                            : SDL_FPoint{trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),
                                                                         trap.endPath+(info->frameH*SCALE/2)-((8*SCALE)/2)};
-        float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
-        int count = (int)(len / LINK_SPACING);
-        for(int i = 0; i <= count; i++) {
-            float t = (float)i / count;
-            SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
-            SDL_RenderTexture(renderer, tex, nullptr, &dst);
-        }
+        drawStrand(a, b);
     }
     else if(trap.pathShape == PathShape::RECT) {
         if(trap.type==TrapType::ROCK_HEAD||trap.type ==TrapType::SPIKE_HEAD)
@@ -246,36 +267,18 @@ void TrapBuilder::renderChain(SDL_Renderer* renderer, const Trap& trap, int camX
         };
         for(int c = 0; c < 4; c++) {
             SDL_FPoint a = corners[c], b = corners[(c+1)%4];
-            float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
-            int count = (int)(len / LINK_SPACING);
-            for(int i = 0; i <= count; i++) {
-                float t = (float)i / count;
-                SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
-                SDL_RenderTexture(renderer, tex, nullptr, &dst);
-            }
+            drawStrand(a, b);
         }
     }
     else if(trap.pathShape == PathShape::CIRCLE) {
         SDL_FPoint a {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)};
         SDL_FPoint b {trap.x+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.y+(info->frameH*SCALE/2)-((8*SCALE)/2)};
-        float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
-        int count = (int)(len / LINK_SPACING);
-        for(int i = 0; i <= count; i++) {
-            float t = (float)i / count;
-            SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
-            SDL_RenderTexture(renderer, tex, nullptr, &dst);
-        }
+        drawStrand(a, b);
     }
     else if(trap.pathShape == PathShape::ARC) {
         SDL_FPoint a {trap.baseX+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.baseY+(info->frameH*SCALE/2)-((8*SCALE)/2)};
         SDL_FPoint b {trap.x+(info->frameW*SCALE/2)-((8*SCALE)/2),trap.y+(info->frameH*SCALE/2)-((8*SCALE)/2)};
-        float len = SDL_sqrtf((b.x-a.x)*(b.x-a.x) + (b.y-a.y)*(b.y-a.y));
-        int count = (int)(len / LINK_SPACING);
-        for(int i = 0; i <= count; i++) {
-            float t = (float)i / count;
-            SDL_FRect dst{a.x + (b.x-a.x)*t - camX, a.y + (b.y-a.y)*t - camY, 8*SCALE, 8*SCALE};
-            SDL_RenderTexture(renderer, tex, nullptr, &dst);
-        }
+        drawStrand(a, b);
     }
 }
 

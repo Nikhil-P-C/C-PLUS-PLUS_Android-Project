@@ -4,6 +4,7 @@
 
 #include "ForeGroundBuilder.h"
 #include "utils/utils.h"
+#include "utils/Cull.h"
 #include <SDL3/SDL.h>
 namespace {
     inline TextureType toTextureType(ForeGroundType type){
@@ -28,11 +29,12 @@ void ForeGroundBuilder::render(SDL_Renderer *renderer) {
 
     float camX = Camera::getInstance().getCamera().x;
     float camY = Camera::getInstance().getCamera().y;
-    for(const auto element : m_elements){
+    const Cull::View screen = Cull::screen();   // parallax layers are positioned in screen space
+    for(const auto& element : m_elements){       // by reference: this used to copy every element each frame
         SDL_FRect dst{element.rect.x - camX * element.parallaxFloatX,
                       element.rect.y - camY * element.parallaxFloatY,
                       element.rect.w, element.rect.h};
-//        SDL_FRect src{0.00f,0.00f,};
+        if(!Cull::hit(screen, dst)) continue;   // camera culling
         SDL_Texture* texture = Engine::Get().getAssetManager().getTexture(toTextureType(element.type));
         SDL_RenderTexture(renderer,texture, nullptr,&dst);
     }

@@ -12,6 +12,7 @@
 #include "States/InputOverlayState/KeyboardOverlay.h"
 #include "States/InputOverlayState/GamepadOverlay.h"
 #include "engine/InputAutoDetect.h"
+#include "utils/PerfStats.h"
 
 void Engine::run(){
     m_assetManager.init(m_renderer,m_mixer);
@@ -35,6 +36,7 @@ void Engine::run(){
     float nowMusicAudioScale =0.0f;
     float lastMusicAudioScale = GameData::getInstance().getMusicAudioScale();
     while(m_running){
+        PerfStats::get().beginFrame();
 
         nowMasterAudioScale = GameData::getInstance().getAudioScale();
         if(nowMasterAudioScale != lastMasterAudioScale)
@@ -77,54 +79,66 @@ void Engine::run(){
         SDL_RenderClear(m_renderer);
 
         //RENDER
-        for(const auto &state : m_States)
-            state->render(m_renderer);
-
-        for(const auto &state : m_OverlayStates)
-            state->render(m_renderer);
+        {
+            PerfStats::Scope t(PerfStats::RENDER_STATES);
+            for(const auto &state : m_States)
+                state->render(m_renderer);
+        }
+        {
+            PerfStats::Scope t(PerfStats::RENDER_OVERLAYS);
+            for(const auto &state : m_OverlayStates)
+                state->render(m_renderer);
+        }
 
         SDL_SetRenderDrawColor(m_renderer,33,31,48,255);
 
 
-
-        SDL_RenderPresent(m_renderer);
+        {
+            PerfStats::Scope t(PerfStats::PRESENT);
+            SDL_RenderPresent(m_renderer);
+        }
 
         //polling events from states
+        {
+            PerfStats::Scope eventsScope(PerfStats::EVENTS);
+            while(SDL_PollEvent(&m_event)) {
 
-        while(SDL_PollEvent(&m_event)) {
+                // gamepads must be opened before SDL delivers their input, do it here so it works in menus too
+                handleGamepadHotplug(m_event);
+                // switch the control scheme (and the on-screen overlay) to whatever device just sent input,
+                // before the event is dispatched so the very first press already reaches the right overlay
+                autoDetectInput(m_event);
 
-            // gamepads must be opened before SDL delivers their input, do it here so it works in menus too
-            handleGamepadHotplug(m_event);
-            // switch the control scheme (and the on-screen overlay) to whatever device just sent input,
-            // before the event is dispatched so the very first press already reaches the right overlay
-            autoDetectInput(m_event);
+                for (auto it = m_OverlayStates.rbegin(); it != m_OverlayStates.rend() ; ++it)
+                    if((*it)->handleEvents(m_event))break;
+                for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
+                    if((*it)->handleEvents(m_event))break;
+            }
 
-            for (auto it = m_OverlayStates.rbegin(); it != m_OverlayStates.rend() ; ++it)
-                if((*it)->handleEvents(m_event))break;
-            for (auto it = m_States.rbegin(); it != m_States.rend(); ++it)
-                if((*it)->handleEvents(m_event))break;
-        }
-
+        }   // events scope
         //updating states
-
-
-        for(const auto &state : m_OverlayStates)
         {
-            state->update(deltaTime);
-        }
-
-        if (!m_States.empty()&&GameData::getInstance().isSinglePlayer())
-            m_States.back()->update(deltaTime);
-        else
-        {
-            for(const auto &state : m_States)
+            PerfStats::Scope t(PerfStats::UPDATE);
+            for(const auto &state : m_OverlayStates)
             {
                 state->update(deltaTime);
             }
+
+            if (!m_States.empty()&&GameData::getInstance().isSinglePlayer())
+                m_States.back()->update(deltaTime);
+            else
+            {
+                for(const auto &state : m_States)
+                {
+                    state->update(deltaTime);
+                }
+            }
         }
 
+        PerfStats::get().endWork();
         unsigned int frametime = SDL_GetTicks() - currentTime;
         if(frametime < framedelay){
+            PerfStats::Scope t(PerfStats::SLEEP);
             SDL_Delay(framedelay - frametime);
         }
     }

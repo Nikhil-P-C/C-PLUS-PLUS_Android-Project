@@ -6,6 +6,7 @@
 #include "Fruits.h"
 #include "States/GameState/GameState.h"
 #include "utils/utils.h"
+#include "utils/Cull.h"
 const std::vector<Fruit>& FruitBuilder::getFruits()
 {
     return m_fruits;
@@ -14,9 +15,11 @@ const std::vector<Fruit>& FruitBuilder::getFruits()
 void FruitBuilder::render(SDL_Renderer *renderer) {
     int camX = (int)std::round(Camera::getInstance().getCamera().x);
     int camY = (int)std::round(Camera::getInstance().getCamera().y);
+    const Cull::View view = Cull::world();
     for(const auto& fruit : m_fruits){
 
         if(fruit.collectedAniDone) continue;
+        if(!Cull::hit(view, fruit.x, fruit.y, m_spriteWidth*SCALE, m_spriteHeight*SCALE)) continue;   // camera culling
 
         SDL_FRect fruitDst{fruit.x-camX,fruit.y-camY,m_spriteWidth*SCALE,m_spriteHeight*SCALE};
         SDL_FRect fruitSrc{0.00f+m_spriteWidth*m_currentFrame,0.00f,m_spriteWidth,m_spriteHeight};
