@@ -53,6 +53,9 @@ void LevelLoader::parseLine(const std::string& line) {
         case 'I':
             parseInteractable(stream);
             break;
+        case 'V':
+            parseMerchant(stream);
+            break;
         case 'K':
             parseBoss(stream);
             break;
@@ -341,6 +344,23 @@ void LevelLoader::parseInteractable(std::istringstream& ss) {
         return;
     }
     m_interactables.emplace_back(x, y, w, h, speaker, lines);
+}
+
+// V x y [w h]
+//   the merchant (upgrade shop, paid in fruit). x y = top-left of the trigger area, w h default to 64 x 208: use the same
+//   x / y you would give an I line and he stands on the floor there. Interact opens the shop screen.
+void LevelLoader::parseMerchant(std::istringstream& ss) {
+    float x = 0.f, y = 0.f, w = 64.f, h = 208.f;
+    ss >> x >> y;
+    if(ss.fail()){
+        LOGE("Malformed merchant (V) line: needs x y");
+        return;
+    }
+    ss >> w >> h;                         // optional
+    if(ss.fail()){ w = 64.f; h = 208.f; }
+    std::vector<std::string> noLines;
+    m_interactables.emplace_back(x, y, w, h, std::string("MERCHANT"), noLines);
+    m_interactables.back().isMerchant = true;
 }
 
 // E x y ENEMY_TYPE pathStartX pathEndX speed [AERIAL]

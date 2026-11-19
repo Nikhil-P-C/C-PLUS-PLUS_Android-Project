@@ -13,6 +13,10 @@
 //   SPEAKER   one word shown in the name header; underscores become spaces (OLD_MAN -> "OLD MAN")
 //   lines     everything after SPEAKER, split on '|' - each piece is one dialog page
 //
+// Level file line:  V x y [w h]      the MERCHANT (upgrade shop, paid in fruit)
+//   x y w h   the trigger area, same convention as an I line (default 64 x 208: copy the x / y of an I line and the
+//             hooded trader stands on the floor right there). Interact opens the shop instead of a dialog.
+//
 #pragma once
 #include <cstdint>
 #include <memory>
@@ -28,6 +32,7 @@ struct Interactable{
     float x = 0, y = 0, w = 0, h = 0;      // trigger area (world px)
     std::string speaker;
     std::vector<std::string> lines;         // one entry per dialog page
+    bool isMerchant = false;                // true = interact opens the upgrade shop (see GameState::openShop), no dialog
     bool inRange = false;                   // player overlaps the trigger area (set by update)
     float emitAcc = 0.0f;                   // fractional light motes owed (set by update)
 };
@@ -55,6 +60,8 @@ public:
 
     bool isDialogOpen() const { return m_active >= 0; }
     void closeDialog();
+    // true once after interact() / a tap used a merchant: the owner (GameState) opens the shop screen
+    bool consumeShopRequest(){ const bool r = m_shopRequested; m_shopRequested = false; return r; }
 
 private:
     // one light mote / spark / shock ring. World-space ones live in m_worldFx, bubble ones in m_screenFx.
@@ -77,6 +84,9 @@ private:
     };
 
     SDL_FRect markerRect(const Interactable& it, int camX, int camY) const;
+    // the hooded trader, drawn procedurally (body = the trigger area in screen px; he stands 64 px above its bottom, like the
+    // floor the I-line NPCs use). Swap for a sprite when you have one.
+    void drawMerchant(SDL_Renderer* renderer, const Interactable& it, const SDL_FRect& body, bool near) const;
     void ensureResources(SDL_Renderer* renderer);
     void ensureLayout();                           // wraps the current page (needs the font, not the renderer)
     std::vector<std::string> wrapText(const std::string& text, int maxW);
@@ -100,6 +110,7 @@ private:
     std::vector<Interactable> m_interactables;
     TTF_Font* m_font = nullptr;                    // borrowed (old API), unused by the new look
 
+    bool  m_shopRequested = false;                 // set when interact() hit a merchant, cleared by consumeShopRequest()
     int   m_active = -1;                           // index into m_interactables, -1 = no dialog
     int   m_page = 0;
     float m_shown = 0.0f;                          // bytes of the current page revealed so far

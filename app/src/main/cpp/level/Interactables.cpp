@@ -38,12 +38,106 @@ namespace {
     }
 }
 
+// ---- the merchant's body: flat shapes, no texture needed -----------------------------------------------------------------
+namespace {
+    SDL_FColor fcol(int r, int g, int b, float a = 1.0f){ return SDL_FColor{r / 255.0f, g / 255.0f, b / 255.0f, a}; }
+
+    // convex polygon as a triangle fan
+    void fillPoly(SDL_Renderer* renderer, const SDL_FPoint* pts, int n, SDL_FColor c){
+        SDL_Vertex v[16];
+        int idx[42];
+        if(n < 3 || n > 16) return;
+        for(int i = 0; i < n; ++i) v[i] = {pts[i], c, {0.0f, 0.0f}};
+        for(int i = 0; i < n - 2; ++i){ idx[i*3] = 0; idx[i*3+1] = i + 1; idx[i*3+2] = i + 2; }
+        SDL_RenderGeometry(renderer, nullptr, v, n, idx, (n - 2) * 3);
+    }
+    void fillCircle(SDL_Renderer* renderer, float cx, float cy, float r, SDL_FColor c){
+        constexpr int N = 20;
+        SDL_FPoint p[N];
+        for(int i = 0; i < N; ++i){
+            const float a = (float)i * (6.2831853f / (float)N);
+            p[i] = {cx + std::cos(a) * r, cy + std::sin(a) * r};
+        }
+        SDL_Vertex v[N + 1];
+        int idx[N * 3];
+        v[0] = {{cx, cy}, c, {0.0f, 0.0f}};
+        for(int i = 0; i < N; ++i){ v[i + 1] = {p[i], c, {0.0f, 0.0f}}; idx[i*3] = 0; idx[i*3+1] = i + 1; idx[i*3+2] = (i + 1) % N + 1; }
+        SDL_RenderGeometry(renderer, nullptr, v, N + 1, idx, N * 3);
+    }
+    void fillRect(SDL_Renderer* renderer, float x, float y, float w, float h, SDL_FColor c){
+        SDL_SetRenderDrawColorFloat(renderer, c.r, c.g, c.b, c.a);
+        const SDL_FRect r{x, y, w, h};
+        SDL_RenderFillRect(renderer, &r);
+    }
+}
+
+void InteractableBuilder::drawMerchant(SDL_Renderer* renderer, const Interactable& it, const SDL_FRect& body, bool near) const{
+    (void)it;
+    if(!m_painter) return;
+    const MenuTheme& th = MenuTheme::get();
+    const float cx = body.x + body.w * 0.5f;
+    const float feet = body.y + body.h - 64.0f;                 // the floor (I-line boxes reach 64 px into it)
+    const float breathe = std::sin(m_time * 2.1f) * 2.0f;
+    const float top = feet - 128.0f + breathe;                  // top of the hood
+
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // soft shadow under him
+    m_painter->shade(cx, feet + 2.0f, 130.0f, 22.0f, 0.55f);
+
+    // the big pack on his back: roll on top, two straps
+    fillRect(renderer, cx - 58.0f, feet - 104.0f + breathe, 40.0f, 74.0f, fcol(96, 68, 46));
+    fillRect(renderer, cx - 58.0f, feet - 104.0f + breathe, 40.0f, 8.0f,  fcol(128, 94, 62));
+    fillCircle(renderer, cx - 38.0f, feet - 112.0f + breathe, 17.0f, fcol(70, 90, 110));
+    fillRect(renderer, cx - 52.0f, feet - 96.0f + breathe, 5.0f, 60.0f, fcol(60, 42, 30));
+
+    // cloak: wide at the hem, narrow at the shoulders, with a lighter hem line
+    const SDL_FPoint cloak[4] = {{cx - 26.0f, top + 44.0f}, {cx + 26.0f, top + 44.0f}, {cx + 46.0f, feet}, {cx - 46.0f, feet}};
+    fillPoly(renderer, cloak, 4, fcol(40, 36, 70));
+    const SDL_FPoint cloakFront[4] = {{cx - 8.0f, top + 50.0f}, {cx + 26.0f, top + 44.0f}, {cx + 46.0f, feet}, {cx + 6.0f, feet}};
+    fillPoly(renderer, cloakFront, 4, fcol(52, 47, 90));
+    fillRect(renderer, cx - 46.0f, feet - 6.0f, 92.0f, 6.0f, fcol(122, 104, 160));
+    // boots
+    fillRect(renderer, cx - 24.0f, feet - 4.0f, 18.0f, 6.0f, fcol(28, 24, 36));
+    fillRect(renderer, cx + 8.0f,  feet - 4.0f, 18.0f, 6.0f, fcol(28, 24, 36));
+
+    // hood + the dark opening with two warm eyes, looking right (toward the player coming in)
+    fillCircle(renderer, cx + 2.0f, top + 30.0f, 29.0f, fcol(52, 47, 90));
+    const SDL_FPoint hoodTip[3] = {{cx - 24.0f, top + 22.0f}, {cx - 6.0f, top - 4.0f}, {cx + 20.0f, top + 14.0f}};
+    fillPoly(renderer, hoodTip, 3, fcol(52, 47, 90));
+    fillCircle(renderer, cx + 10.0f, top + 33.0f, 18.0f, fcol(10, 8, 18));
+    const float blink = (std::fmod(m_time, 3.7f) > 3.55f) ? 0.15f : 1.0f;
+    m_painter->glow(cx + 7.0f,  top + 32.0f, 16.0f, 16.0f * blink, MenuKit::Rgb{1.0f, 0.82f, 0.45f}, 0.95f);
+    m_painter->glow(cx + 20.0f, top + 32.0f, 16.0f, 16.0f * blink, MenuKit::Rgb{1.0f, 0.82f, 0.45f}, 0.95f);
+
+    // lantern on a stick: swings a little, flickers, lights the ground and the cloak
+    const float sway = std::sin(m_time * 1.7f) * 3.0f;
+    const float lx = cx + 56.0f + sway, ly = top + 62.0f;
+    SDL_SetRenderDrawColor(renderer, 70, 52, 38, 255);
+    SDL_RenderLine(renderer, cx + 26.0f, top + 56.0f, lx, ly - 10.0f);
+    fillRect(renderer, lx - 7.0f, ly - 10.0f, 14.0f, 4.0f, fcol(58, 46, 40));
+    fillRect(renderer, lx - 7.0f, ly - 6.0f, 14.0f, 20.0f, fcol(255, 196, 96));
+    fillRect(renderer, lx - 7.0f, ly + 14.0f, 14.0f, 3.0f, fcol(58, 46, 40));
+    const float flick = 0.80f + 0.20f * std::sin(m_time * 13.0f) * std::sin(m_time * 7.3f + 1.0f);
+    m_painter->glow(lx, ly + 4.0f, 150.0f, 150.0f, MenuKit::Rgb{1.0f, 0.72f, 0.32f}, (near ? 0.85f : 0.55f) * flick);
+    m_painter->glow(lx, ly + 4.0f, 26.0f, 26.0f, MenuKit::Rgb{1.0f, 0.95f, 0.75f}, 0.95f);
+    m_painter->glow(lx, feet, 230.0f, 46.0f, MenuKit::Rgb{1.0f, 0.70f, 0.30f}, 0.38f * flick);
+
+    // a coin-sized fruit hovering over his hand = "shop" (so he reads differently from a talking NPC)
+    if(near){
+        const float bob = std::sin(m_time * 3.2f) * 4.0f;
+        m_painter->glow(cx + 2.0f, top - 22.0f + bob, 54.0f, 54.0f, th.accent(), 0.40f);
+    }
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+}
+
 InteractableBuilder::~InteractableBuilder() = default;   // labels free their textures themselves
 
 void InteractableBuilder::init(const std::vector<Interactable>& interactables){
     m_interactables = interactables;
     m_worldFx.clear();
     m_screenFx.clear();
+    m_shopRequested = false;
     closeDialog();
 }
 
@@ -374,7 +468,13 @@ void InteractableBuilder::update(float dt, const SDL_FRect& player){
 bool InteractableBuilder::interact(){
     if(m_active < 0){
         for(int i = 0; i < (int)m_interactables.size(); ++i){
-            if(!m_interactables[i].inRange || m_interactables[i].lines.empty()) continue;
+            if(!m_interactables[i].inRange) continue;
+            if(m_interactables[i].isMerchant){          // the trader opens the shop instead of talking
+                m_shopRequested = true;
+                openedBurst(m_interactables[i]);
+                return true;
+            }
+            if(m_interactables[i].lines.empty()) continue;
             m_active = i;
             m_page = 0;
             m_shown = 0.0f;
@@ -453,6 +553,10 @@ void InteractableBuilder::renderWorld(SDL_Renderer* renderer){
         m_painter->glow(body.x + body.w * 0.5f, body.y + body.h * 0.5f, body.w + 120.0f, body.h + 120.0f,
                         th.core(), near ? 0.20f : 0.08f);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        if(it.isMerchant){
+            drawMerchant(renderer, it, body, near);
+            continue;
+        }
         SDL_SetRenderDrawColor(renderer, to8(th.core().r), to8(th.core().g), to8(th.core().b), to8(near ? 0.16f : 0.08f));
         SDL_RenderFillRect(renderer, &body);
         SDL_SetRenderDrawColor(renderer, to8(th.accent().r), to8(th.accent().g), to8(th.accent().b), to8(near ? 0.55f : 0.25f));

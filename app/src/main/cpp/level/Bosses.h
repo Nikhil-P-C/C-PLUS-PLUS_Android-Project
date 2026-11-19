@@ -478,6 +478,9 @@ public:
     std::vector<SDL_FPoint> consumeDeathEvents(){ std::vector<SDL_FPoint> o; o.swap(m_deathEvents); return o; }
     std::vector<BossSummonRequest> consumeSummons(){ std::vector<BossSummonRequest> o; o.swap(m_summons); return o; }
     int  consumeKillScore(){ int s = m_killScore; m_killScore = 0; return s; }
+    // player SLASH hits that landed on a boss (or one of its parts) since the last call, cleared on read; the beam is not
+    // counted. GameState turns these into magic (Upgrades::MAGIC_PER_BOSS_HIT).
+    int  consumeSlashHits(){ const int h = m_slashHits; m_slashHits = 0; return h; }
     // true once, a few seconds after the last fight ended: GameState should play the level music again
     bool consumeRestoreLevelMusic(){ bool r = m_restoreReady; m_restoreReady = false; return r; }
 
@@ -621,6 +624,7 @@ private:
     float m_floorY = 0.0f;          // bottom of the arena (set every update, used by the rock warning columns)
     int  m_activeIdx = -1;          // the boss currently being fought (-1 = none)
     int  m_killScore = 0;
+    int  m_slashHits = 0;                      // see consumeSlashHits()
     bool m_restorePending = false;
     bool m_restoreReady = false;
     unsigned int m_restoreAt = 0;

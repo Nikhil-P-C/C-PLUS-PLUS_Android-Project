@@ -2411,12 +2411,13 @@ int BossBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActiv
                 bool hurt = false;
                 if(meleeActive && p.lastMeleeId != attackId && overlaps(meleeHitBox, p.rect)){
                     p.lastMeleeId = attackId;
-                    p.hp -= (int)((float)ENEMY_MELEE_DAMAGE * mul);
+                    ++m_slashHits;
+                    p.hp -= (int)((float)ENEMY_MELEE_DAMAGE * PlayerDetail::getInstance().slashDamageMul() * mul);
                     hitEvent(meleeHitBox, p.rect, p.hp <= 0);
                     hurt = true;
                 }
                 if(beamActive && overlaps(beamHitBox, p.rect)){
-                    p.beamAccum += ENEMY_BEAM_DAMAGE_PER_SEC * BOSS_BEAM_DAMAGE_MUL * mul * dt;
+                    p.beamAccum += ENEMY_BEAM_DAMAGE_PER_SEC * PlayerDetail::getInstance().beamDamageMul() * BOSS_BEAM_DAMAGE_MUL * mul * dt;
                     const int whole = (int)p.beamAccum;
                     if(whole > 0){ p.hp -= whole; p.beamAccum -= (float)whole; }
                     hurt = true;
@@ -2443,7 +2444,8 @@ int BossBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActiv
 
         if(meleeActive && b.lastMeleeAttackId != attackId && overlaps(meleeHitBox, hr)){
             b.lastMeleeAttackId = attackId;
-            b.hp -= std::max(1, (int)((float)ENEMY_MELEE_DAMAGE * mul));
+            ++m_slashHits;
+            b.hp -= std::max(1, (int)((float)ENEMY_MELEE_DAMAGE * PlayerDetail::getInstance().slashDamageMul() * mul));
             phaseGate(b);
             b.isHurt = true;
             b.hurtFlashEnd = now + ENEMY_HURT_FLASH_MS;
@@ -2455,7 +2457,7 @@ int BossBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeActiv
         }
 
         if(beamActive && overlaps(beamHitBox, hr)){
-            b.beamAccum += ENEMY_BEAM_DAMAGE_PER_SEC * BOSS_BEAM_DAMAGE_MUL * mul * dt;
+            b.beamAccum += ENEMY_BEAM_DAMAGE_PER_SEC * PlayerDetail::getInstance().beamDamageMul() * BOSS_BEAM_DAMAGE_MUL * mul * dt;
             const int whole = (int)b.beamAccum;
             if(whole > 0){ b.hp -= whole; b.beamAccum -= (float)whole; phaseGate(b); }
             b.isHurt = true;

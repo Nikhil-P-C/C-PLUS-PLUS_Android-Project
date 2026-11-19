@@ -125,6 +125,7 @@ private:
 
     void parseEnemy(std::istringstream& ss);
     void parseInteractable(std::istringstream& ss);
+    void parseMerchant(std::istringstream& ss);
     void parseBoss(std::istringstream& ss);
     void parseBossArena(std::istringstream& ss);
 

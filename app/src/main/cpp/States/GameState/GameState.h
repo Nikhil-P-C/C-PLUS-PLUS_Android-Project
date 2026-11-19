@@ -43,7 +43,7 @@ const int DOUBLE_JUMP_FRAME_W =30;
 const int DOUBLE_JUMP_FRAME_H =30;
 const int DOUBLE_JUMP_LAST_FRAME =5; // 6 frames: 0-5
 
-const float MAGIC_REGEN_PER_SEC = 8.0f;      // only ticks while not beaming
+// magic has NO regeneration: it is only gained by hitting enemies / bosses with the slash (Upgrades::MAGIC_PER_ENEMY_HIT / MAGIC_PER_BOSS_HIT)
 const float BEAM_MAGIC_DRAIN_PER_SEC = 25.0f;
 const float HEAL_MAGIC_COST = 30.0f;
 const int HEAL_AMOUNT = 1;
@@ -190,6 +190,9 @@ public:
     void startPogo();
     // ends a dash in progress (wall hit, pogo, knockback, death). Gravity takes over again immediately.
     void endDash();
+    // merchant: opens the shop screen (same hand-over as the pause menu) / grants magic for kills
+    void openShop();
+    void awardHitMagic(int enemyHits, int bossHits);
     // player took damage: big impact frame + the same hit spark made larger + particles
     void playerImpactEffect(float dirX);
     // Hollow-Knight style damage audio: boom, then the whole mix stays slowed + muffled for `ms` (= the
@@ -431,6 +434,7 @@ private:
     float m_dashCooldown =0.0f;
     float m_dashDir =1.0f;            // +1 right / -1 left, locked at the start of the dash
     float m_dashTrailTimer =0.0f;
+    float m_dashHazardGrace =0.0f;    // dash upgrade: trap hazards still cannot hurt for this long after the dash ends
     int m_doubleJumpFrame =0;
 
     unsigned int m_healCooldownEndTime =0;

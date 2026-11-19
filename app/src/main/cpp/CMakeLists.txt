@@ -90,6 +90,7 @@ set(MYAPP_SOURCES
         States/MenuState/EditMenuState/EditMenuState.cpp
         States/PauseState/PauseState.cpp
         States/RespawnState/RespawnState.cpp
+        States/ShopState/ShopState.cpp
         States/MenuState/MenuKit.cpp
 
         engine/Engine.cpp

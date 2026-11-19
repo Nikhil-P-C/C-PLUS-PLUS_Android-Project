@@ -119,8 +119,7 @@ void PauseState::resume() {
 }
 
 void PauseState::exitToMenu() {
-    PlayerDetail::getInstance().setScore(0);
-    PlayerDetail::getInstance().setPlayerHP(5);
+    PlayerDetail::getInstance().resetRun();   // score, fruit, upgrades, hearts and magic all start over
     GameData::getInstance().setPaused(false);
     m_transitioning = true;
     Engine::Get().popState();

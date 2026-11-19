@@ -3,6 +3,7 @@
 #include "States/TransitionState/TransitionState.h"
 #include "States/PauseState/PauseState.h"
 #include "States/RespawnState/RespawnState.h"
+#include "States/ShopState/ShopState.h"
 #include "States/DebugState/DebugState.h"
 #include "States/HUDOverlayState/HUDOverlayState.h"
 #include "utils/utils.h"
@@ -308,10 +309,12 @@ void GameState::render(SDL_Renderer* renderer)  {
         SDL_Texture* slashTex = Engine::Get().getAssetManager().getTexture(TextureType::ATTACK_PLAYER_SLASH);
         SDL_FRect slashSrc{static_cast<float>(0 + (m_tempInc * 48)), 0, 48, 24};
         if(m_slashDir == SlashDir::SIDE){
-            SDL_FRect slashDst{m_player.x - 40 - camX, m_player.y - 20 - camY, 48 * P_scale,
+            const float rangeMul = PlayerDetail::getInstance().slashRangeMul();
+            SDL_FRect slashDst{m_player.x - 40 - camX, m_player.y - 20 - camY, 48 * P_scale * rangeMul,
                                24 * P_scale};
             if (!m_isPlayerfacingRight) {
-                slashDst.x = slashDst.x - 120;
+                // mirrored arc: keep its right edge (next to the player) where it was, stretch to the left
+                slashDst.x = (slashDst.x - 120) + (48 * P_scale) - slashDst.w;
                 SDL_RenderTextureRotated(renderer, slashTex, &slashSrc, &slashDst, 0.0f, nullptr,
                                          SDL_FLIP_HORIZONTAL);
             } else {
@@ -323,9 +326,12 @@ void GameState::render(SDL_Renderer* renderer)  {
             const bool up = (m_slashDir == SlashDir::UP);
             const float pcx = m_player.x + m_player.w * 0.5f - camX;
             const float pcy = m_player.y + m_player.h * 0.5f - camY;
+            const float rangeMul = PlayerDetail::getInstance().slashRangeMul();
+            const float artW = 48 * P_scale * rangeMul;                   // the sprite's length, along the swing
+            const float along = -60.0f + artW * 0.5f;                     // its inner end stays 60px behind the centre
             const float cx = pcx;
-            const float cy = pcy + (up ? -60.0f : 60.0f);
-            SDL_FRect slashDst{cx - 24 * P_scale, cy - 12 * P_scale, 48 * P_scale, 24 * P_scale};
+            const float cy = pcy + (up ? -along : along);
+            SDL_FRect slashDst{cx - artW * 0.5f, cy - 12 * P_scale, artW, 24 * P_scale};
             // facing right: the sprite points right -> turn it CCW to point up / CW to point down.
             // facing left: mirror it first, then turn the other way so the arc keeps the facing side's handedness.
             double angle = up ? -90.0 : 90.0;
@@ -564,13 +570,12 @@ void GameState::update(float dt){
         }
     }
 
-    if(!m_isBeaming){
-        PlayerDetail::getInstance().addMagic(MAGIC_REGEN_PER_SEC * dt);   // no regen while channeling the beam
-    }
+    // (no magic regeneration any more: magic is only gained by landing slashes, see awardHitMagic)
     m_fruitBuilder.update(dt);
 
     // interactables: open/advance dialogs, and hold the player still while one is open
     if(InputDispatcher::getInstance().consumeInteract()) m_interactableBuilder.interact();
+    if(m_interactableBuilder.consumeShopRequest()){ openShop(); return; }   // the merchant: shop screen, game paused under it
     m_interactableBuilder.update(dt, SDL_FRect{m_player.x, m_player.y, m_player.w, m_player.h});
     if(m_interactableBuilder.isDialogOpen()) InputDispatcher::getInstance().inputLogClear();
 
@@ -579,19 +584,24 @@ void GameState::update(float dt){
     handlePhysicAndInput(dt);
 
     if(m_isAttacking){
+        // slash range upgrade: the reach grows / shrinks from the player outward (the near edge never moves)
+        const float rangeMul = PlayerDetail::getInstance().slashRangeMul();
         if(m_slashDir == SlashDir::SIDE){
-            m_playerHitBox = {m_player.x+40,m_player.y +15,29* P_scale,15 * P_scale};
+            const float baseW = 29 * P_scale;
+            const float w = baseW * rangeMul;
+            m_playerHitBox = {m_player.x+40,m_player.y +15,w,15 * P_scale};
             if (!m_isPlayerfacingRight) {
-                m_playerHitBox.x = m_playerHitBox.x - 185;
+                const float nearEdge = (m_player.x + 40 - 185) + baseW;    // where the left-facing box meets the player
+                m_playerHitBox.x = nearEdge - w;
             }
         } else {
-            // up / down: a box centred on the player, 145px long (same as the side swing) and 130px wide
+            // up / down: a box centred on the player, 145px long x range (same as the side swing) and 130px wide
             const float pcx = m_player.x + m_player.w * 0.5f;
             const float pcy = m_player.y + m_player.h * 0.5f;
             m_playerHitBox.w = 130.0f;
-            m_playerHitBox.h = 145.0f;
+            m_playerHitBox.h = 145.0f * rangeMul;
             m_playerHitBox.x = pcx - 65.0f;
-            m_playerHitBox.y = (m_slashDir == SlashDir::UP) ? (pcy - 165.0f) : (pcy + 20.0f);
+            m_playerHitBox.y = (m_slashDir == SlashDir::UP) ? (pcy - 20.0f - m_playerHitBox.h) : (pcy + 20.0f);
         }
     }
     else {
@@ -726,6 +736,8 @@ void GameState::update(float dt){
     if(bossesKilled > 0){
         PlayerDetail::getInstance().addScore(m_bossBuilder.consumeKillScore());
     }
+    // magic: every slash that lands on an enemy or a boss pays a little (this is the ONLY way to gain magic)
+    awardHitMagic(m_enemyBuilder.consumeSlashHits(), m_bossBuilder.consumeSlashHits());
     flushEnemyHitEffects();
 
     // Downward slash on a hazard trap / rock head = pogo. (Enemies pogo from onEnemyHit; walls, ground, platforms,
@@ -768,7 +780,7 @@ void GameState::update(float dt){
             const bool up = (m_slashDir == SlashDir::UP);
             const float originY = up ? m_player.y : (m_player.y + m_player.h);
             const float dist = probeSolidVertical(originY, m_playerHitBox.x, m_playerHitBox.w, up, kind);
-            if(dist <= VERT_SLASH_REACH){
+            if(dist <= VERT_SLASH_REACH * PlayerDetail::getInstance().slashRangeMul()){
                 touched = true;
                 contactX = m_playerHitBox.x + m_playerHitBox.w * 0.5f;
                 contactY = up ? originY - dist : originY + dist;
@@ -808,6 +820,10 @@ void GameState::update(float dt){
 
     bool hazardColl =m_trapBuilder.checkHazard(m_player.x,m_player.y,
                                                m_player.w,m_player.h,type ,side);
+    // dash upgrade: while dashing (and a blink after) trap hazards pass straight through the player
+    if(m_dashHazardGrace > 0.0f) m_dashHazardGrace = std::max(0.0f, m_dashHazardGrace - dt);
+    if(hazardColl && PlayerDetail::getInstance().dashPhasesHazards() && (m_isDashing || m_dashHazardGrace > 0.0f))
+        hazardColl = false;
 
 
     unsigned int hitNow =SDL_GetTicks();
@@ -849,6 +865,7 @@ void GameState::update(float dt){
 
     int score = m_fruitBuilder.onCollision(m_player.x,m_player.y,m_player.w,m_player.h);
     PlayerDetail::getInstance().addScore(score);
+    PlayerDetail::getInstance().addFruit(score);        // fruit is the merchant's currency (1 per fruit)
 
 
     //camera + boss arena lock (normal follow camera when no fight is on)
@@ -916,7 +933,10 @@ bool GameState::handleEvents(SDL_Event& event) {
         InputUtils::GetPointerPosition(event, m_renderer, px, py);
         const int camX = (int)std::round(Camera::getInstance().getCamera().x);
         const int camY = (int)std::round(Camera::getInstance().getCamera().y);
-        if(m_interactableBuilder.onPointerDown(px, py, camX, camY)) return true;
+        if(m_interactableBuilder.onPointerDown(px, py, camX, camY)){
+            if(m_interactableBuilder.consumeShopRequest()) openShop();     // tapped the merchant's marker
+            return true;
+        }
     }
 
     if(InputUtils::IsBackKey(event)) {
@@ -1123,6 +1143,7 @@ void GameState::endDash() {
     m_isDashing = false;
     m_dashTimer = 0.0f;
     m_dashCooldown = DASH_COOLDOWN_S;
+    if(PlayerDetail::getInstance().dashPhasesHazards()) m_dashHazardGrace = Upgrades::DASH_HAZARD_GRACE_S;
     m_velocityX = 0.0f;   // hand control back to the normal move input
 }
 
@@ -1449,7 +1470,7 @@ void GameState::respawnPlayer() {
     m_deathTimer = 0.0f;
     m_deathPopped = false;
 
-    PlayerDetail::getInstance().setPlayerHP(5);
+    PlayerDetail::getInstance().setPlayerHP(PlayerDetail::getInstance().getMaxHP());   // full hearts, upgrades included
     if(hasReachedCheckpoint()){
         // stand on the checkpoint that was reached
         m_player.setPosition(m_checkPoint.x + m_checkPoint.w * 0.5f - m_player.w * 0.5f,
@@ -1468,6 +1489,7 @@ void GameState::respawnPlayer() {
     endDash();
     m_dashUsed = false;
     m_dashCooldown = 0.0f;
+    m_dashHazardGrace = 0.0f;
     m_playerAction = PlayerAction::IDLE;
     m_hurtAnimEndTime = 0;
     m_knockbackEndTime = 0;
@@ -1506,6 +1528,27 @@ void GameState::handlePlayerHit(TrapType hazardType, gameMath::collisionSide sid
     triggerHurtAudio(0.9f, (unsigned int)m_invincibilityTimer, true);   // lasts exactly as long as the invincibility
 }
 
+// Magic is earned only by hitting: a flat amount per slash that lands on an enemy, a (smaller) one per boss hit.
+// The beam never pays magic (it costs magic), and neither do parries or time.
+void GameState::awardHitMagic(int enemyHits, int bossHits){
+    if(enemyHits <= 0 && bossHits <= 0) return;
+    PlayerDetail::getInstance().addMagic((float)std::max(0, enemyHits) * Upgrades::MAGIC_PER_ENEMY_HIT +
+                                         (float)std::max(0, bossHits)  * Upgrades::MAGIC_PER_BOSS_HIT);
+}
+
+// The merchant was used: hand the screen over to the shop exactly like the pause menu does
+// (release the controls, drop the gameplay overlays, push a menu state; ShopState puts everything back).
+void GameState::openShop(){
+    InputDispatcher::getInstance().setInputReleased(true);
+    InputDispatcher::getInstance().inputLogClear();
+    GameData::getInstance().setPaused(true);
+    Engine::Get().popOverlayState();//controls
+    Engine::Get().popOverlayState();//HUD
+    if (GameData::getInstance().isDebugEnabled())
+        Engine::Get().popOverlayState();
+    Engine::Get().pushState(std::make_unique<ShopState>(m_renderer, this));
+}
+
 void GameState::triggerCheckpoint(){
     if(m_checkPoint.aniType == CheckPointAni::FLAG_OUT)return;
     m_checkPoint.aniType = m_checkPoint.aniType == CheckPointAni::NO_FLAG ? CheckPointAni::FLAG_OUT:CheckPointAni::FLAG_IDLE;
@@ -1514,7 +1557,7 @@ void GameState::triggerCheckpoint(){
 bool GameState::tryHeal(unsigned int now) {
     if(now < m_healCooldownEndTime) return false;
     if(PlayerDetail::getInstance().getMagic() < HEAL_MAGIC_COST) return false;
-    if(PlayerDetail::getInstance().getPlayerHP() >= 5) return false;
+    if(PlayerDetail::getInstance().getPlayerHP() >= PlayerDetail::getInstance().getMaxHP()) return false;
 
     PlayerDetail::getInstance().subMagic(HEAL_MAGIC_COST);
     PlayerDetail::getInstance().addPlayerHP(HEAL_AMOUNT);
@@ -1685,7 +1728,7 @@ void GameState::onParrySuccess(float x, float y, float dirX, bool big, const SDL
     const float pitch = PARRY_PITCH_MIN + (PARRY_PITCH_MAX - PARRY_PITCH_MIN) * ((float)(SDL_GetTicks() % 997u) / 996.0f);
     assets.playSoundPitched(SoundType::SFX_PARRY, 1.0f, big ? pitch * 0.92f : pitch);
 
-    PlayerDetail::getInstance().addMagic(partial ? PARRY_MAGIC_REWARD * PARRY_PARTIAL_MAGIC_MUL : PARRY_MAGIC_REWARD);
+    // (a parry no longer gives magic: only kills do. PARRY_MAGIC_REWARD in utils/Parry.h is unused now)
     m_playerFlashEnd = SDL_GetTicks() + 90;                       // player sprite flashes white for a beat
     applyRecoil(-dirX, partial ? PARRY_PLAYER_PUSH * PARRY_PARTIAL_PUSH_MUL : PARRY_PLAYER_PUSH);   // both bodies are shoved apart
     if(partial) m_endSlashAfterFreeze = true;
@@ -1696,7 +1739,7 @@ void GameState::onParrySuccess(float x, float y, float dirX, bool big, const SDL
 }
 
 void GameState::tryBeam(float dt) {
-    float drain = BEAM_MAGIC_DRAIN_PER_SEC * dt;
+    float drain = BEAM_MAGIC_DRAIN_PER_SEC * PlayerDetail::getInstance().beamCostMul() * dt;   // beam upgrades make it cheaper
     if(PlayerDetail::getInstance().getMagic() < drain){
         // ran out mid-channel - force it to stop
         m_isBeaming = false;
@@ -2020,8 +2063,11 @@ void GameState::handlePhysicAndInput(float dt) {
         m_dashTrailTimer -= dt;
         if(m_dashTrailTimer <= 0.0f){
             m_dashTrailTimer = 0.03f;
+            // with the hazard-phasing upgrade the trail turns teal, so you can tell you are untouchable
+            const bool phasing = PlayerDetail::getInstance().dashPhasesHazards();
             m_particleSystem.emitBurst(m_player.x + m_player.w * 0.5f - m_dashDir * 30.0f, m_player.y + m_player.h * 0.55f,
-                                       2, 20.0f, 90.0f, 0.15f, 0.30f, 30.0f, 200, 225, 255);
+                                       phasing ? 3 : 2, 20.0f, 90.0f, 0.15f, 0.30f, 30.0f,
+                                       phasing ? 90 : 200, phasing ? 255 : 225, phasing ? 220 : 255);
         }
         m_dashTimer -= dt;
         if(m_dashTimer <= 0.0f) endDash();

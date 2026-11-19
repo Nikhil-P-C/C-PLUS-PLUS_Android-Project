@@ -346,6 +346,10 @@ public:
                           const SDL_FRect& beamHitBox, bool beamActive, float dt, int attackId,
                           float knockbackMul = 1.0f);
 
+    // How many player SLASH hits landed on enemies since the last call (cleared on read). The beam is not counted: it
+    // costs magic, so it must not pay magic back. GameState turns these into magic (Upgrades::MAGIC_PER_ENEMY_HIT).
+    int consumeSlashHits(){ const int h = m_slashHits; m_slashHits = 0; return h; }
+
     // Hits that landed since the last call (cleared on read) - drives the hit VFX.
     std::vector<EnemyHitEvent> consumeHitEvents(){
         std::vector<EnemyHitEvent> out;
@@ -464,6 +468,7 @@ private:
     std::vector<Enemy> m_enemies;
     std::vector<SDL_FPoint> m_deathEvents;
     std::vector<EnemyHitEvent> m_hitEvents;
+    int m_slashHits = 0;                       // see consumeSlashHits()
     int m_reflectKills = 0;
 
 };

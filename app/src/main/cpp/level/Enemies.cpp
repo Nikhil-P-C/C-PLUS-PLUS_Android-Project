@@ -448,7 +448,8 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
            gameMath::checkcollision(meleeHitBox.x, meleeHitBox.y, enemy.x, enemy.y,
                                     meleeHitBox.h, meleeHitBox.w, enemy.h, enemy.w)){
             enemy.lastMeleeAttackId = attackId;
-            int meleeDamage = ENEMY_MELEE_DAMAGE;
+            ++m_slashHits;                                          // a slash landed: GameState pays magic for it
+            int meleeDamage = std::max(1, (int)std::lround(ENEMY_MELEE_DAMAGE * PlayerDetail::getInstance().slashDamageMul()));
             if(enemy.parryBonus && now < enemy.staggerUntil){      // the riposte: first slash into a parried enemy hits harder
                 meleeDamage = (int)((float)meleeDamage * PARRY_BONUS_DAMAGE_MUL);
                 enemy.parryBonus = false;
@@ -485,7 +486,7 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
         if(beamActive &&
            gameMath::checkcollision(beamHitBox.x, beamHitBox.y, enemy.x, enemy.y,
                                     beamHitBox.h, beamHitBox.w, enemy.h, enemy.w)){
-            enemy.beamDamageAccum += ENEMY_BEAM_DAMAGE_PER_SEC * dt;
+            enemy.beamDamageAccum += ENEMY_BEAM_DAMAGE_PER_SEC * PlayerDetail::getInstance().beamDamageMul() * dt;
             int whole = (int)enemy.beamDamageAccum;
             if(whole > 0){
                 enemy.hp -= whole;
@@ -636,7 +637,7 @@ void EnemiesBuilder::updateProjectiles(float dt, const SDL_FRect& wallCollisionR
         if(!dead && p.reflected){
             for(auto& en : m_enemies){
                 if(en.isDead || !(p.x < en.x + en.w && p.x + p.w > en.x && p.y < en.y + en.h && p.y + p.h > en.y)) continue;
-                en.hp -= ENEMY_MELEE_DAMAGE;
+                en.hp -= std::max(1, (int)std::lround(ENEMY_MELEE_DAMAGE * PlayerDetail::getInstance().slashDamageMul()));   // reflected projectile = a slash
                 const float dir = p.vx >= 0.0f ? 1.0f : -1.0f;
                 en.knockbackVelocityX = dir * ENEMY_KNOCKBACK_SPEED_X;
                 en.knockbackEndTime = SDL_GetTicks() + ENEMY_KNOCKBACK_MS;
