@@ -30,7 +30,11 @@ namespace {
 // Sheets that were drawn facing LEFT (the renderer assumes RIGHT, so these get the flip inverted).
 static inline bool enemyArtFacesLeft(EnemyType t){
     switch(t){
-        case EnemyType::SPIDER_CHILD: return true;
+        case EnemyType::SPIDER_CHILD:
+        case EnemyType::GIANT_BATS:
+        case EnemyType::MOSS_BAT:
+        case EnemyType::PREDATOR_CAT:      // both cat sheets were drawn facing left
+        case EnemyType::MOUNTAIN_CAT: return true;
         default: return false;
     }
 }
@@ -42,6 +46,9 @@ void EnemiesBuilder::init(const std::vector<Enemy> enemies) {
     m_projectiles.clear();
     m_hitEvents.clear();
     m_deathEvents.clear();
+    m_pendingSpawns.clear();
+    m_spawnEvents.clear();
+    m_impactEvents.clear();
 }
 
 // Every action change goes through here. Before, `enemy.action = X` left aniStartFrame / aniDone
@@ -64,6 +71,10 @@ void EnemiesBuilder::setAction(Enemy& e, EnemyAction next) {
         e.dashTravelled = 0.0f;
         e.dashDone = false;
         e.projectileFired = false;
+        e.smashPhase = SmashPhase::WINDUP;      // SMASH: always starts from the wind-up, from the height it is hovering at now
+        e.smashStartY = e.y;
+        e.smashTargetX = e.x + e.w * 0.5f;
+        e.smashShockDone = false;
     }
 }
 
@@ -109,6 +120,19 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
             if(!Cull::hit(view, r.x - SPRITE_SLACK, r.y - SPRITE_SLACK, r.w + SPRITE_SLACK * 2.0f, r.h + SPRITE_SLACK * 2.0f))
                 continue;
         }
+        // flinch pose: the enemy's hit sheet plays for the length of the hurt flash. Not for a smash that is already
+        // dropping - that one has hyper armor and keeps its own pose.
+        int hitFrame = -1;
+        if(!enemy.isDead && enemy.isHurt &&
+           !(enemy.action == EnemyAction::ATTACK && enemy.attackType == AttackType::SMASH && enemy.smashPhase != SmashPhase::WINDUP)){
+            const EnemyFrameInfo* hi = getEnemyHitFrameInfo(enemy.type);
+            if(hi && Engine::Get().getAssetManager().getTexture(hi->texture)){
+                info = hi;
+                const unsigned int hitStart = enemy.hurtFlashEndTime > ENEMY_HURT_FLASH_MS ? enemy.hurtFlashEndTime - ENEMY_HURT_FLASH_MS : 0;
+                const unsigned int since = SDL_GetTicks() > hitStart ? SDL_GetTicks() - hitStart : 0;
+                hitFrame = (int)std::min<unsigned int>(since / (unsigned int)std::max(1, hi->frameDelay), (unsigned int)std::max(0, hi->frameCount - 1));
+            }
+        }
         SDL_Texture* texture = info ? Engine::Get().getAssetManager().getTexture(info->texture) : nullptr;
         bool placeholderCorpse = false;
 
@@ -138,7 +162,8 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
         }
 
         int frameCount = resolveFrameCount(*info, texture);
-        int frame = placeholderCorpse ? 0 : std::clamp(enemy.aniStartFrame, 0, std::max(0, frameCount - 1));
+        int frame = placeholderCorpse ? 0 : (hitFrame >= 0 ? std::min(hitFrame, frameCount - 1)
+                                                           : std::clamp(enemy.aniStartFrame, 0, std::max(0, frameCount - 1)));
         SDL_FRect world = getEnemyRenderedRect(enemy, *info);
         SDL_FRect src{static_cast<float>(info->frameW * frame), 0.0f,
                       static_cast<float>(info->frameW), static_cast<float>(info->frameH)};
@@ -161,7 +186,9 @@ void EnemiesBuilder::render(SDL_Renderer *renderer) {
 
         // wind-up tells. Parryable: a gold-white flash in the last moments before the hit ("parry now").
         // Not parryable (SHOOT / BEAM): a red pulse for the whole wind-up ("dodge this one").
-        if(!placeholderCorpse && enemy.action == EnemyAction::ATTACK && !enemy.attackHasHit){
+        // (a SPAWN has no hit to warn about, and the flinch pose is never tinted as a tell)
+        if(!placeholderCorpse && hitFrame < 0 && enemy.action == EnemyAction::ATTACK && !enemy.attackHasHit
+           && enemy.attackType != AttackType::SPAWN){
             const float tMs = msToAttackImpact(enemy);
             if(tMs > 0.0f){
                 Uint8 cr = 0, cg = 0, cb = 0, ca = 0;
@@ -239,7 +266,7 @@ void EnemiesBuilder::renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& 
 // One placeholder rect per attack, drawn from the real hitbox (what you see is what hurts):
 //   wind-up (animation playing, hitbox not live yet) = outline only
 //   live window                                       = filled + solid outline
-// colour = attack type: BITE red, SLASH orange, DASH yellow, POUNCE pink, SHOOT green, BEAM cyan, PROJECTILE purple
+// colour = attack type: BITE red, SLASH orange, DASH yellow, POUNCE pink, SMASH red-orange, SHOOT green, BEAM cyan, PROJECTILE purple
 void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, int camY) const {
     SDL_BlendMode prevBlend = SDL_BLENDMODE_NONE;
     SDL_GetRenderDrawBlendMode(renderer, &prevBlend);
@@ -247,6 +274,7 @@ void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, 
 
     for(const auto& e : m_enemies){
         if(e.isDead || e.action != EnemyAction::ATTACK || e.attackHasHit || e.aniDone) continue;
+        if(e.attackType == AttackType::SPAWN) continue;        // nothing on the caster hurts
 
         Uint8 r = 255, g = 255, b = 255;
         switch(e.attackType){
@@ -254,6 +282,7 @@ void EnemiesBuilder::renderAttackPlaceholders(SDL_Renderer* renderer, int camX, 
             case AttackType::SLASH:      r = 255; g = 160; b =  40; break;
             case AttackType::DASH:       r = 255; g = 230; b =  60; break;
             case AttackType::POUNCE:     r = 255; g = 100; b = 180; break;
+            case AttackType::SMASH:      r = 255; g =  90; b =  40; break;
             case AttackType::SHOOT:      r =  80; g = 220; b = 120; break;
             case AttackType::BEAM:       r =  60; g = 200; b = 255; break;
             case AttackType::PROJECTILE: r = 190; g = 100; b = 255; break;
@@ -374,6 +403,16 @@ void EnemiesBuilder::update(float dt,const SDL_FRect& player,
             }
         }
     }
+    // helpers called this frame join now that the loop over m_enemies is finished
+    for(const PendingSpawn& s : m_pendingSpawns){
+        const EnemyAIConfig* hcfg = getEnemyAIConfig(s.type);
+        Enemy helper(s.x, s.y, s.type, EnemyAction::SEEK, hcfg ? hcfg->attacks[0] : AttackType::NONE,
+                     s.x - 150.0f, s.x + 150.0f, ENEMY_SPAWN_SPEED, PathAxis::HORIZONTAL, PathShape::LINE, 0.0f, s.combat);
+        helper.summonerIdx = s.summoner;
+        m_enemies.push_back(helper);
+    }
+    m_pendingSpawns.clear();
+
     updateProjectiles(dt,wallCollisionRect,grounds,platforms,blocks);
     separateEnemies();
 }
@@ -430,6 +469,7 @@ void EnemiesBuilder::shiftTimers(unsigned int ms) {
         if(e.lastSwitchTime)    e.lastSwitchTime    += ms;
         if(e.lastAttackHitTime) e.lastAttackHitTime += ms;
         if(e.nextFootstepTime)  e.nextFootstepTime  += ms;
+        if(e.nextSpawnTime)     e.nextSpawnTime     += ms;
     }
 }
 
@@ -476,7 +516,9 @@ int EnemiesBuilder::applyPlayerDamage(const SDL_FRect& meleeHitBox, bool meleeAc
             }
 
             // a clean hit interrupts the enemy's attack and delays the next one
-            if(enemy.action == EnemyAction::ATTACK) setAction(enemy, EnemyAction::SEEK);
+            // (a smash that has already left the ground has hyper armor: the drop can't be cancelled, only its wind-up)
+            const bool armored = enemy.attackType == AttackType::SMASH && enemy.smashPhase != SmashPhase::WINDUP;
+            if(enemy.action == EnemyAction::ATTACK && !armored) setAction(enemy, EnemyAction::SEEK);
             enemy.nextAttackTime = std::max(enemy.nextAttackTime, now + ENEMY_HIT_RECOVER_MS);
         }
 
@@ -728,6 +770,15 @@ void EnemiesBuilder::resolveParry(Enemy& e, unsigned int now) {
 
 float EnemiesBuilder::msToAttackImpact(const Enemy& e) const {
     if(e.action != EnemyAction::ATTACK) return 0.0f;
+    if(e.attackType == AttackType::SMASH){
+        // the whole wind-up is the tell; the drop begins when its sheet ends
+        if(e.smashPhase != SmashPhase::WINDUP) return 0.0f;
+        const auto* si = getEnemySmashFrameInfo(e.type, SmashPhase::WINDUP);
+        if(!si) return 0.0f;
+        const int left = si->frameCount - e.aniStartFrame;
+        if(left <= 0) return 0.0f;
+        return (float)left * (float)si->frameDelay - (float)(SDL_GetTicks() - e.lastTime);
+    }
     const auto* ai = getEnemyFrameInfo(e.type, EnemyAction::ATTACK, e.attackType);
     if(!ai) return 0.0f;
     const int startFrame = (int)(ai->frameCount * ENEMY_ATTACK_ACTIVE_START);
@@ -742,8 +793,11 @@ void EnemiesBuilder::applyGravityAndCollision(Enemy& enemy, float dt,
                                               const std::vector<LevelGround>& grounds,
                                               const std::vector<Platform>& platforms,
                                               const std::vector<Block>& blocks) {
-    // aerial enemies fly freely, no gravity/ground collision - except corpses, which drop like everything else
-    if(enemy.combat != combatType::GROUND && !enemy.isDead) return;
+    // aerial enemies fly freely, no gravity/ground collision - except corpses, which drop like everything else,
+    // and a SMASH that is falling (it has to land on the floor / a platform)
+    const bool smashFalling = enemy.action == EnemyAction::ATTACK && enemy.attackType == AttackType::SMASH
+                              && enemy.smashPhase == SmashPhase::FALL;
+    if(enemy.combat != combatType::GROUND && !enemy.isDead && !smashFalling) return;
 
     const float previousY = enemy.y; // captured before gravity moves this frame, for the one-way sweep test below
 
@@ -887,7 +941,17 @@ namespace {
     // long one. NONE = nothing reaches yet, keep closing in.
     // can this attack be started from here? Almost everything is the box test; an aerial DASH is a diagonal
     // swoop, so it only needs the player within `range` horizontally and below the flier (not too far down)
-    bool attackReaches(const Enemy& e, AttackType t, float range, const SDL_FRect& p){
+    bool attackReaches(const Enemy& e, AttackType t, float range, const SDL_FRect& p, bool canSpawn){
+        if(t == AttackType::SPAWN){
+            // cast from a distance: the player just has to be inside the radius (and the caster off cooldown, with room for more helpers)
+            const float dx = (p.x + p.w * 0.5f) - (e.x + e.w * 0.5f), dy = (p.y + p.h * 0.5f) - (e.y + e.h * 0.5f);
+            return canSpawn && dx * dx + dy * dy <= range * range;
+        }
+        if(t == AttackType::SMASH){
+            // a stomp from above: the player has to be roughly underneath it (within `range` sideways) and below its middle
+            const float dx = (p.x + p.w * 0.5f) - (e.x + e.w * 0.5f);
+            return std::fabs(dx) <= range && (p.y + p.h) > e.y + e.h * 0.5f && (p.y - (e.y + e.h)) <= ENEMY_SMASH_MAX_DROP;
+        }
         if(t == AttackType::DASH && e.combat != combatType::GROUND){
             const float gapX = e.isFacingRight ? p.x - (e.x + e.w) : e.x - (p.x + p.w);
             const float drop = p.y - (e.y + e.h);
@@ -895,9 +959,9 @@ namespace {
         }
         return playerInReach(e, p, range);
     }
-    AttackType chooseAttack(const Enemy& e, const EnemyAIConfig* cfg, const SDL_FRect& p){
+    AttackType chooseAttack(const Enemy& e, const EnemyAIConfig* cfg, const SDL_FRect& p, bool canSpawn){
         for(int i = 0; i < 2; ++i)
-            if(cfg->attacks[i] != AttackType::NONE && attackReaches(e, cfg->attacks[i], cfg->attackRanges[i], p))
+            if(cfg->attacks[i] != AttackType::NONE && attackReaches(e, cfg->attacks[i], cfg->attackRanges[i], p, canSpawn))
                 return cfg->attacks[i];
         return AttackType::NONE;
     }
@@ -919,6 +983,11 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
     const float gapX = std::max(0.0f, std::max(player.x - (enemy.x + enemy.w), enemy.x - (player.x + player.w)));
     const float gapY = std::max(0.0f, std::max(player.y - (enemy.y + enemy.h), enemy.y - (player.y + player.h)));
     const float atkRange = attackRangeFor(cfg, enemy.attackType);
+
+    // SPAWN casters: may they call helpers right now? (the helpers are counted by who called them)
+    const int selfIdx = (int)(&enemy - m_enemies.data());
+    const bool ownsSpawn = cfg->attacks[0] == AttackType::SPAWN || cfg->attacks[1] == AttackType::SPAWN;
+    const bool canSpawn = ownsSpawn && now >= enemy.nextSpawnTime && helpersAlive(selfIdx) < ENEMY_SPAWN_MAX_ALIVE;
 
     if(enemy.action != EnemyAction::PATROL) enemy.stuckTimerActive = false;
 
@@ -951,7 +1020,7 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
 
             // Pick the attack that fits the current distance (shortest one that reaches). Every attack,
             // ranged or not, is a box `range` long in front of the enemy, so one overlap test covers all.
-            const AttackType pick = chooseAttack(enemy, cfg, player);
+            const AttackType pick = chooseAttack(enemy, cfg, player, canSpawn);
             if(pick != AttackType::NONE && now >= enemy.nextAttackTime){
                 enemy.attackType = pick;                 // before setAction so the ATTACK sheet/range are the right ones
                 setAction(enemy, EnemyAction::ATTACK);   // cooldown is enforced here, not just on the damage
@@ -977,8 +1046,10 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                 // a flier that owns a DASH holds its altitude while the attack is ready, so it can swoop down
                 // diagonally from above; on cooldown it drops to the player's height to use its short attacks
                 float targetY = player.y;
-                if(now >= enemy.nextAttackTime && (cfg->attacks[0] == AttackType::DASH || cfg->attacks[1] == AttackType::DASH))
-                    targetY = enemy.baseY;
+                const bool diver = cfg->attacks[0] == AttackType::DASH || cfg->attacks[1] == AttackType::DASH
+                                   || cfg->attacks[0] == AttackType::SMASH || cfg->attacks[1] == AttackType::SMASH;
+                if(now >= enemy.nextAttackTime && diver)
+                    targetY = enemy.baseY;      // (a SMASH is a stomp from above, so it hovers over the player instead of dropping to their height)
                 moveToward(enemy, player.x, targetY, enemy.movingSpeed, dt);
             }
             break;
@@ -994,7 +1065,9 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                             enemy.aniStartFrame <= (int)(fc * ENEMY_ATTACK_ACTIVE_END);
             const bool pastWindow = enemy.aniStartFrame > (int)(fc * ENEMY_ATTACK_ACTIVE_END);
             const bool pounceAirborne = enemy.attackType == AttackType::POUNCE && enemy.dashStarted && !enemy.dashDone;
-            if(pastWindow && !pounceAirborne){
+            const bool smashing = enemy.attackType == AttackType::SMASH;    // runs its own phase machine, the frame fractions don't apply
+            bool smashDone = false;
+            if(pastWindow && !pounceAirborne && !smashing){
                 if(enemy.strikesDone + 1 < enemy.strikesTotal && !enemy.parryPending){
                     rearmStrike(enemy, now);             // multi-hit: the swing goes again for the next strike
                 } else {
@@ -1079,6 +1152,21 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
                     }
                     break;
                 }
+                case AttackType::SPAWN: {
+                    // SPAWN: the caster roars (the glowing frames) and its helpers pour out when the window opens. Nothing on
+                    // the caster itself hurts, so attackHasHit hides the wind-up rect; the cooldown is per caster.
+                    if(inWindow && !enemy.projectileFired){
+                        enemy.projectileFired = true;
+                        enemy.attackHasHit = true;
+                        enemy.nextSpawnTime = now + ENEMY_SPAWN_COOLDOWN_MS;
+                        queueHelpers(enemy, selfIdx);
+                    }
+                    break;
+                }
+                case AttackType::SMASH: {
+                    smashDone = updateSmash(enemy, player, dt, now);
+                    break;
+                }
                 case AttackType::PROJECTILE: {
                     // PROJECTILE: only the thrown object hurts (no hitbox on the enemy). It leaves at the start of
                     // the window; attackHasHit then hides the wind-up rect.
@@ -1095,7 +1183,12 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
             }
 
             const bool leapInProgress = enemy.attackType == AttackType::POUNCE && enemy.dashStarted && !enemy.dashDone;
-            if((!ai || enemy.aniDone) && !leapInProgress){      // let the animation drive the timing (a leap holds it until it lands)
+            if(smashing){
+                if(smashDone){                                  // a smash ends when it has risen back, not when a sheet runs out
+                    enemy.nextAttackTime = now + cfg->attackCooldownMs;
+                    setAction(enemy, EnemyAction::SEEK);
+                }
+            } else if((!ai || enemy.aniDone) && !leapInProgress){   // let the animation drive the timing (a leap holds it until it lands)
                 enemy.nextAttackTime = now + cfg->attackCooldownMs;
                 setAction(enemy, EnemyAction::SEEK);
             }
@@ -1142,6 +1235,111 @@ void EnemiesBuilder::updateAI(Enemy& enemy, const SDL_FRect& player, float dt,
         }
         default: break;
     }
+}
+
+// how many of this caster's helpers are still alive (the caster is identified by its index in m_enemies; enemies are only
+// ever appended, never erased, so an index stays valid for the whole level)
+int EnemiesBuilder::helpersAlive(int casterIdx) const {
+    int n = 0;
+    for(const Enemy& e : m_enemies)
+        if(!e.isDead && e.summonerIdx == casterIdx) ++n;
+    return n;
+}
+
+// SPAWN: the giant bat's helpers (moss bats) pour out of its cap, one each side. They come in as SEEK so they go straight for the
+// player; if they lose him they fly back to where they were born (on the giant) and patrol around it.
+void EnemiesBuilder::queueHelpers(const Enemy& caster, int casterIdx) {
+    const float cx = caster.x + caster.w * 0.5f;
+    const float cy = caster.y + caster.h * 0.3f;
+    // (a helper's hitbox is 56x50, see enemySizeFor; the numbers only centre the spawn point on the cap)
+    const float hw = 56.0f, hh = 50.0f;
+    const int count = ENEMY_SPAWN_COUNT;
+    for(int i = 0; i < count; ++i){
+        const float side = (i % 2 == 0) ? -1.0f : 1.0f;
+        const float spread = 70.0f + 60.0f * (float)(i / 2);
+        m_pendingSpawns.push_back({EnemyType::MOSS_BAT, cx + side * spread - hw * 0.5f, cy - hh * 0.5f,
+                                   combatType::AERIAL, casterIdx});
+    }
+    m_spawnEvents.push_back({cx, cy});
+}
+
+void EnemiesBuilder::setSmashPhase(Enemy& e, SmashPhase next, unsigned int now) {
+    e.smashPhase = next;
+    e.aniStartFrame = 0;      // each phase has its own sheet, so its frame counter restarts
+    e.aniDone = false;
+    e.lastTime = now;
+}
+
+// SMASH: WINDUP -> FALL -> IMPACT -> RECOVER. Returns true when the whole thing is over.
+//   WINDUP  lifts off, shakes (the sheet), loosely follows the player; a lane under it shows where the drop is heading. Red tell.
+//   FALL    the spot is locked, it drops (gravity, via applyGravityAndCollision) and its body is the weapon.
+//   IMPACT  squashes on the floor: camera shake + a shockwave along the floor for the first part of the landing sheet.
+//   RECOVER rises back to the height it was hovering at. Landing + rising is the player's punish window.
+// One attack hurts at most once (attackHasHit), so the body hit and the shockwave can't both land.
+bool EnemiesBuilder::updateSmash(Enemy& e, const SDL_FRect& player, float dt, unsigned int now) {
+    const float cx  = e.x + e.w * 0.5f;
+    const float pcx = player.x + player.w * 0.5f;
+
+    switch(e.smashPhase){
+        case SmashPhase::WINDUP: {
+            const float risen = e.smashStartY - e.y;
+            if(risen < ENEMY_SMASH_RISE_PX)
+                e.y -= std::min(ENEMY_SMASH_RISE_SPEED * dt, ENEMY_SMASH_RISE_PX - risen);
+            const float dx = pcx - cx;                                   // drifts after the player at a fraction of its speed
+            e.x += std::clamp(dx, -e.movingSpeed * 0.6f * dt, e.movingSpeed * 0.6f * dt);
+            faceToward(e, pcx);
+            e.smashTargetX = pcx;
+            // the lane the drop will take (outline only: the box is not live during the wind-up)
+            e.attackHitBox = { e.smashTargetX - e.w * 0.5f, e.y + e.h * 0.5f, e.w, 900.0f };
+            e.isAttackBoxActive = false;
+            if(e.aniDone){                                               // wind-up sheet finished: drop
+                setSmashPhase(e, SmashPhase::FALL, now);
+                e.velocityY = ENEMY_SMASH_LAUNCH_SPEED;
+                e.isGrounded = false;
+                e.dashTravelled = 0.0f;                                  // seconds in the air
+            }
+            return false;
+        }
+        case SmashPhase::FALL: {
+            e.dashTravelled += dt;
+            const float dx = e.smashTargetX - cx;                        // sideways toward the locked spot
+            e.x += std::clamp(dx, -ENEMY_SMASH_HOMING_SPEED * dt, ENEMY_SMASH_HOMING_SPEED * dt);
+            e.attackHitBox = { e.x - 2.0f, e.y - 2.0f, e.w + 4.0f, e.h + 4.0f };
+            e.isAttackBoxActive = !e.attackHasHit;
+            const bool landed = e.isGrounded && e.dashTravelled > 0.06f;
+            if(landed || e.dashTravelled > 3.0f){                        // (the timeout only guards against a missing floor)
+                e.velocityY = 0.0f;
+                e.isAttackBoxActive = false;
+                setSmashPhase(e, SmashPhase::IMPACT, now);
+                m_impactEvents.push_back({e.x + e.w * 0.5f, e.y + e.h, e.w + ENEMY_SMASH_SHOCK_PAD * 2.0f});
+            }
+            return false;
+        }
+        case SmashPhase::IMPACT: {
+            const auto* info = getEnemySmashFrameInfo(e.type, SmashPhase::IMPACT);
+            const int fc = info ? std::max(1, info->frameCount) : 1;
+            const bool shockLive = !e.attackHasHit && e.aniStartFrame <= (int)((float)fc * ENEMY_SMASH_SHOCK_FRAC);
+            e.attackHitBox = { e.x - ENEMY_SMASH_SHOCK_PAD, e.y + e.h - ENEMY_SMASH_SHOCK_H,
+                               e.w + ENEMY_SMASH_SHOCK_PAD * 2.0f, ENEMY_SMASH_SHOCK_H };
+            e.isAttackBoxActive = shockLive;
+            if(!shockLive) e.attackHasHit = true;                        // the wave is spent (or already hit): hide the rect
+            if(e.aniDone || !info){
+                e.isAttackBoxActive = false;
+                e.attackHasHit = true;
+                setSmashPhase(e, SmashPhase::RECOVER, now);
+            }
+            return false;
+        }
+        case SmashPhase::RECOVER: {
+            e.isAttackBoxActive = false;
+            e.attackHasHit = true;
+            const float dy = e.smashStartY - e.y;
+            if(std::fabs(dy) <= 4.0f){ e.y = e.smashStartY; return true; }
+            e.y += (dy > 0.0f ? 1.0f : -1.0f) * std::min(ENEMY_SMASH_RECOVER_SPEED * dt, std::fabs(dy));
+            return false;
+        }
+    }
+    return true;
 }
 
 void EnemiesBuilder::moveToward(Enemy& enemy, float targetX, float targetY, float speed, float dt) {
@@ -1296,11 +1494,16 @@ namespace {
             case EnemyType::SPIDER_CHILD:                                    // sprite body ~35x21 src px (x5 scale)
                 w = 110.0f; h = 65.0f; break;
             case EnemyType::MOSS_GLOW_WORM:                                  // bugs
-            case EnemyType::MOSS_BAT: case EnemyType::GIANT_BATS:            // bats
-            case EnemyType::CAVE_RAT:                                        // rat
                 h = ENEMY_BASE_H * 0.5f; break;
-            case EnemyType::PREDATOR_CAT: case EnemyType::MOUNTAIN_CAT:      // cats: low and long
-                h = ENEMY_BASE_H * 0.5f; w = ENEMY_BASE_W * 2.0f; break;
+                // the three below are sized from their real sprite sheets (body ~ 75% of the drawn body, x5 scale)
+            case EnemyType::MOSS_BAT:                                        // 34px wings span, tiny body
+                w = 56.0f; h = 50.0f; break;
+            case EnemyType::GIANT_BATS:                                      // body ~41x53 src px -> 205x265 drawn
+                w = 150.0f; h = 230.0f; break;
+            case EnemyType::CAVE_RAT:                                        // body ~15x10 src px
+                w = 60.0f; h = 45.0f; break;
+            case EnemyType::PREDATOR_CAT: case EnemyType::MOUNTAIN_CAT:      // cats: body ~41x21 src px, low and long
+                w = 150.0f; h = 90.0f; break;
             default: break;
         }
     }
@@ -1312,6 +1515,7 @@ Enemy::Enemy(float x, float y, EnemyType type, EnemyAction action, AttackType at
         :x(x),y(y),type(type),action(action),attackType(attackType),startPath(startPath),endPath(endPath),
          movingSpeed(speed),axis(axis),pathShape(shape),radius(radius),combat(combat),baseX(x),baseY(y),previousX(x),previousY(y){
     enemySizeFor(type, w, h);
+    if(type == EnemyType::GIANT_BATS) hp = 150;      // a giant takes six slashes, not two
 }
 
 // Optional standing-still sheet. Enemies without a row here simply keep playing their walk/seek cycle when stopped.
@@ -1319,6 +1523,10 @@ Enemy::Enemy(float x, float y, EnemyType type, EnemyAction action, AttackType at
 const EnemyFrameInfo* getEnemyIdleFrameInfo(EnemyType type) {
     static const std::unordered_map<uint32_t, EnemyFrameInfo> idleTable{
             {static_cast<uint32_t>(EnemyType::SPIDER_CHILD), {TextureType::ENEMY_SPIDER_CHILD_IDLE,48,48,5,140,true,11}},
+            {static_cast<uint32_t>(EnemyType::GIANT_BATS),   {TextureType::ENEMY_GIANT_BATS_IDLE,64,64,8,120,true,7}},
+            {static_cast<uint32_t>(EnemyType::CAVE_RAT),     {TextureType::ENEMY_CAVE_RAT_IDLE,64,64,4,150,true,16}},
+            {static_cast<uint32_t>(EnemyType::PREDATOR_CAT), {TextureType::ENEMY_PREDATOR_CAT_IDLE,48,32,4,140,true,0}},
+            {static_cast<uint32_t>(EnemyType::MOUNTAIN_CAT), {TextureType::ENEMY_MOUNTAIN_CAT_IDLE,48,32,4,140,true,0}},
     };
     auto it = idleTable.find(static_cast<uint32_t>(type));
     return it != idleTable.end() ? &it->second : nullptr;
@@ -1328,10 +1536,44 @@ const EnemyFrameInfo* getEnemyIdleFrameInfo(EnemyType type) {
 // actions only), otherwise the normal action/attack row. Render, sprite rect and the animation tick all go through this
 // so they can never disagree about which sheet the frame index belongs to.
 static const EnemyFrameInfo* currentFrameInfo(const Enemy& e){
+    if(e.action == EnemyAction::ATTACK && e.attackType == AttackType::SMASH){
+        if(const EnemyFrameInfo* s = getEnemySmashFrameInfo(e.type, e.smashPhase)) return s;
+        if(e.smashPhase == SmashPhase::RECOVER)      // rising back: the normal flying sheet
+            return getEnemyFrameInfo(e.type, EnemyAction::SEEK, AttackType::NONE);
+    }
     if(e.idlePose && (e.action == EnemyAction::PATROL || e.action == EnemyAction::SEEK || e.action == EnemyAction::RETURN)){
         if(const EnemyFrameInfo* idle = getEnemyIdleFrameInfo(e.type)) return idle;
     }
     return getEnemyFrameInfo(e.type,e.action,e.attackType);
+}
+
+// Flinch sheets. {texture, frameW, frameH, frameCount, frameDelay(ms), loop, footPad}. The delay is short on purpose: the whole
+// sheet has to play inside ENEMY_HURT_FLASH_MS, which is how long the hurt state lasts.
+const EnemyFrameInfo* getEnemyHitFrameInfo(EnemyType type) {
+    static const std::unordered_map<uint32_t, EnemyFrameInfo> hitTable{
+            {static_cast<uint32_t>(EnemyType::MOSS_BAT),     {TextureType::ENEMY_MOSS_BAT_HIT,64,64,5,30,false,25}},
+            {static_cast<uint32_t>(EnemyType::GIANT_BATS),   {TextureType::ENEMY_GIANT_BATS_HIT,64,64,4,38,false,7}},
+            {static_cast<uint32_t>(EnemyType::CAVE_RAT),     {TextureType::ENEMY_CAVE_RAT_HIT,64,64,4,38,false,16}},
+            {static_cast<uint32_t>(EnemyType::PREDATOR_CAT), {TextureType::ENEMY_PREDATOR_CAT_HIT,48,32,4,38,false,0}},
+            {static_cast<uint32_t>(EnemyType::MOUNTAIN_CAT), {TextureType::ENEMY_MOUNTAIN_CAT_HIT,48,32,4,38,false,0}},
+    };
+    auto it = hitTable.find(static_cast<uint32_t>(type));
+    return it != hitTable.end() ? &it->second : nullptr;
+}
+
+// The giant bat's smash plays three sheets in a row (wind-up, falling loop, landing squash). The wind-up row is the same one
+// getEnemyFrameInfo(GIANT_BATS, ATTACK, SMASH) returns.
+const EnemyFrameInfo* getEnemySmashFrameInfo(EnemyType type, SmashPhase phase) {
+    if(type != EnemyType::GIANT_BATS) return nullptr;
+    static const EnemyFrameInfo windup {TextureType::ENEMY_GIANT_BATS_ATTACK2,    64,64,12,70,false,7};
+    static const EnemyFrameInfo fall   {TextureType::ENEMY_GIANT_BATS_SMASH_LOOP, 64,64, 3,60,true, 8};
+    static const EnemyFrameInfo impact {TextureType::ENEMY_GIANT_BATS_SMASH_END,  64,64, 8,85,false,0};
+    switch(phase){
+        case SmashPhase::WINDUP: return &windup;
+        case SmashPhase::FALL:   return &fall;
+        case SmashPhase::IMPACT: return &impact;
+        default:                 return nullptr;     // RECOVER uses the normal flying sheet
+    }
 }
 
 const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, AttackType attackType) {
@@ -1343,8 +1585,8 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
                 {enemyAttackKey(EnemyType::MOSS_GLOW_WORM,AttackType::DASH), {TextureType::ENEMY_MOSS_GLOW_WORM_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::MOSS_GLOW_WORM,AttackType::BITE), {TextureType::ENEMY_MOSS_GLOW_WORM_ATTACK2,64,64,6,80,false}},
 
-                {enemyAttackKey(EnemyType::MOSS_BAT,AttackType::SLASH), {TextureType::ENEMY_MOSS_BAT_ATTACK1,64,64,6,80,false}},
-                {enemyAttackKey(EnemyType::MOSS_BAT,AttackType::BITE), {TextureType::ENEMY_MOSS_BAT_ATTACK2,64,64,6,80,false}},
+                {enemyAttackKey(EnemyType::MOSS_BAT,AttackType::SLASH), {TextureType::ENEMY_MOSS_BAT_ATTACK1,64,64,8,70,false,25}},
+                {enemyAttackKey(EnemyType::MOSS_BAT,AttackType::BITE), {TextureType::ENEMY_MOSS_BAT_ATTACK2,64,64,11,60,false,25}},
 
                 {enemyAttackKey(EnemyType::SINNERS_CHILD,AttackType::SLASH), {TextureType::ENEMY_SINNERS_CHILD_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::SINNERS_CHILD,AttackType::BEAM), {TextureType::ENEMY_SINNERS_CHILD_ATTACK2,64,64,6,80,false}},
@@ -1352,14 +1594,16 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
                 {enemyAttackKey(EnemyType::CAVE_PREDATOR,AttackType::SLASH), {TextureType::ENEMY_CAVE_PREDATOR_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::CAVE_PREDATOR,AttackType::BITE), {TextureType::ENEMY_CAVE_PREDATOR_ATTACK2,64,64,6,80,false}},
 
-                {enemyAttackKey(EnemyType::CAVE_RAT,AttackType::DASH), {TextureType::ENEMY_CAVE_RAT_ATTACK1,64,64,6,80,false}},
-                {enemyAttackKey(EnemyType::CAVE_RAT,AttackType::BITE), {TextureType::ENEMY_CAVE_RAT_ATTACK2,64,64,6,80,false}},
+                {enemyAttackKey(EnemyType::CAVE_RAT,AttackType::DASH), {TextureType::ENEMY_CAVE_RAT_ATTACK1,64,64,8,70,false,16}},
+                {enemyAttackKey(EnemyType::CAVE_RAT,AttackType::BITE), {TextureType::ENEMY_CAVE_RAT_ATTACK2,64,64,10,65,false,16}},
 
                 {enemyAttackKey(EnemyType::SHAFTS_RAPTOR,AttackType::SLASH), {TextureType::ENEMY_SHAFTS_RAPTOR_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::SHAFTS_RAPTOR,AttackType::BITE), {TextureType::ENEMY_SHAFTS_RAPTOR_ATTACK2,64,64,6,80,false}},
 
-                {enemyAttackKey(EnemyType::GIANT_BATS,AttackType::SLASH), {TextureType::ENEMY_GIANT_BATS_ATTACK1,64,64,6,80,false}},
-                {enemyAttackKey(EnemyType::GIANT_BATS,AttackType::BITE), {TextureType::ENEMY_GIANT_BATS_ATTACK2,64,64,6,80,false}},
+                // SPAWN: roar (head-bob, then the glowing frames) - the moss bats appear when the window opens (frame 3)
+                {enemyAttackKey(EnemyType::GIANT_BATS,AttackType::SPAWN), {TextureType::ENEMY_GIANT_BATS_ATTACK1,64,64,11,90,false,7}},
+                // SMASH: this row is the wind-up; the fall loop and the landing squash come from getEnemySmashFrameInfo()
+                {enemyAttackKey(EnemyType::GIANT_BATS,AttackType::SMASH), {TextureType::ENEMY_GIANT_BATS_ATTACK2,64,64,12,70,false,7}},
 
                 {enemyAttackKey(EnemyType::SHAFTS_WORKER,AttackType::SLASH), {TextureType::ENEMY_SHAFTS_WORKER_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::SHAFTS_WORKER,AttackType::PROJECTILE), {TextureType::ENEMY_SHAFTS_WORKER_ATTACK2,64,64,6,80,false}},
@@ -1379,11 +1623,13 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
                 {enemyAttackKey(EnemyType::THEROPOD_CHILD,AttackType::SLASH), {TextureType::ENEMY_THEROPOD_CHILD_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::THEROPOD_CHILD,AttackType::BITE), {TextureType::ENEMY_THEROPOD_CHILD_ATTACK2,64,64,6,80,false}},
 
-                {enemyAttackKey(EnemyType::PREDATOR_CAT,AttackType::SLASH), {TextureType::ENEMY_PREDATOR_CAT_ATTACK1,64,64,6,80,false}},
-                {enemyAttackKey(EnemyType::PREDATOR_CAT,AttackType::BITE), {TextureType::ENEMY_PREDATOR_CAT_ATTACK2,64,64,6,80,false}},
+                // the cats came with ONE attack sheet (a leaping bite), so both of their attacks play it
+                {enemyAttackKey(EnemyType::PREDATOR_CAT,AttackType::SLASH), {TextureType::ENEMY_PREDATOR_CAT_ATTACK1,48,32,7,80,false,0}},
+                {enemyAttackKey(EnemyType::PREDATOR_CAT,AttackType::BITE), {TextureType::ENEMY_PREDATOR_CAT_ATTACK1,48,32,7,80,false,0}},
 
-                {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::POUNCE), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK1,64,64,6,80,false}},
-                {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::BITE), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK2,64,64,6,80,false}},
+                // (the leap launches when the window opens, frame 2 - the stretched-out frame of the sheet)
+                {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::POUNCE), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK1,48,32,7,80,false,0}},
+                {enemyAttackKey(EnemyType::MOUNTAIN_CAT,AttackType::BITE), {TextureType::ENEMY_MOUNTAIN_CAT_ATTACK1,48,32,7,80,false,0}},
 
                 {enemyAttackKey(EnemyType::CROCODYLOMORPH,AttackType::SLASH), {TextureType::ENEMY_CROCODYLOMORPH_ATTACK1,64,64,6,80,false}},
                 {enemyAttackKey(EnemyType::CROCODYLOMORPH,AttackType::BITE), {TextureType::ENEMY_CROCODYLOMORPH_ATTACK2,64,64,6,80,false}},
@@ -1413,9 +1659,11 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
             {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_GLOW_WORM_SEEK,64,64,4,90,true}},
             {enemyActionKey(EnemyType::MOSS_GLOW_WORM,EnemyAction::RETURN), {TextureType::ENEMY_MOSS_GLOW_WORM_PATROL,64,64,4,120,true}},
 
-            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::PATROL), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_BAT_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::RETURN), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,4,120,true}},
+            // fliers: footPad 25 puts the bat's body centre on the middle of its hitbox (the sheet is mostly empty space)
+            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::PATROL), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,9,90,true,25}},
+            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::SEEK), {TextureType::ENEMY_MOSS_BAT_SEEK,64,64,8,60,true,25}},
+            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::RETURN), {TextureType::ENEMY_MOSS_BAT_PATROL,64,64,9,90,true,25}},
+            {enemyActionKey(EnemyType::MOSS_BAT,EnemyAction::DEAD), {TextureType::ENEMY_MOSS_BAT_DEAD,64,64,11,80,false,14}},
 
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::PATROL), {TextureType::ENEMY_SINNERS_CHILD_PATROL,24,24,10,50,true,3}},
             {enemyActionKey(EnemyType::SINNERS_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_SINNERS_CHILD_SEEK,24,24,7,50,true,2}},
@@ -1428,17 +1676,19 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_PREDATOR_SEEK,64,64,4,90,true}},
             {enemyActionKey(EnemyType::CAVE_PREDATOR,EnemyAction::RETURN), {TextureType::ENEMY_CAVE_PREDATOR_PATROL,64,64,4,120,true}},
 
-            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::PATROL), {TextureType::ENEMY_CAVE_RAT_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_RAT_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::RETURN), {TextureType::ENEMY_CAVE_RAT_PATROL,64,64,4,120,true}},
+            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::PATROL), {TextureType::ENEMY_CAVE_RAT_PATROL,64,64,6,90,true,16}},
+            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::SEEK), {TextureType::ENEMY_CAVE_RAT_SEEK,64,64,6,60,true,16}},
+            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::RETURN), {TextureType::ENEMY_CAVE_RAT_PATROL,64,64,6,90,true,16}},
+            {enemyActionKey(EnemyType::CAVE_RAT,EnemyAction::DEAD), {TextureType::ENEMY_CAVE_RAT_DEAD,64,64,5,100,false,16}},
 
             {enemyActionKey(EnemyType::SHAFTS_RAPTOR,EnemyAction::PATROL), {TextureType::ENEMY_SHAFTS_RAPTOR_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::SHAFTS_RAPTOR,EnemyAction::SEEK), {TextureType::ENEMY_SHAFTS_RAPTOR_SEEK,64,64,4,90,true}},
             {enemyActionKey(EnemyType::SHAFTS_RAPTOR,EnemyAction::RETURN), {TextureType::ENEMY_SHAFTS_RAPTOR_PATROL,64,64,4,120,true}},
 
-            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::PATROL), {TextureType::ENEMY_GIANT_BATS_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::SEEK), {TextureType::ENEMY_GIANT_BATS_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::RETURN), {TextureType::ENEMY_GIANT_BATS_PATROL,64,64,4,120,true}},
+            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::PATROL), {TextureType::ENEMY_GIANT_BATS_PATROL,64,64,8,100,true,7}},
+            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::SEEK), {TextureType::ENEMY_GIANT_BATS_SEEK,64,64,8,80,true,7}},
+            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::RETURN), {TextureType::ENEMY_GIANT_BATS_PATROL,64,64,8,100,true,7}},
+            {enemyActionKey(EnemyType::GIANT_BATS,EnemyAction::DEAD), {TextureType::ENEMY_GIANT_BATS_DEAD,64,64,16,70,false,6}},
 
             {enemyActionKey(EnemyType::SHAFTS_WORKER,EnemyAction::PATROL), {TextureType::ENEMY_SHAFTS_WORKER_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::SHAFTS_WORKER,EnemyAction::SEEK), {TextureType::ENEMY_SHAFTS_WORKER_SEEK,64,64,4,90,true}},
@@ -1464,13 +1714,15 @@ const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type, EnemyAction Action, Atta
             {enemyActionKey(EnemyType::THEROPOD_CHILD,EnemyAction::SEEK), {TextureType::ENEMY_THEROPOD_CHILD_SEEK,64,64,4,90,true}},
             {enemyActionKey(EnemyType::THEROPOD_CHILD,EnemyAction::RETURN), {TextureType::ENEMY_THEROPOD_CHILD_PATROL,64,64,4,120,true}},
 
-            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::PATROL), {TextureType::ENEMY_PREDATOR_CAT_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::SEEK), {TextureType::ENEMY_PREDATOR_CAT_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::RETURN), {TextureType::ENEMY_PREDATOR_CAT_PATROL,64,64,4,120,true}},
+            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::PATROL), {TextureType::ENEMY_PREDATOR_CAT_PATROL,48,32,6,90,true,0}},
+            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::SEEK), {TextureType::ENEMY_PREDATOR_CAT_SEEK,48,32,6,65,true,0}},
+            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::RETURN), {TextureType::ENEMY_PREDATOR_CAT_PATROL,48,32,6,90,true,0}},
+            {enemyActionKey(EnemyType::PREDATOR_CAT,EnemyAction::DEAD), {TextureType::ENEMY_PREDATOR_CAT_DEAD,48,32,8,90,false,0}},
 
-            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::PATROL), {TextureType::ENEMY_MOUNTAIN_CAT_PATROL,64,64,4,120,true}},
-            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::SEEK), {TextureType::ENEMY_MOUNTAIN_CAT_SEEK,64,64,4,90,true}},
-            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::RETURN), {TextureType::ENEMY_MOUNTAIN_CAT_PATROL,64,64,4,120,true}},
+            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::PATROL), {TextureType::ENEMY_MOUNTAIN_CAT_PATROL,48,32,6,90,true,0}},
+            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::SEEK), {TextureType::ENEMY_MOUNTAIN_CAT_SEEK,48,32,6,65,true,0}},
+            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::RETURN), {TextureType::ENEMY_MOUNTAIN_CAT_PATROL,48,32,6,90,true,0}},
+            {enemyActionKey(EnemyType::MOUNTAIN_CAT,EnemyAction::DEAD), {TextureType::ENEMY_MOUNTAIN_CAT_DEAD,48,32,8,90,false,0}},
 
             {enemyActionKey(EnemyType::CROCODYLOMORPH,EnemyAction::PATROL), {TextureType::ENEMY_CROCODYLOMORPH_PATROL,64,64,4,120,true}},
             {enemyActionKey(EnemyType::CROCODYLOMORPH,EnemyAction::SEEK), {TextureType::ENEMY_CROCODYLOMORPH_SEEK,64,64,4,90,true}},
@@ -1528,7 +1780,9 @@ const EnemyAIConfig* getEnemyAIConfig(EnemyType type) {
                 {EnemyType::CAVE_PREDATOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,85.f}}},
                 {EnemyType::CAVE_RAT,                {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::DASH},{40.f,140.f}}},
                 {EnemyType::SHAFTS_RAPTOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,90.f}}},
-                {EnemyType::GIANT_BATS,              {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{55.f,95.f}}},
+                // giant bat: SMASH (stomp, reach = how far to the side the player may be) + SPAWN (calls moss bats, reach = cast radius).
+                // The long cooldown matters: a smash is slow and leaves it exposed, it shouldn't chain.
+                {EnemyType::GIANT_BATS,              {560.f,660.f,760.f,0.f,2500u,{AttackType::SMASH,AttackType::SPAWN},{220.f,520.f}}},
                 {EnemyType::SHAFTS_WORKER,           {300.f,400.f,500.f,0.f,1500u,{AttackType::SLASH,AttackType::PROJECTILE},{75.f,400.f}}},
                 {EnemyType::ANKYLOSAURUS_CHILD,      {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{45.f,80.f}}},
                 {EnemyType::HUNTER_RAPTOR,           {300.f,400.f,500.f,0.f,1500u,{AttackType::BITE,AttackType::SLASH},{50.f,90.f}}},

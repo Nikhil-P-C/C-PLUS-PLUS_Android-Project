@@ -521,6 +521,46 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_SEEK,"Enemy/sinner_child/sinner_child_seek.png");
     loadTexture(TextureType::ENEMY_SINNERS_CHILD_DEAD,"Enemy/sinner_child/sinner_child_death.png");
 
+    // --- enemy sheets (every file is ONE horizontal strip of equal frames, see getEnemyFrameInfo in Enemies.cpp) ---
+    // moss bat: 64x64
+    loadTexture(TextureType::ENEMY_MOSS_BAT_PATROL, "Enemy/moss_bat/moss_bat_patrol.png");
+    loadTexture(TextureType::ENEMY_MOSS_BAT_SEEK,   "Enemy/moss_bat/moss_bat_seek.png");
+    loadTexture(TextureType::ENEMY_MOSS_BAT_ATTACK1,"Enemy/moss_bat/moss_bat_attack1.png");
+    loadTexture(TextureType::ENEMY_MOSS_BAT_ATTACK2,"Enemy/moss_bat/moss_bat_attack2.png");
+    loadTexture(TextureType::ENEMY_MOSS_BAT_HIT,    "Enemy/moss_bat/moss_bat_hit.png");
+    loadTexture(TextureType::ENEMY_MOSS_BAT_DEAD,   "Enemy/moss_bat/moss_bat_death.png");
+    // giant bat: 64x64. spawn = the roar/glow frames of its death sheet (no dedicated summon art was supplied)
+    loadTexture(TextureType::ENEMY_GIANT_BATS_IDLE,      "Enemy/giant_bat/giant_bat_idle.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_PATROL,    "Enemy/giant_bat/giant_bat_fly.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_SEEK,      "Enemy/giant_bat/giant_bat_fly.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_ATTACK1,   "Enemy/giant_bat/giant_bat_spawn.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_ATTACK2,   "Enemy/giant_bat/giant_bat_smash_start.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_SMASH_LOOP,"Enemy/giant_bat/giant_bat_smash_loop.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_SMASH_END, "Enemy/giant_bat/giant_bat_smash_end.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_HIT,       "Enemy/giant_bat/giant_bat_hit.png");
+    loadTexture(TextureType::ENEMY_GIANT_BATS_DEAD,      "Enemy/giant_bat/giant_bat_death.png");
+    // cave rat: 64x64 (dash = the leap sheet, bite = the rear-up-and-snap sheet)
+    loadTexture(TextureType::ENEMY_CAVE_RAT_IDLE,   "Enemy/cave_rat/cave_rat_idle.png");
+    loadTexture(TextureType::ENEMY_CAVE_RAT_PATROL, "Enemy/cave_rat/cave_rat_run.png");
+    loadTexture(TextureType::ENEMY_CAVE_RAT_SEEK,   "Enemy/cave_rat/cave_rat_run.png");
+    loadTexture(TextureType::ENEMY_CAVE_RAT_ATTACK1,"Enemy/cave_rat/cave_rat_dash.png");
+    loadTexture(TextureType::ENEMY_CAVE_RAT_ATTACK2,"Enemy/cave_rat/cave_rat_bite.png");
+    loadTexture(TextureType::ENEMY_CAVE_RAT_HIT,    "Enemy/cave_rat/cave_rat_hit.png");
+    loadTexture(TextureType::ENEMY_CAVE_RAT_DEAD,   "Enemy/cave_rat/cave_rat_death.png");
+    // cats: 48x32. They only came with one attack sheet (a leaping bite), so ATTACK1 is shared by both of their attacks
+    loadTexture(TextureType::ENEMY_PREDATOR_CAT_IDLE,   "Enemy/predator_cat/predator_cat_idle.png");
+    loadTexture(TextureType::ENEMY_PREDATOR_CAT_PATROL, "Enemy/predator_cat/predator_cat_walk.png");
+    loadTexture(TextureType::ENEMY_PREDATOR_CAT_SEEK,   "Enemy/predator_cat/predator_cat_walk.png");
+    loadTexture(TextureType::ENEMY_PREDATOR_CAT_ATTACK1,"Enemy/predator_cat/predator_cat_bite.png");
+    loadTexture(TextureType::ENEMY_PREDATOR_CAT_HIT,    "Enemy/predator_cat/predator_cat_hit.png");
+    loadTexture(TextureType::ENEMY_PREDATOR_CAT_DEAD,   "Enemy/predator_cat/predator_cat_death.png");
+    loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_IDLE,   "Enemy/mountain_cat/mountain_cat_idle.png");
+    loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_PATROL, "Enemy/mountain_cat/mountain_cat_walk.png");
+    loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_SEEK,   "Enemy/mountain_cat/mountain_cat_walk.png");
+    loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_ATTACK1,"Enemy/mountain_cat/mountain_cat_bite.png");
+    loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_HIT,    "Enemy/mountain_cat/mountain_cat_hit.png");
+    loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_DEAD,   "Enemy/mountain_cat/mountain_cat_death.png");
+
     loadSound(SoundType::SFX_FOOTSTEPS,"Sound/footstep/concrete_step.wav");
     loadSound(SoundType::SFX_JUMP, "Sound/Jump/Jump.wav");
     loadSound(SoundType::SFX_ATTACK_SLASH_HIT, "Sound/Slash/Hit/Hit.wav");

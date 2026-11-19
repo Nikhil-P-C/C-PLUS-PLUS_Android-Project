@@ -74,6 +74,25 @@ const float ENEMY_PROJECTILE_MAX_LIFE   = 4.0f;    // s before it vanishes if it
 const float ENEMY_PROJECTILE_SIZE       = 22.0f;   // placeholder rect (px)
 const float ENEMY_CHASE_STOP_FRACTION   = 0.8f;    // chase stops once the gap to the player is <= this * attack range
 
+// SMASH (the giant bat's stomp). Phases: WINDUP (rises + shakes, readable tell) -> FALL (drops onto the spot the player
+// stood on when the wind-up ended) -> IMPACT (squash on the floor, shockwave, the punish window) -> RECOVER (rises back).
+const float ENEMY_SMASH_RISE_PX        = 70.0f;    // how far it lifts during the wind-up
+const float ENEMY_SMASH_RISE_SPEED     = 160.0f;   // px/s during the wind-up lift
+const float ENEMY_SMASH_LAUNCH_SPEED   = 450.0f;   // px/s downward at the start of the fall (gravity does the rest)
+const float ENEMY_SMASH_HOMING_SPEED   = 520.0f;   // px/s sideways while falling, toward the locked spot
+const float ENEMY_SMASH_RECOVER_SPEED  = 240.0f;   // px/s rising back to its hover height
+const float ENEMY_SMASH_MAX_DROP       = 900.0f;   // won't smash a player further below than this
+const float ENEMY_SMASH_SHOCK_PAD      = 150.0f;   // shockwave reaches this far past each side of the body
+const float ENEMY_SMASH_SHOCK_H        = 46.0f;    // shockwave height, hugging the floor
+const float ENEMY_SMASH_SHOCK_FRAC     = 0.5f;     // the shockwave is live for this fraction of the landing animation
+const float ENEMY_SMASH_TRAUMA         = 0.55f;    // camera shake added on landing
+
+// SPAWN (the giant bat calls moss bats)
+const int          ENEMY_SPAWN_COUNT       = 2;       // helpers per cast
+const int          ENEMY_SPAWN_MAX_ALIVE   = 4;       // won't cast while this many of its helpers are alive
+const unsigned int ENEMY_SPAWN_COOLDOWN_MS = 7000;    // between casts of one caster
+const float        ENEMY_SPAWN_SPEED       = 140.0f;  // helpers' chase / patrol speed
+
 enum class EnemyType{
     //Moss cave enemies
     SPIDER_CHILD,
@@ -133,8 +152,13 @@ enum class AttackType{
     PROJECTILE,
     SHOOT,
     POUNCE,   // a cat's leap: crouch, then jump along an arc onto the player (ranks with DASH)
+    SMASH,    // a flier's stomp: rises, drops onto the player's spot, shockwave on landing, then rises back (ranks with DASH)
+    SPAWN,    // summons helpers (the giant bat calls moss bats). No hitbox on the caster; the helpers are the damage
     NONE,
 };
+
+// the phases of a SMASH (see the ENEMY_SMASH_* tuning above)
+enum class SmashPhase : int { WINDUP = 0, FALL, IMPACT, RECOVER };
 
 // Reach ordering that holds for EVERY enemy (each enemy only picks its own pixel values):
 //   bite < slash < dash (or pounce) < shoot < beam < projectile
@@ -145,9 +169,11 @@ inline int attackRank(AttackType t){
         case AttackType::SLASH:      return 1;
         case AttackType::DASH:       return 2;
         case AttackType::POUNCE:     return 2;   // same tier as dash; no enemy owns both
+        case AttackType::SMASH:      return 2;   // same tier as dash; the giant bat pairs it with SPAWN
         case AttackType::SHOOT:      return 3;
         case AttackType::BEAM:       return 4;
         case AttackType::PROJECTILE: return 5;
+        case AttackType::SPAWN:      return 6;   // the longest reach there is: it is cast from a distance
         default:                     return 99;
     }
 }
@@ -162,7 +188,7 @@ inline bool attackParryable(AttackType t){
         case AttackType::DASH:
         case AttackType::POUNCE:
         case AttackType::PROJECTILE: return true;
-        default:                     return false;   // SHOOT, BEAM, NONE
+        default:                     return false;   // SHOOT, BEAM, SMASH (dodge it), SPAWN (no hit at all), NONE
     }
 }
 // How many separate strikes ONE use of this attack lands (1 = a normal attack). A double-hit attack replays its swing, and
@@ -211,6 +237,10 @@ const EnemyAIConfig* getEnemyAIConfig(EnemyType type);
 const EnemyFrameInfo* getEnemyFrameInfo(EnemyType type,EnemyAction Action,AttackType attackType);
 // optional standing-still sheet (nullptr = this enemy has no idle art; it keeps its walk cycle)
 const EnemyFrameInfo* getEnemyIdleFrameInfo(EnemyType type);
+// optional flinch sheet, shown for the length of the hurt flash when the player lands a hit (nullptr = tint only)
+const EnemyFrameInfo* getEnemyHitFrameInfo(EnemyType type);
+// the three sheets a SMASH plays through: wind-up (WINDUP), falling loop (FALL), landing squash (IMPACT). nullptr = none
+const EnemyFrameInfo* getEnemySmashFrameInfo(EnemyType type, SmashPhase phase);
 
 // One landed player hit (melee swing, or a rate-limited tick of the beam). World space.
 // GameState turns these into sparks / shake / hit-stop / combo (see GameState::onEnemyHit).
@@ -233,6 +263,9 @@ struct EnemyParryContact{
     SDL_FRect box{0.0f, 0.0f, 0.0f, 0.0f};
     bool  partial = false;      // true = this was NOT the last strike of a multi-hit attack (deflect only, no stagger yet)
 };
+
+// the giant bat landed a smash: GameState turns this into camera shake + a dust burst along the floor
+struct EnemyImpactEvent{ float x, feetY, width; };
 
 struct Enemy{
     Enemy(float x,float y,EnemyType type,EnemyAction action,AttackType attackType,
@@ -290,7 +323,15 @@ struct Enemy{
     float dashDirX =0.0f, dashDirY =0.0f;   // POUNCE reuses dashDirX as the horizontal launch speed (px/s)
     float dashTravelled =0.0f;         // DASH: px covered. POUNCE: seconds in the air
     bool  dashDone =false;             // POUNCE: has landed, the leap is over
-    bool  projectileFired =false;      // PROJECTILE: the object has left the hand (one per attack)
+    bool  projectileFired =false;      // PROJECTILE: the object has left the hand (one per attack). SPAWN reuses it: helpers already called
+    // SMASH state (only meaningful while attackType == SMASH)
+    SmashPhase smashPhase =SmashPhase::WINDUP;
+    float smashTargetX =0.0f;          // centre x the fall homes in on (locked when the fall starts)
+    float smashStartY  =0.0f;          // hover height to return to
+    bool  smashShockDone =false;       // the landing shockwave has been spawned
+    // SPAWN state
+    unsigned int nextSpawnTime =0;     // earliest tick this caster may call helpers again
+    int   summonerIdx =-1;             // index (in m_enemies) of the enemy that called this one, -1 = placed by the level
 
     // --- damaged-by-player state ---
     bool isDead =false;
@@ -385,6 +426,18 @@ public:
     // add one enemy at runtime (boss SUMMON)
     void spawn(const Enemy& e){ m_enemies.push_back(e); }
 
+    // Where helpers were just called (SPAWN) / a SMASH just landed, since the last call (cleared on read).
+    std::vector<SDL_FPoint> consumeSpawnEvents(){
+        std::vector<SDL_FPoint> out;
+        out.swap(m_spawnEvents);
+        return out;
+    }
+    std::vector<EnemyImpactEvent> consumeImpactEvents(){
+        std::vector<EnemyImpactEvent> out;
+        out.swap(m_impactEvents);
+        return out;
+    }
+
     // Centres (world space) of enemies that were killed since the last call -
     // GameState turns these into a puff of particles. Clears the list.
     std::vector<SDL_FPoint> consumeDeathEvents(){
@@ -419,6 +472,20 @@ private:
                            const std::vector<Platform>& platforms,
                            const std::vector<Block>& blocks);
     std::vector<EnemyProjectile> m_projectiles;
+
+    // SPAWN: the giant bat calls its helpers. Queued, not added on the spot: update() is iterating m_enemies when the
+    // attack fires, and push_back there would invalidate that loop.
+    struct PendingSpawn{ EnemyType type; float x, y; combatType combat; int summoner; };
+    void queueHelpers(const Enemy& caster, int casterIdx);
+    int  helpersAlive(int casterIdx) const;
+    std::vector<PendingSpawn> m_pendingSpawns;
+    std::vector<SDL_FPoint> m_spawnEvents;
+    std::vector<EnemyImpactEvent> m_impactEvents;
+
+    // SMASH: advances the phase machine one frame (called from updateAI's ATTACK case)
+    // returns true once the whole smash (wind-up, fall, landing, rising back) is over
+    bool updateSmash(Enemy& e, const SDL_FRect& player, float dt, unsigned int now);
+    void setSmashPhase(Enemy& e, SmashPhase next, unsigned int now);
 
     void renderPlaceholderBody(SDL_Renderer* renderer, const Enemy& e, int camX, int camY) const;
 

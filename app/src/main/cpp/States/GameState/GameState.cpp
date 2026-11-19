@@ -1118,6 +1118,17 @@ void GameState::flushEnemyDeathEffects() {
     for(const SDL_FPoint& p : m_enemyBuilder.consumeDeathEvents()){
         m_particleSystem.emitBurst(p.x, p.y, 14, 120.0f, 340.0f, 0.35f, 0.60f, 46.0f, 255, 240, 200);
     }
+    // the giant bat called helpers: a purple puff where they appear
+    for(const SDL_FPoint& p : m_enemyBuilder.consumeSpawnEvents()){
+        m_particleSystem.emitBurst(p.x, p.y, 22, 100.0f, 300.0f, 0.4f, 0.8f, 40.0f, 190, 110, 255);
+    }
+    // a smash landed: shake + dust along the floor (the shockwave's reach)
+    for(const EnemyImpactEvent& e : m_enemyBuilder.consumeImpactEvents()){
+        Camera::getInstance().addTrauma(ENEMY_SMASH_TRAUMA);
+        // (emitLandDust draws randomFloat(rightX, leftX), so its "left" argument must be the LARGER x - the player's call does the same)
+        m_particleSystem.emitLandDust(e.x + e.width * 0.5f, e.feetY, e.x - e.width * 0.5f, e.feetY);
+        m_particleSystem.emitBurst(e.x, e.feetY - 10.0f, 18, 150.0f, 420.0f, 0.3f, 0.6f, 44.0f, 210, 190, 160);
+    }
 }
 
 void GameState::applyRecoil(float dirX, float speed) {
