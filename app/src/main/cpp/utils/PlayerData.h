@@ -80,6 +80,16 @@ public:
         for(int i = 0; i < Upgrades::COUNT; ++i) m_upgrade[i] = std::clamp(levels[i], 0, Upgrades::MAX_LEVEL[i]);
     }
 
+    // The Merchant (hidden boss) has been beaten: every upgrade jumps to its top level for free, the new hearts arrive full, and the
+    // shopkeeper never appears again. Kept until resetRun().
+    bool isMerchantDefeated() const{ return m_merchantDefeated; }
+    void unlockAllUpgrades(){
+        const int heartsBefore = m_upgrade[Upgrades::HEART];
+        for(int i = 0; i < Upgrades::COUNT; ++i) m_upgrade[i] = Upgrades::MAX_LEVEL[i];
+        m_hp += m_upgrade[Upgrades::HEART] - heartsBefore;     // same as buying them: each new heart arrives full
+        m_merchantDefeated = true;
+    }
+
     // what the upgrades mean for the game
     int   getMaxHP() const{ return Upgrades::BASE_HEARTS + m_upgrade[Upgrades::HEART]; }
     float slashRangeMul() const{ return Upgrades::SLASH_RANGE_MUL[m_upgrade[Upgrades::SLASH_RANGE]]; }
@@ -93,6 +103,7 @@ public:
         m_fruitCollectionScore = 0;
         m_fruit = 0;
         for(int& level : m_upgrade) level = 0;
+        m_merchantDefeated = false;
         m_hp = getMaxHP();
         m_magic = Upgrades::STARTING_MAGIC;
         m_isInvincible = false;
@@ -145,6 +156,7 @@ private:
     int m_fruitCollectionScore = 0;
     int m_fruit = 0;                                   // spendable fruit (the merchant's currency)
     int m_upgrade[Upgrades::COUNT] = {0,0,0,0,0};      // levels bought, see utils/Upgrades.h
+    bool m_merchantDefeated = false;                   // the hidden Merchant boss was beaten (see unlockAllUpgrades)
     unsigned int m_lastHit =0;
     int m_hp = Upgrades::BASE_HEARTS;
     float m_magic = Upgrades::STARTING_MAGIC;

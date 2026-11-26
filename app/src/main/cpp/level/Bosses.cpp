@@ -156,6 +156,20 @@ namespace {
                                                                                                                              { K::BEAM_DIAG,       "Divine Ray",     900, 1500, 1100, 1800, 0, 0, 0, 0, 6500, P3 },
                                                                                                                              { K::PROJECTILE_FAN,  "Feather Volley", 650,  300, 900, 0, 560, 6, 0, 0, 3500, P3 },
                                                                                                                      }, BossBehavior::PREACHER, 1.5f, 1.0f, false, true, 700, 0.35f },
+            // ------------------------------------------------------------------ HIDDEN
+            // Merchant: the hooded trader was a swordswoman all along. Fast and clean in phase 1 (flurries you can parry, a dash strike,
+            // a leap, and a reactive slide-away when you swing at her). At half health she sheds the cloak: the TIMELESS ANGEL skips
+            // through time (blink pounces), calls down judgment columns and clockwork orbs. Beating her unlocks every shop upgrade.
+            { BossType::MERCHANT, Biome::MOUNTAIN, BossTier::MAIN, "Merchant",
+                    1000, 60, 125, 400, combatType::GROUND, EnemyType::CAVE_RAT, 900, 1100, 750, 0.5f, 1.0f, 7, {
+                                                                                                                             { K::BLADE_SLASH, "Warrior Flurry", 320, 560, 550, 200, 480, 3, 0, 250, 1500, BOTH, 0, true, SLASH_SEQ(SLASH_SWORD, SLASH_RISING, SLASH_AXE) },
+                                                                                                                             { K::CHARGE,     "Dash Strike",   380, 800, 650, 650, 1150, 0, 220, 0, 2800, BOTH },
+                                                                                                                             { K::LEAP_SLAM,  "Aerial Cleave", 600, 2200, 900, 0, 700, 0, 180, 0, 3600, BOTH },
+                                                                                                                             { K::DODGE_DASH, "Slip Away",       0,  260, 100, 330, 1500, 0, 0, 0, 1800, BOTH, RE },
+                                                                                                                             { K::TELEPORT_POUNCE, "Time Skip",    600, 4000, 1000, 0, 0, 2, 0, 0, 5000, P2 },
+                                                                                                                             { K::SMITE,      "Hour of Judgment", 900, 1800, 1000, 0, 0, 4, 0, 0, 5500, P2 },
+                                                                                                                             { K::ORB_SUMMON, "Clockwork Orbs", 900, 1800, 1200, 0, 380, 4, 0, 0, 6500, P2 },
+                                                                                                                     }, BossBehavior::NONE, 1.3f, 1.0f, false, false, 0, 0.3f },
     };
 
     struct BossToken { const char* name; BossType type; };
@@ -167,6 +181,7 @@ namespace {
             {"WOODS_THORN_MATRIARCH", BossType::WOODS_THORN_MATRIARCH}, {"WOODS_TREEHORN_ELDER", BossType::WOODS_TREEHORN_ELDER},
             {"MOUNTAIN_CAT_QUEEN", BossType::MOUNTAIN_CAT_QUEEN},       {"MOUNTAIN_BROTHER", BossType::MOUNTAIN_BROTHER},
             {"PEAK_THE_PREACHER", BossType::PEAK_THE_PREACHER},
+            {"MERCHANT", BossType::MERCHANT},
     };
 
     const char* kBiomeTag[] = {"moss", "stone", "shaft", "plains", "woods", "mountain", "peak"};
@@ -273,6 +288,7 @@ BossTitleInfo getBossTitleInfo(BossType t){
         case T::MOUNTAIN_CAT_QUEEN:     return { BossRank::THREAT,    { "Queen of Claws", nullptr, nullptr } };
         case T::MOUNTAIN_BROTHER:       return { BossRank::THREAT,    { "The Preacher's Brother", "Fury", nullptr } };
         case T::PEAK_THE_PREACHER:      return { BossRank::CHALLENGE, { "God's Only Preacher", "Second Berserker", "Ascension" } };
+        case T::MERCHANT:               return { BossRank::CHALLENGE, { "The Trader's Blade", "Timeless Angel", nullptr } };
         default:                        return { BossRank::THREAT,    { "", nullptr, nullptr } };
     }
 }
@@ -393,6 +409,7 @@ void BossBuilder::startDeath(Boss& b, unsigned int now){
     b.surface = Boss::Surface::FLOOR;
     b.w = b.winged ? b.w : b.baseW; b.h = b.baseH;
     m_deathEvents.push_back({b.x + b.w * 0.5f, b.y + b.h * 0.5f});
+    m_killed.push_back(b.type);
     m_killScore += (def && def->tier == BossTier::MAIN) ? BOSS_MAIN_KILL_SCORE : BOSS_MINI_KILL_SCORE;
     Camera::getInstance().addTrauma(1.0f);
     Engine::Get().getAssetManager().fadeOutMusic(BOSS_MUSIC_FADE_MS);
@@ -424,6 +441,18 @@ void BossBuilder::showTitleCard(const Boss& b, int phaseIdx, bool nameCard){
     m_card.rank = ti.rank;
     m_card.main = nameCard ? def->name : phaseName;
     m_card.sub  = (nameCard && ti.phaseName[0]) ? ti.phaseName[0] : "";
+    m_card.tag.clear();
+}
+
+void BossBuilder::showMessageCard(const std::string& main, const std::string& sub, const std::string& tag){
+    m_card.on = true;
+    m_card.start = SDL_GetTicks();
+    m_card.nameCard = true;
+    m_card.dur = 3600;
+    m_card.rank = BossRank::CHALLENGE;
+    m_card.main = main;
+    m_card.sub = sub;
+    m_card.tag = tag;
 }
 
 void BossBuilder::renderTitleCard(SDL_Renderer* renderer) const {
@@ -440,7 +469,7 @@ void BossBuilder::renderTitleCard(SDL_Renderer* renderer) const {
     const MenuTheme& th = MenuTheme::get();
 
     const bool challenge = m_card.rank == BossRank::CHALLENGE;
-    const std::string tag = challenge ? "CHALLENGE" : "THREAT";
+    const std::string tag = !m_card.tag.empty() ? m_card.tag : (challenge ? "CHALLENGE" : "THREAT");
     const int mainSize = m_card.nameCard ? 92 : 64;
     const std::string mainKey = m_card.main + "#" + std::to_string(mainSize);
     if(mainKey != m_cardMainKey){ m_cardMain.set(renderer, *m_cardFont, m_card.main.c_str(), mainSize); m_cardMainKey = mainKey; }
@@ -643,6 +672,11 @@ bool BossBuilder::getArena(SDL_FRect& out) const {
     return true;
 }
 
+void BossBuilder::spawnBoss(const Boss& b){
+    m_bosses.push_back(b);
+    m_template.push_back(b);        // resetFight() restores bosses index by index, so both lists must stay the same length
+}
+
 bool BossBuilder::hasLivingBoss() const {
     for(const auto& b : m_bosses) if(!b.isDead()) return true;
     return false;
@@ -718,8 +752,11 @@ void BossBuilder::update(float dt, const SDL_FRect& player, const SDL_FRect& wal
         endGrab();
     }
 
-    for(auto& b : m_bosses)
+    for(auto& b : m_bosses){
+        const float prevX = b.x;
         updateBoss(b, dt, player, wall, grounds, platforms, blocks, now);
+        b.artVx = dt > 0.0001f ? (b.x - prevX) / dt : 0.0f;       // (the art picks run / idle from this)
+    }
 
     updateHazards(dt, wall, grounds, platforms, blocks);
 }
@@ -2579,9 +2616,183 @@ namespace {
     }
 }
 
+// ====================================================================================================
+//  boss art: the Giant Rat and the Merchant / Timeless Angel have sprite sheets. Everything else is still the placeholder rectangle.
+//  Every sheet is ONE horizontal strip of equal frames. The animation is chosen from the boss's state + the attack it is in:
+//  wind-up (TELEGRAPH) and the strike (ATTACKING) each play their own part of the sheet, so the tell reads in the art.
+// ====================================================================================================
+namespace {
+    struct ArtSheet{ TextureType tex; int frames; int delayMs; bool loop; };
+    inline int artFrame(unsigned int ms, const ArtSheet& s){
+        const int n = std::max(1, s.frames);
+        const int f = (int)(std::min(ms, 3600000u) / (unsigned int)std::max(1, s.delayMs));
+        return s.loop ? f % n : std::min(f, n - 1);
+    }
+    inline int artProgress(unsigned int elapsed, unsigned int total, int from, int to){      // frame `from`..`to` spread over `total` ms
+        const float k = total > 0 ? std::clamp((float)elapsed / (float)total, 0.0f, 0.999f) : 0.0f;
+        return from + (int)(k * (float)(to - from + 1));
+    }
+}
+
+bool BossBuilder::renderBossArt(SDL_Renderer* r, const Boss& b, int camX, int camY) const {
+    const bool rat      = b.type == BossType::STONE_GIANT_RAT;
+    const bool merchant = b.type == BossType::MERCHANT;
+    if(!rat && !merchant) return false;
+    const BossDef* def = getBossDef(b.type);
+    if(!def) return false;
+    AssetManager& am = Engine::Get().getAssetManager();
+
+    const unsigned int now     = FrameClock::now();
+    const unsigned int inState = now > b.stateStart ? now - b.stateStart : 0u;
+    const bool moving = std::fabs(b.artVx) > 40.0f;
+    const BossAttackDef* atk = (b.attack >= 0 && b.attack < def->attackCount) ? &def->attacks[b.attack] : nullptr;
+    const bool telegraph = b.state == BossState::TELEGRAPH && atk;
+    const bool attacking = b.state == BossState::ATTACKING && atk;
+    const bool angel = merchant && (b.phase != BossPhase::PHASE_1 || b.state == BossState::PHASE_TRANSITION);
+
+    // ---- pick sheet + frame ----------------------------------------------------------------------------------------
+    ArtSheet sheet{ TextureType::BOSS_GIANT_RAT_IDLE, 1, 100, true };
+    int frame = 0;
+    int frameW = 70, frameH = 70;
+    float scale = 5.0f, bodyCx = 35.0f, footPad = 25.0f;      // (rat) body centre x in the frame, empty rows under the feet
+    if(merchant){ frameW = 69; frameH = 44; scale = 4.0f; bodyCx = 27.0f; footPad = 1.0f; }
+
+    const bool dead = b.isDead();
+    const bool stunned = !dead && now < b.staggerUntil;
+    const bool hurtPose = !dead && (stunned || (b.isHurt && (b.state == BossState::IDLE || b.state == BossState::RECOVER)));
+    // ms since the hit landed (a stagger long after the flash just holds the last hurt frame)
+    unsigned int sinceHit = 400u;
+    if(b.hurtFlashEnd > now && b.hurtFlashEnd - now <= ENEMY_HURT_FLASH_MS) sinceHit = ENEMY_HURT_FLASH_MS - (b.hurtFlashEnd - now);
+
+    if(rat){
+        const ArtSheet idle{ TextureType::BOSS_GIANT_RAT_IDLE, 10, 100, true }, run{ TextureType::BOSS_GIANT_RAT_RUN, 8, 55, true },
+                bite{ TextureType::BOSS_GIANT_RAT_BITE, 12, 80, false }, hurt{ TextureType::BOSS_GIANT_RAT_HURT, 3, 60, false },
+                death{ TextureType::BOSS_GIANT_RAT_DEAD, 6, 110, false };
+        if(dead){ sheet = death; frame = artFrame(now > b.deathTime ? now - b.deathTime : 0u, death); }
+        else if(hurtPose){ sheet = hurt; frame = artFrame(sinceHit, hurt); }
+        else if(telegraph){
+            if(atk->kind == K::CHARGE){ sheet = bite; frame = artProgress(inState, atk->windupMs, 0, 4); }          // hunches down before the dash
+            else                      { sheet = bite; frame = artProgress(inState, atk->windupMs, 0, 6); }          // coils for the snatch / rake
+        }
+        else if(attacking){
+            if(atk->kind == K::CHARGE){ sheet = run; frame = artFrame(inState, run); }
+            else                      { sheet = bite; frame = artProgress(inState, atk->activeMs, 7, 11); }         // jaws open, snap, settle
+        }
+        else if(moving){ sheet = run; frame = artFrame(inState, run); }
+        else           { sheet = idle; frame = artFrame(inState, idle); }
+    } else {
+        const ArtSheet idle{ TextureType::BOSS_MERCHANT_IDLE, 6, 110, true }, run{ TextureType::BOSS_MERCHANT_RUN, 8, 70, true },
+                attack{ TextureType::BOSS_MERCHANT_ATTACK, 12, 60, false }, dashAtk{ TextureType::BOSS_MERCHANT_DASH_ATTACK, 10, 60, false },
+                dash{ TextureType::BOSS_MERCHANT_DASH, 7, 40, false }, crouch{ TextureType::BOSS_MERCHANT_CROUCH, 6, 80, false },
+                jump{ TextureType::BOSS_MERCHANT_JUMP, 3, 110, false }, fall{ TextureType::BOSS_MERCHANT_FALL, 3, 110, true },
+                hurt{ TextureType::BOSS_MERCHANT_HURT, 4, 55, false }, death{ TextureType::BOSS_MERCHANT_DEAD, 11, 95, false };
+        if(dead){ sheet = death; frame = artFrame(now > b.deathTime ? now - b.deathTime : 0u, death); }
+        else if(hurtPose){ sheet = hurt; frame = artFrame(sinceHit, hurt); }
+        else if(telegraph || attacking){
+            switch(atk->kind){
+                case K::BLADE_SLASH: {
+                    sheet = attack;
+                    if(telegraph) frame = artProgress(inState, atk->windupMs, 0, 4);                                  // sword drawn back / raised
+                    else {                                                                                            // every swing of the combo replays the cut
+                        const float interval = bossSwingInterval(*atk, phaseSpeedMul(b));
+                        frame = artProgress((unsigned int)std::fmod((float)inState, std::max(1.0f, interval)), (unsigned int)interval, 5, 11);
+                    }
+                    break;
+                }
+                case K::CHARGE:
+                    if(telegraph){ sheet = crouch; frame = artProgress(inState, atk->windupMs, 0, 5); }
+                    else         { sheet = dashAtk; frame = artProgress(inState, atk->activeMs, 0, 9); }
+                    break;
+                case K::LEAP_SLAM: case K::AERIAL_DIVE: case K::TELEPORT_POUNCE:
+                    if(telegraph){ sheet = crouch; frame = artProgress(inState, atk->windupMs, 0, 5); }
+                    else if(!b.isGrounded){ if(b.velocityY < 0.0f){ sheet = jump; frame = artFrame(inState, jump); } else { sheet = fall; frame = artFrame(inState, fall); } }
+                    else { sheet = crouch; frame = 5; }                                                              // landed
+                    break;
+                case K::DODGE_DASH: sheet = dash; frame = artProgress(inState, std::max(1u, atk->activeMs), 0, 6); break;
+                case K::SMITE: case K::ORB_SUMMON:                                                                   // the angel raises its blade and holds it
+                    sheet = attack; frame = telegraph ? artProgress(inState, atk->windupMs, 0, 4) : 4;
+                    break;
+                default: sheet = idle; frame = artFrame(inState, idle); break;
+            }
+        }
+        else if(b.state == BossState::PHASE_TRANSITION){ sheet = attack; frame = 4; }                                // rises with the blade up
+        else if(moving){ sheet = run; frame = artFrame(inState, run); }
+        else           { sheet = idle; frame = artFrame(inState, idle); }
+    }
+
+    SDL_Texture* tex = am.getTexture(sheet.tex);
+    if(!tex) return false;                       // sheet missing: fall back to the rectangle
+    if(b.hidden) return true;                    // (blinking away: nothing is drawn, the landing marker is drawn by renderExtras)
+    frame = std::clamp(frame, 0, std::max(0, sheet.frames - 1));
+
+    // ---- placement: the sprite is centred on the hitbox (body centre, so a flip does not slide it) and stands on its bottom ----
+    const float dw = (float)frameW * scale, dh = (float)frameH * scale;
+    const bool flipH = !b.isFacingRight;         // both sheets are drawn facing right
+    const float cxWorld = b.x + b.w * 0.5f;
+    float hover = 0.0f;
+    if(angel && !dead) hover = -(22.0f + std::sin(now * 0.004f) * 8.0f);       // the Timeless Angel floats a little off the ground
+    SDL_FRect dst{ cxWorld - (flipH ? ((float)frameW - bodyCx) : bodyCx) * scale - (float)camX,
+                   b.y + b.h - (dh - footPad * scale) + hover - (float)camY, dw, dh };
+    SDL_FRect src{ (float)(frameW * frame), 0.0f, (float)frameW, (float)frameH };
+
+    // ---- the angel: halo + wings behind the body ----------------------------------------------------------------------
+    if(angel){
+        const float k = b.state == BossState::PHASE_TRANSITION ? std::clamp((float)inState / (float)BOSS_PHASE_TRANSITION_MS, 0.0f, 1.0f) : 1.0f;
+        const float t = now * 0.001f;
+        const float sx = cxWorld - (float)camX, sy = b.y + b.h * 0.38f + hover - (float)camY;      // shoulders
+        const float flap = std::sin(t * 5.0f) * 0.18f;
+        SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+        for(int side = -1; side <= 1; side += 2){
+            for(int i = 0; i < 6; ++i){                                                            // six feathers per wing, fanned from low-out to high-up
+                const float ang = (0.10f + (float)i * 0.24f + flap);                               // radians above horizontal
+                const float len = (90.0f + (float)(5 - i) * 20.0f) * k;
+                const float x0 = sx + (float)side * 12.0f, y0 = sy + (float)i * 5.0f;              // roots clustered at the shoulder blades
+                const float ex = x0 + (float)side * std::cos(ang) * len;
+                const float ey = y0 - std::sin(ang) * len * 0.9f;
+                fillQuad(r, x0, y0, ex, ey, 18.0f * k + 3.0f, SDL_FColor{ 1.0f, 0.97f, 0.82f, 0.60f * k });
+                fillQuad(r, x0, y0, ex, ey,  6.0f * k + 1.0f, SDL_FColor{ 1.0f, 1.0f, 1.0f, 0.55f * k });
+            }
+        }
+        const float hx = sx, hy = b.y + hover - 34.0f - (float)camY + (b.state == BossState::PHASE_TRANSITION ? (1.0f - k) * 40.0f : 0.0f);
+        for(int i = 0; i < 28; ++i){                                                               // halo: a thin gold ring
+            const float a0 = (float)i * 6.2831853f / 28.0f, a1 = (float)(i + 1) * 6.2831853f / 28.0f;
+            fillQuad(r, hx + std::cos(a0) * 34.0f, hy + std::sin(a0) * 9.0f, hx + std::cos(a1) * 34.0f, hy + std::sin(a1) * 9.0f, 4.0f,
+                     SDL_FColor{ 1.0f, 0.88f, 0.4f, 0.9f * k });
+        }
+    }
+
+    // ---- the sprite ---------------------------------------------------------------------------------------------------------
+    const bool flash = !dead && (b.isHurt || now < b.whiteFlashEnd);
+    if(dead)              SDL_SetTextureColorMod(tex, 150, 150, 150);
+    else if(b.isHurt)     SDL_SetTextureColorMod(tex, 255, 120, 120);
+    else if(stunned){ const float p = 0.5f + 0.5f * std::sin(now * 0.03f); SDL_SetTextureColorMod(tex, (Uint8)(150 + 40 * p), (Uint8)(185 + 40 * p), 255); }
+    else if(angel)        SDL_SetTextureColorMod(tex, 255, 236, 170);                           // gold-lit
+    const SDL_FlipMode flip = flipH ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    SDL_RenderTextureRotated(r, tex, &src, &dst, 0.0, nullptr, flip);
+    SDL_SetTextureColorMod(tex, 255, 255, 255);
+    if(flash && !b.isHurt){                                                                  // melee hit: additive white pass (same as the enemies)
+        SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_ADD);
+        SDL_SetTextureAlphaMod(tex, 200);
+        SDL_RenderTextureRotated(r, tex, &src, &dst, 0.0, nullptr, flip);
+        SDL_SetTextureAlphaMod(tex, 255);
+        SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+    }
+    if(angel && !dead){                                                                      // soft golden glow over the body
+        SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_ADD);
+        SDL_SetTextureColorMod(tex, 255, 220, 120);
+        SDL_SetTextureAlphaMod(tex, (Uint8)(60 + 30 * std::sin(now * 0.006f)));
+        SDL_RenderTextureRotated(r, tex, &src, &dst, 0.0, nullptr, flip);
+        SDL_SetTextureAlphaMod(tex, 255);
+        SDL_SetTextureColorMod(tex, 255, 255, 255);
+        SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+    }
+    return true;
+}
+
 void BossBuilder::renderBoss(SDL_Renderer* r, const Boss& b, int camX, int camY) const {
     const BossDef* def = getBossDef(b.type);
     if(!def) return;
+    if(renderBossArt(r, b, camX, camY)) return;       // sprite bosses (Giant Rat, Merchant); the rest are still rectangles
 
     Uint8 cr = 200, cg = 200, cb = 200;
     switch(def->biome){
@@ -2635,7 +2846,7 @@ void BossBuilder::renderBoss(SDL_Renderer* r, const Boss& b, int camX, int camY)
     }
 
     if(b.hidden){                                         // burrowed / teleporting: just a rumbling mound on the floor
-        if(def->behavior != BossBehavior::PREACHER && b.markerOn){
+        if(def->behavior != BossBehavior::PREACHER && b.type != BossType::MERCHANT && b.markerOn){
             SDL_SetRenderDrawColor(r, 120, 90, 60, 220);
             for(int i = 0; i < 5; ++i){
                 SDL_FRect d{ b.markerX - camX - 40.0f + (float)i * 18.0f, m_floorY - camY - 8.0f - (float)((now / 70 + i) % 3) * 5.0f, 12.0f, 12.0f };

@@ -736,6 +736,16 @@ void GameState::update(float dt){
     if(bossesKilled > 0){
         PlayerDetail::getInstance().addScore(m_bossBuilder.consumeKillScore());
     }
+    // HIDDEN BOSS: slash the shopkeeper three times and he draws his blade
+    {
+        SDL_FRect merchantBody{0.0f, 0.0f, 0.0f, 0.0f};
+        const InteractableBuilder::MerchantHit mh = m_interactableBuilder.hitMerchant(m_playerHitBox, m_isAttacking, m_attackId, merchantBody);
+        if(mh != InteractableBuilder::MerchantHit::NONE){
+            m_particleSystem.emitBurst(merchantBody.x + merchantBody.w * 0.5f, merchantBody.y + merchantBody.h * 0.45f,
+                                       mh == InteractableBuilder::MerchantHit::ANGERED ? 26 : 10, 90.0f, 300.0f, 0.2f, 0.5f, 34.0f, 255, 220, 150);
+            if(mh == InteractableBuilder::MerchantHit::ANGERED) angerMerchant(merchantBody);
+        }
+    }
     // magic: every slash that lands on an enemy or a boss pays a little (this is the ONLY way to gain magic)
     awardHitMagic(m_enemyBuilder.consumeSlashHits(), m_bossBuilder.consumeSlashHits());
     flushEnemyHitEffects();
@@ -2280,11 +2290,30 @@ void GameState::debugJumpToLevel(int level) {
 }
 
 void GameState::resetBossFight() {
-    if(m_bosses.empty()) return;
+    if(m_bosses.empty() && m_bossBuilder.getBosses().empty()) return;      // (no level boss and no angered merchant: nothing to reset)
     const bool wasActive = m_bossBuilder.resetFight();
     if(wasActive) m_enemyBuilder.init(m_enemies);       // minions the boss called vanish with the fight
     if(m_arenaLocked){ m_arenaLocked = false; Camera::getInstance().unlock(); }
     m_arenaGate = 0.0f;
+}
+
+// The shopkeeper was a swordswoman all along. Three slashes and the fight starts where he stood (he falls onto the floor like any boss).
+void GameState::angerMerchant(const SDL_FRect& body) {
+    const BossDef* def = getBossDef(BossType::MERCHANT);
+    const float bw = def ? def->w : 60.0f, bh = def ? def->h : 125.0f;
+    Boss boss(body.x + body.w * 0.5f - bw * 0.5f, body.y + body.h - bh, BossType::MERCHANT);
+    boss.musicPhase1 = "Sound/Music/Boss/merchant_phase1.ogg";      // optional files: a missing one just leaves the level music playing
+    boss.musicPhase2 = "Sound/Music/Boss/merchant_phase2.ogg";      // (the Timeless Angel's theme)
+    boss.isFacingRight = (m_player.x + m_player.w * 0.5f) > (body.x + body.w * 0.5f);
+    m_bossBuilder.spawnBoss(boss);
+    m_bossWasAlive = true;
+}
+
+// Beating the Merchant: every shop upgrade at its top level, for free. (The shop itself is gone for good: see InteractableBuilder::init.)
+void GameState::onMerchantDefeated() {
+    PlayerDetail::getInstance().unlockAllUpgrades();
+    m_bossBuilder.showMessageCard("ALL UPGRADES UNLOCKED", "The Timeless Angel is no more", "REWARD");
+    m_particleSystem.emitBurst(m_player.x + m_player.w * 0.5f, m_player.y + m_player.h * 0.5f, 36, 140.0f, 420.0f, 0.5f, 1.0f, 60.0f, 255, 235, 160);
 }
 
 void GameState::flushBossEffects() {
@@ -2294,6 +2323,9 @@ void GameState::flushBossEffects() {
     }
     for(const SDL_FPoint& p : m_bossBuilder.consumeDeathEvents())
         m_particleSystem.emitBurst(p.x, p.y, 40, 160.0f, 520.0f, 0.5f, 1.0f, 70.0f, 255, 240, 200);
+
+    for(const BossType t : m_bossBuilder.consumeKilledBosses())
+        if(t == BossType::MERCHANT) onMerchantDefeated();
 
     for(const BossSummonRequest& s : m_bossBuilder.consumeSummons()){
         const EnemyAIConfig* cfg = getEnemyAIConfig(s.type);
@@ -2309,7 +2341,7 @@ void GameState::flushBossEffects() {
 
     // last boss down: the exit flag appears with a burst
     const bool alive = m_bossBuilder.hasLivingBoss();
-    if(m_bossWasAlive && !alive)
+    if(m_bossWasAlive && !alive && !m_bosses.empty())       // (only a level boss opens the exit; the hidden merchant has his own reward)
         m_particleSystem.emitBurst(m_checkPoint.x + m_checkPoint.w * 0.5f, m_checkPoint.y + m_checkPoint.h * 0.6f,
                                    30, 120.0f, 380.0f, 0.5f, 1.0f, 50.0f, 255, 230, 150);
     m_bossWasAlive = alive;

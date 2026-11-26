@@ -113,6 +113,9 @@ enum class BossType {
     MOUNTAIN_BROTHER,        // main  - the preacher's brother: tail whip, flame breath, jump stomp; phase 2 faster + tankier
     // Peak
     PEAK_THE_PREACHER,       // main  - final boss, 3 phases (see Bosses.cpp)
+    // Hidden
+    MERCHANT,                // main  - HIDDEN side boss: slash the shopkeeper three times. A swordswoman; phase 2 = the Timeless Angel.
+    //         Defeating it unlocks every shop upgrade at max level (GameState::onMerchantDefeated)
     NONE
 };
 
@@ -344,6 +347,7 @@ struct Boss {
     BossPhase phase = BossPhase::PHASE_1;
     BossState state = BossState::DORMANT;
     bool isFacingRight = false;
+    float artVx = 0.0f;               // horizontal speed this frame (px/s, set by BossBuilder::update): picks run / idle for the art
 
     float velocityY = 0.0f;
     bool  isGrounded = false;
@@ -478,6 +482,11 @@ public:
     std::vector<SDL_FPoint> consumeDeathEvents(){ std::vector<SDL_FPoint> o; o.swap(m_deathEvents); return o; }
     std::vector<BossSummonRequest> consumeSummons(){ std::vector<BossSummonRequest> o; o.swap(m_summons); return o; }
     int  consumeKillScore(){ int s = m_killScore; m_killScore = 0; return s; }
+    // the types of the bosses that died since the last call (cleared on read): GameState reacts to special ones (the Merchant)
+    std::vector<BossType> consumeKilledBosses(){ std::vector<BossType> o; o.swap(m_killed); return o; }
+    // add a boss while the level is running (the angered Merchant). It starts DORMANT like a level boss and the fight begins as
+    // soon as the player is inside its arena (derived from where it stands). Survives resetFight() like any level boss.
+    void spawnBoss(const Boss& b);
     // player SLASH hits that landed on a boss (or one of its parts) since the last call, cleared on read; the beam is not
     // counted. GameState turns these into magic (Upgrades::MAGIC_PER_BOSS_HIT).
     int  consumeSlashHits(){ const int h = m_slashHits; m_slashHits = 0; return h; }
@@ -520,6 +529,8 @@ public:
     BossHudInfo getHudInfo() const;
     BossRank getRank() const;
     void showTitleCard(const Boss& b, int phaseIdx, bool nameCard);
+    // the same big card with free text (the Merchant's reward: "ALL UPGRADES UNLOCKED"); `tag` replaces THREAT / CHALLENGE
+    void showMessageCard(const std::string& main, const std::string& sub, const std::string& tag);
     const std::vector<Boss>& getBosses() const { return m_bosses; }
     const std::vector<BossHazard>& getHazards() const { return m_hazards; }
 
@@ -585,6 +596,9 @@ private:
 
     // --- placeholder rendering (no boss art yet; same convention as EnemiesBuilder) ---
     void renderBoss(SDL_Renderer* r, const Boss& b, int camX, int camY) const;
+    // sprite rendering for the bosses that have art (Giant Rat, Merchant / Timeless Angel). false = no art for this boss (or its sheets
+    // are missing): renderBoss then draws the placeholder rectangle.
+    bool renderBossArt(SDL_Renderer* r, const Boss& b, int camX, int camY) const;
     void renderAttackPlaceholders(SDL_Renderer* r, int camX, int camY) const;
 
     float phaseSpeedMul(const Boss& b) const;
@@ -620,6 +634,7 @@ private:
     bool  m_upperReached = false;   // ...and the player is up there too: the arena lock moves up
     float m_lowerFloorY = 0.0f;
     std::vector<SDL_FPoint> m_deathEvents;
+    std::vector<BossType> m_killed;
     std::vector<BossSummonRequest> m_summons;
     float m_floorY = 0.0f;          // bottom of the arena (set every update, used by the rock warning columns)
     int  m_activeIdx = -1;          // the boss currently being fought (-1 = none)
@@ -635,7 +650,7 @@ private:
     std::mt19937 m_rng{12345u};
     // title card (see showTitleCard / renderTitleCard)
     struct TitleCard { bool on = false; unsigned int start = 0, dur = 0; bool nameCard = true; BossRank rank = BossRank::THREAT;
-        std::string main, sub; } m_card;
+        std::string main, sub, tag; } m_card;      // tag: when not empty it replaces THREAT / CHALLENGE
     mutable std::unique_ptr<MenuFont> m_cardFont;
     mutable MenuLabel m_cardMain, m_cardTag, m_cardSub;
     mutable std::string m_cardMainKey, m_cardTagKey, m_cardSubKey;

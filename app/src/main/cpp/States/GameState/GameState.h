@@ -171,6 +171,8 @@ public:
     void updateBossArena(float realDt);
     // player died: bosses go back to sleep at full hp, arena unlocks, level music returns (called from respawnPlayer)
     void resetBossFight();
+    void angerMerchant(const SDL_FRect& body);   // the hidden boss: the shopkeeper draws his blade where he stood
+    void onMerchantDefeated();                    // ...and beating him unlocks every shop upgrade
     void renderArenaGates(SDL_Renderer* renderer);   // energy walls on the arena edges while it is locked
     void renderBossName(SDL_Renderer* renderer);     // name under the boss health bar
     // hit VFX: sparks, screen shake, hit-stop, combo (fed by EnemiesBuilder::consumeHitEvents)

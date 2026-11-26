@@ -33,6 +33,8 @@ struct Interactable{
     std::string speaker;
     std::vector<std::string> lines;         // one entry per dialog page
     bool isMerchant = false;                // true = interact opens the upgrade shop (see GameState::openShop), no dialog
+    int  hits = 0;                          // merchant only: slashes taken so far (the hidden boss: see hitMerchant)
+    int  lastHitAttackId = -1;              // merchant only: one count per swing
     bool inRange = false;                   // player overlaps the trigger area (set by update)
     float emitAcc = 0.0f;                   // fractional light motes owed (set by update)
 };
@@ -62,6 +64,13 @@ public:
     void closeDialog();
     // true once after interact() / a tap used a merchant: the owner (GameState) opens the shop screen
     bool consumeShopRequest(){ const bool r = m_shopRequested; m_shopRequested = false; return r; }
+
+    // HIDDEN BOSS: the merchant can be slashed. Each swing that touches him counts once; the MERCHANT_ANGER_HITS-th one makes him draw his
+    // blade - he is removed from here (the shop closes for good) and ANGERED is returned so GameState starts the boss fight where he stood.
+    // outBody = his hurt rect in world px (where to put the hit spark / the boss).
+    enum class MerchantHit { NONE, HIT, ANGERED };
+    static constexpr int MERCHANT_ANGER_HITS = 3;
+    MerchantHit hitMerchant(const SDL_FRect& melee, bool meleeActive, int attackId, SDL_FRect& outBody);
 
 private:
     // one light mote / spark / shock ring. World-space ones live in m_worldFx, bubble ones in m_screenFx.

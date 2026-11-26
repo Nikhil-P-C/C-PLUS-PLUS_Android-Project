@@ -561,6 +561,24 @@ void AssetManager::init(SDL_Renderer *renderer,MIX_Mixer* mixer) {
     loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_HIT,    "Enemy/mountain_cat/mountain_cat_hit.png");
     loadTexture(TextureType::ENEMY_MOUNTAIN_CAT_DEAD,   "Enemy/mountain_cat/mountain_cat_death.png");
 
+    // --- boss sheets: one horizontal strip per animation. Giant Rat 70x70 frames, Merchant 69x44 frames (all sheets share the same origin) ---
+    loadTexture(TextureType::BOSS_GIANT_RAT_IDLE, "Boss/giant_rat/giant_rat_idle.png");
+    loadTexture(TextureType::BOSS_GIANT_RAT_RUN,  "Boss/giant_rat/giant_rat_run.png");
+    loadTexture(TextureType::BOSS_GIANT_RAT_BITE, "Boss/giant_rat/giant_rat_bite.png");
+    loadTexture(TextureType::BOSS_GIANT_RAT_HURT, "Boss/giant_rat/giant_rat_hurt.png");
+    loadTexture(TextureType::BOSS_GIANT_RAT_DEAD, "Boss/giant_rat/giant_rat_death.png");
+    loadTexture(TextureType::BOSS_MERCHANT_IDLE,        "Boss/merchant/merchant_idle.png");
+    loadTexture(TextureType::BOSS_MERCHANT_RUN,         "Boss/merchant/merchant_run.png");
+    loadTexture(TextureType::BOSS_MERCHANT_ATTACK,      "Boss/merchant/merchant_attack.png");
+    loadTexture(TextureType::BOSS_MERCHANT_DASH_ATTACK, "Boss/merchant/merchant_dash_attack.png");
+    loadTexture(TextureType::BOSS_MERCHANT_DASH,        "Boss/merchant/merchant_dash.png");
+    loadTexture(TextureType::BOSS_MERCHANT_SLIDE,       "Boss/merchant/merchant_slide.png");
+    loadTexture(TextureType::BOSS_MERCHANT_CROUCH,      "Boss/merchant/merchant_crouch.png");
+    loadTexture(TextureType::BOSS_MERCHANT_JUMP,        "Boss/merchant/merchant_jump.png");
+    loadTexture(TextureType::BOSS_MERCHANT_FALL,        "Boss/merchant/merchant_fall.png");
+    loadTexture(TextureType::BOSS_MERCHANT_HURT,        "Boss/merchant/merchant_hurt.png");
+    loadTexture(TextureType::BOSS_MERCHANT_DEAD,        "Boss/merchant/merchant_death.png");
+
     loadSound(SoundType::SFX_FOOTSTEPS,"Sound/footstep/concrete_step.wav");
     loadSound(SoundType::SFX_JUMP, "Sound/Jump/Jump.wav");
     loadSound(SoundType::SFX_ATTACK_SLASH_HIT, "Sound/Slash/Hit/Hit.wav");

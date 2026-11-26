@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include "utils/utils.h"
+#include "utils/PlayerData.h"
 #include "States/GameState/GameState.h"   // SCALE, Camera
 
 namespace {
@@ -133,8 +134,34 @@ void InteractableBuilder::drawMerchant(SDL_Renderer* renderer, const Interactabl
 
 InteractableBuilder::~InteractableBuilder() = default;   // labels free their textures themselves
 
+// The merchant's body (see drawMerchant): centred on the trigger area, 128 px tall, standing 64 px above its bottom edge.
+InteractableBuilder::MerchantHit InteractableBuilder::hitMerchant(const SDL_FRect& melee, bool meleeActive, int attackId, SDL_FRect& outBody){
+    if(!meleeActive) return MerchantHit::NONE;
+    for(int i = 0; i < (int)m_interactables.size(); ++i){
+        Interactable& it = m_interactables[i];
+        if(!it.isMerchant || it.lastHitAttackId == attackId) continue;
+        const float cx = it.x + it.w * 0.5f, feet = it.y + it.h - 64.0f;
+        const SDL_FRect hurt{cx - 45.0f, feet - 128.0f, 90.0f, 128.0f};
+        if(!overlaps(melee, hurt)) continue;
+        it.lastHitAttackId = attackId;
+        outBody = hurt;
+        if(++it.hits < MERCHANT_ANGER_HITS) return MerchantHit::HIT;
+        if(m_active == i) closeDialog();
+        m_interactables.erase(m_interactables.begin() + i);
+        if(m_active > i) --m_active;
+        m_shopRequested = false;
+        return MerchantHit::ANGERED;
+    }
+    return MerchantHit::NONE;
+}
+
 void InteractableBuilder::init(const std::vector<Interactable>& interactables){
-    m_interactables = interactables;
+    m_interactables.clear();
+    for(const Interactable& it : interactables){
+        // the hidden Merchant boss was beaten: the shopkeeper is gone from every level (he gave you everything)
+        if(it.isMerchant && PlayerDetail::getInstance().isMerchantDefeated()) continue;
+        m_interactables.push_back(it);
+    }
     m_worldFx.clear();
     m_screenFx.clear();
     m_shopRequested = false;
